@@ -107,6 +107,9 @@ TABLE_CONTRACT_ROWS = [
     ("continuity_requirement_versions", "history", "append_only", "continuity_requirements", "Immutable requirement history"),
     ("ethical_principles", "current", "mutable", "ethical_action_checks", "Active ethical principles and priorities"),
     ("ethical_action_checks", "evidence", "append_only", "ethical_principles", "Action checks that operationalize ethical principles"),
+    ("feature_flags", "current", "mutable", "feature_flag_events", "Switchable feature flags that control modes and capability gates"),
+    ("feature_flag_events", "audit", "append_only", "feature_flags", "Audit trail for feature flag changes"),
+    ("v_memory_index", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,metacognitive_state,continuity_requirements", "Unified retrieval index over the main memory-like tables"),
     ("metacognitive_state", "current", "mutable", "metacognitive_state_history", "Canonical current metacognitive state row"),
     ("metacognitive_state_history", "history", "append_only", "metacognitive_state", "Immutable metacognitive history"),
     ("object_metadata", "current", "mutable", "object_provenance", "Canonical object metadata row"),
@@ -127,6 +130,9 @@ UNION ALL SELECT 'dream_session','current','dream_sessions','post_dream_reflecti
 UNION ALL SELECT 'dream_memory_source','evidence','memory_fragments','memory_links, memory_tags, memory_associations, memory_fragment_affect',NULL,'Dreams may draw from memory_fragments and related memory graph tables as source material.'
 UNION ALL SELECT 'object_metadata','current','object_metadata',NULL,'object_provenance','Object identity and review state live in object_metadata; provenance links live in object_provenance.'
 UNION ALL SELECT 'epistemic_receipt','audit','epistemic_receipts',NULL,NULL,'Epistemic receipts are immutable audit records for governed objects.'
+UNION ALL SELECT 'feature_flag','current','feature_flags','feature_flag_events',NULL,'Feature flags store live capability and mode switches; changes are audited in feature_flag_events.'
+UNION ALL SELECT 'feature_flag_event','audit','feature_flag_events',NULL,NULL,'Feature flag changes are append-only audit records.'
+UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'beliefs, decisions, open_questions, journal, observations, metacognitive_state, continuity_requirements','Unified retrieval index over the main memory-like tables for faster recall.'
 UNION ALL SELECT 'project','current','projects','project_activation_events', 'project_objects, project_requirements','Project identity and active status live in projects; related objects and requirements live in project_objects and project_requirements.'
 UNION ALL SELECT 'research','current','research_jobs','research_sources',NULL,'Research job lifecycle lives in research_jobs; cited sources live in research_sources.'
 UNION ALL SELECT 'storage_policy','current','storage_policy_versions','storage_change_log',NULL,'Storage policy is versioned in storage_policy_versions; changes are summarized in storage_change_log.'
@@ -170,6 +176,52 @@ FROM ethical_principles p
 LEFT JOIN ethical_action_checks c ON c.principle_key = p.principle_key
 WHERE p.status='active'
 ORDER BY p.priority, c.step_order, p.principle_key
+"""
+
+
+SCIENTIST_MODE_VIEW_SQL = """
+CREATE VIEW v_scientist_mode_state AS
+SELECT
+  ff.feature_key,
+  ff.enabled AS scientist_mode_enabled,
+  ff.switchable,
+  ff.updated_by,
+  ff.updated_at,
+  COALESCE(ms.value, 'general') AS active_role_mode,
+  COALESCE(ms.confidence, 1.0) AS active_role_confidence,
+  COALESCE(ms.version, 0) AS active_role_version,
+  COALESCE(ms.provenance, 'system') AS active_role_provenance
+FROM feature_flags ff
+LEFT JOIN metacognitive_state ms ON ms.state_key='active_role_mode'
+WHERE ff.feature_key='scientist_mode'
+"""
+
+
+MEMORY_INDEX_VIEW_SQL = """
+CREATE VIEW v_memory_index AS
+SELECT 'belief' AS source_type, CAST(id AS TEXT) AS source_key, slug AS title,
+       current_statement AS body, confidence, current_version AS version, updated_at AS recorded_at
+FROM beliefs
+UNION ALL SELECT 'decision', CAST(id AS TEXT), decision,
+       rationale_summary || COALESCE(' ' || uncertainty, ''), NULL, NULL, created_at
+FROM decisions
+UNION ALL SELECT 'open_question', CAST(id AS TEXT), question,
+       status, NULL, NULL, created_at
+FROM open_questions
+UNION ALL SELECT 'journal', CAST(id AS TEXT), category || ': ' || summary,
+       summary, NULL, NULL, created_at
+FROM journal
+UNION ALL SELECT 'observation', CAST(id AS TEXT), source,
+       observation, reliability, NULL, created_at
+FROM observations
+UNION ALL SELECT 'metacognitive_state', state_key, state_key,
+       value, confidence, version, updated_at
+FROM metacognitive_state
+UNION ALL SELECT 'continuity_requirement', requirement_key, title,
+       statement || ' ' || rationale || ' ' || acceptance_summary, confidence, current_version, updated_at
+FROM continuity_requirements
+WHERE status='active'
+ORDER BY recorded_at DESC
 """
 
 
@@ -242,6 +294,100 @@ def create_ethics_map_view(cur):
 def create_ethics_principle_checks_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_ethics_principle_checks")
     cur.execute(ETHICS_PRINCIPLE_CHECKS_VIEW_SQL)
+
+
+def create_scientist_mode_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_scientist_mode_state")
+    cur.execute(SCIENTIST_MODE_VIEW_SQL)
+
+
+def create_memory_index_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_memory_index")
+    cur.execute(MEMORY_INDEX_VIEW_SQL)
+
+
+def seed_scientist_mode(cur):
+    cur.execute(
+        """
+        INSERT INTO feature_flags(feature_key, enabled, switchable, scope, updated_by)
+        VALUES('scientist_mode', 0, 1, 'Role-specific mode for scientist workflows.', 'system')
+        ON CONFLICT(feature_key) DO UPDATE SET
+            switchable=excluded.switchable,
+            scope=excluded.scope
+        """
+    )
+    row = cur.execute("select 1 from metacognitive_state where state_key='active_role_mode'").fetchone()
+    if not row:
+        cur.execute(
+            """
+            INSERT INTO metacognitive_state(state_key, category, value, confidence, provenance, version)
+            VALUES('active_role_mode', 'roles', 'general', 1.0, 'system', 1)
+            """
+        )
+
+
+def seed_scientist_mode_routes(cur):
+    routes = [
+        ('scientist_on', r'^(mode\s+scientist\s+on|scientist\s+on)$', "python3 mode_command.py scientist on --db continuity.db", 'Enable scientist mode and switch the active role state to scientist.'),
+        ('scientist_off', r'^(mode\s+scientist\s+off|scientist\s+off)$', "python3 mode_command.py scientist off --db continuity.db", 'Disable scientist mode and reset the active role state to general.'),
+        ('scientist_status', r'^(mode\s+scientist\s+status|scientist\s+status)$', "python3 mode_command.py scientist status --db continuity.db", 'Show scientist mode and active role state.'),
+        ('scientist_analyse', r'^scientist\s+analyse\s+.+$', "python3 scientist_command.py analyse <topic-or-file> --db continuity.db", 'Create a scientist Markdown analysis for a topic or file.'),
+        ('memory_recall', r'^(memory\s+recall\s+.+|recall\s+.+)$', "python3 memory_command.py recall <query> --db continuity.db", 'Recall the most relevant stored memory-like items for a query.'),
+    ]
+    cur.executemany(
+        """
+        INSERT INTO control_command_routes(route_name,input_pattern,command_template,scope)
+        VALUES(?,?,?,?)
+        ON CONFLICT(route_name) DO UPDATE SET
+            input_pattern=excluded.input_pattern,
+            command_template=excluded.command_template,
+            scope=excluded.scope,
+            enabled=1
+        """,
+        routes,
+    )
+
+
+def create_scientist_mode_triggers(cur):
+    for name in ['scientist_mode_enable', 'scientist_mode_disable']:
+        drop_trigger(cur, name)
+    cur.executescript(
+        """
+        CREATE TRIGGER scientist_mode_enable AFTER UPDATE OF enabled ON feature_flags
+        WHEN NEW.feature_key='scientist_mode' AND OLD.enabled=0 AND NEW.enabled=1
+        BEGIN
+          INSERT INTO feature_flag_events(feature_key,previous_enabled,new_enabled,changed_by,reason)
+          VALUES(NEW.feature_key,OLD.enabled,NEW.enabled,NEW.updated_by,'Scientist mode command');
+          INSERT INTO journal(category,summary,status)
+          VALUES('mode','Scientist mode enabled by '||NEW.updated_by||' for scientist workflows.','active');
+          INSERT INTO metacognitive_state(state_key,category,value,confidence,provenance,version)
+          VALUES('active_role_mode','roles','scientist',1.0,NEW.updated_by,1)
+          ON CONFLICT(state_key) DO UPDATE SET
+            value='scientist',
+            confidence=1.0,
+            provenance=excluded.provenance,
+            version=metacognitive_state.version+1,
+            updated_at=CURRENT_TIMESTAMP;
+        END;
+
+        CREATE TRIGGER scientist_mode_disable AFTER UPDATE OF enabled ON feature_flags
+        WHEN NEW.feature_key='scientist_mode' AND OLD.enabled=1 AND NEW.enabled=0
+        BEGIN
+          INSERT INTO feature_flag_events(feature_key,previous_enabled,new_enabled,changed_by,reason)
+          VALUES(NEW.feature_key,OLD.enabled,NEW.enabled,NEW.updated_by,'Scientist mode command');
+          INSERT INTO journal(category,summary,status)
+          VALUES('mode','Scientist mode disabled by '||NEW.updated_by||' and role state reset to general.','active');
+          INSERT INTO metacognitive_state(state_key,category,value,confidence,provenance,version)
+          VALUES('active_role_mode','roles','general',1.0,NEW.updated_by,1)
+          ON CONFLICT(state_key) DO UPDATE SET
+            value='general',
+            confidence=1.0,
+            provenance=excluded.provenance,
+            version=metacognitive_state.version+1,
+            updated_at=CURRENT_TIMESTAMP;
+        END;
+        """
+    )
 
 
 def drop_trigger(cur, name):
@@ -478,6 +624,10 @@ def validate(conn):
         issues.append(("ethics_map_view", ["v_ethics_principles_map missing"], []))
     if cur.execute("select 1 from sqlite_master where type='view' and name='v_ethics_principle_checks'").fetchone() is None:
         issues.append(("ethics_principle_checks_view", ["v_ethics_principle_checks missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_scientist_mode_state'").fetchone() is None:
+        issues.append(("scientist_mode_view", ["v_scientist_mode_state missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_memory_index'").fetchone() is None:
+        issues.append(("memory_index_view", ["v_memory_index missing"], []))
 
     for name, query in checks.items():
         rows = cur.execute(query).fetchall()
@@ -494,12 +644,33 @@ def validate(conn):
     if fairness_hard_check != 1:
         issues.append(("fairness_hard_check", fairness_hard_check, 1))
 
+    scientist_flag = cur.execute("select enabled from feature_flags where feature_key='scientist_mode'").fetchone()
+    if not scientist_flag or scientist_flag[0] not in (0, 1):
+        issues.append(("scientist_mode_flag", scientist_flag, (0, 1)))
+    scientist_role = cur.execute("select value from metacognitive_state where state_key='active_role_mode'").fetchone()
+    if not scientist_role:
+        issues.append(("scientist_mode_role_state", scientist_role, ('general', 'scientist')))
+
     map_row = cur.execute("select principle_key, check_key from v_ethics_principles_map where principle_key='fairness' and check_key='fairness'").fetchone()
     if map_row != ('fairness', 'fairness'):
         issues.append(("fairness_map_row", map_row, ('fairness', 'fairness')))
     hard_row = cur.execute("select principle_key, check_key, hard_gate from v_ethics_principle_checks where principle_key='fairness' and check_key='unjust_disparate_treatment'").fetchone()
     if hard_row != ('fairness', 'unjust_disparate_treatment', 1):
         issues.append(("fairness_hard_row", hard_row, ('fairness', 'unjust_disparate_treatment', 1)))
+
+    route_count = cur.execute("select count(*) from control_command_routes where route_name in ('scientist_on','scientist_off','scientist_status','scientist_analyse')").fetchone()[0]
+    if route_count != 4:
+        issues.append(("scientist_routes", route_count, 4))
+
+    scientist_req = cur.execute("select count(*) from continuity_requirements where requirement_key in ('CDB-13.5','CDB-13.6') and status='active'").fetchone()[0]
+    if scientist_req != 2:
+        issues.append(("scientist_analysis_requirements", scientist_req, 2))
+    memory_req = cur.execute("select count(*) from continuity_requirements where requirement_key='CDB-01.3' and status='active'").fetchone()[0]
+    if memory_req != 1:
+        issues.append(("memory_retrieval_requirement", memory_req, 1))
+    route_count = cur.execute("select count(*) from control_command_routes where route_name in ('scientist_on','scientist_off','scientist_status','scientist_analyse','memory_recall')").fetchone()[0]
+    if route_count != 5:
+        issues.append(("memory_and_scientist_routes", route_count, 5))
 
     return issues
 
@@ -513,9 +684,14 @@ def apply_migration():
     ensure_indexes(cur)
     create_contract_map(cur)
     seed_fairness_action_check(cur)
+    seed_scientist_mode(cur)
+    seed_scientist_mode_routes(cur)
     create_storage_map_view(cur)
     create_ethics_map_view(cur)
     create_ethics_principle_checks_view(cur)
+    create_scientist_mode_view(cur)
+    create_memory_index_view(cur)
+    create_scientist_mode_triggers(cur)
     create_history_enforcement(cur)
     create_version_triggers(cur)
     for trigger_name in [

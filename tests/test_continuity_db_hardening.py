@@ -35,10 +35,13 @@ class ContinuityDbHardeningTests(unittest.TestCase):
                 ('epistemic_receipts', 'audit', 'immutable'),
                 ('ethical_action_checks', 'evidence', 'append_only'),
                 ('ethical_principles', 'current', 'mutable'),
+                ('feature_flag_events', 'audit', 'append_only'),
+                ('feature_flags', 'current', 'mutable'),
                 ('metacognitive_state', 'current', 'mutable'),
                 ('metacognitive_state_history', 'history', 'append_only'),
                 ('object_metadata', 'current', 'mutable'),
                 ('object_provenance', 'evidence', 'mutable'),
+                ('v_memory_index', 'derived', 'derived'),
             ],
         )
 
@@ -55,6 +58,8 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertIn('belief', concepts)
         self.assertIn('dream_session', concepts)
         self.assertIn('epistemic_receipt', concepts)
+        self.assertIn('feature_flag', concepts)
+        self.assertIn('memory_index', concepts)
         self.assertIn('object_metadata', concepts)
         self.assertIn('metacognitive_state', concepts)
         self.assertGreaterEqual(len(rows), 10)
