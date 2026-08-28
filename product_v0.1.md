@@ -15,6 +15,18 @@ The product classifies offerings by quality levels:
 
 It also includes a chat field that explains how to search effectively.
 
+## Advantage over general AI
+
+A general AI primarily answers a question by using its knowledge and search capabilities to produce a recommendation:
+
+**General AI:**  
+Question → AI knowledge/search → recommendation
+
+The discovery service manages a deeper, structured discovery process from the customer's underlying need through to a suitable solution:
+
+**Discovery service:**  
+Need → clarification → structured requirements → market search → supplier feedback → comparison → solution
+
 ## Scope sheet
 
 | Area | In scope |
