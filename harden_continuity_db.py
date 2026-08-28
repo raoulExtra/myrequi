@@ -101,20 +101,39 @@ def ensure_indexes(cur):
 
 
 TABLE_CONTRACT_ROWS = [
-    ("beliefs", "current", "mutable", "belief_versions", "Canonical current belief row"),
     ("belief_versions", "history", "append_only", "beliefs", "Immutable belief history"),
-    ("continuity_requirements", "current", "mutable", "continuity_requirement_versions", "Canonical current requirement row"),
+    ("beliefs", "current", "mutable", "belief_versions", "Canonical current belief row"),
+    ("concept_links", "evidence", "append_only", "concepts", "Links from concepts to beliefs, decisions, requirements, and states."),
+    ("concepts", "current", "mutable", "concept_links", "Canonical concept catalog."),
     ("continuity_requirement_versions", "history", "append_only", "continuity_requirements", "Immutable requirement history"),
-    ("ethical_principles", "current", "mutable", "ethical_action_checks", "Active ethical principles and priorities"),
+    ("continuity_requirements", "current", "mutable", "continuity_requirement_versions", "Canonical current requirement row"),
+    ("epistemic_receipts", "audit", "immutable", None, "Immutable audit log"),
+    ("epistemic_tags", "current", "mutable", "object_epistemic_tags", "Tag vocabulary for epistemic separation."),
     ("ethical_action_checks", "evidence", "append_only", "ethical_principles", "Action checks that operationalize ethical principles"),
-    ("feature_flags", "current", "mutable", "feature_flag_events", "Switchable feature flags that control modes and capability gates"),
+    ("ethical_principles", "current", "mutable", "ethical_action_checks", "Active ethical principles and priorities"),
     ("feature_flag_events", "audit", "append_only", "feature_flags", "Audit trail for feature flag changes"),
-    ("v_memory_index", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,metacognitive_state,continuity_requirements", "Unified retrieval index over the main memory-like tables"),
+    ("feature_flags", "current", "mutable", "feature_flag_events", "Switchable feature flags that control modes and capability gates"),
     ("metacognitive_state", "current", "mutable", "metacognitive_state_history", "Canonical current metacognitive state row"),
     ("metacognitive_state_history", "history", "append_only", "metacognitive_state", "Immutable metacognitive history"),
+    ("object_epistemic_tags", "evidence", "append_only", "epistemic_tags", "Per-object epistemic tags."),
     ("object_metadata", "current", "mutable", "object_provenance", "Canonical object metadata row"),
     ("object_provenance", "evidence", "mutable", "object_metadata", "Supporting provenance for objects"),
-    ("epistemic_receipts", "audit", "immutable", None, "Immutable audit log"),
+    ("synthesis_conflicts", "audit", "append_only", "syntheses", "Recorded tensions or unresolved issues around a synthesis."),
+    ("synthesis_inputs", "evidence", "append_only", "syntheses", "Evidence links and weights used to derive a synthesis."),
+    ("syntheses", "current", "mutable", "synthesis_inputs, synthesis_conflicts", "Canonical interpreted layer entries."),
+    ("v_concept_links", "derived", "derived", "concepts,concept_links", "Readable expanded concept links view."),
+    ("v_concepts", "derived", "derived", "concepts,concept_links", "Readable concept catalog view."),
+    ("v_interpreted_layer", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts,metacognitive_state", "Workbench view over interpreted syntheses and governing metacognitive state."),
+    ("v_meaningful_sentences", "derived", "derived", "beliefs,decisions,continuity_requirements,metacognitive_state,concepts,ethical_principles", "Prioritized view of meaningful sentences across the main semantic tables."),
+    ("v_memory_index", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,metacognitive_state,continuity_requirements,concepts,concept_links,ethical_principles,ethical_conflict_rules,tool_command_guide,work_plans,work_plan_steps,projects,research_jobs,syntheses,synthesis_conflicts", "Unified retrieval index over the main memory-like tables"),
+    ("v_object_epistemic_tags", "derived", "derived", "epistemic_tags,object_epistemic_tags", "Readable expanded epistemic tags view."),
+    ("v_synthesis_conflicts", "derived", "derived", "syntheses,synthesis_conflicts", "Readable conflict and tension view for syntheses."),
+    ("v_synthesis_inputs", "derived", "derived", "syntheses,synthesis_inputs", "Readable evidence view for syntheses."),
+    ("v_syntheses", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts", "Readable summary view for syntheses."),
+    ("v_work_plan_links", "derived", "derived", None, "Readable join over work plan links with source and target plan names."),
+    ("work_plan_links", "derived", "append_only", "work_plans,work_plan_steps", "Named links between plans and optional source steps."),
+    ("work_plan_steps", "current", "mutable", "work_plans", "Ordered steps belonging to a plan."),
+    ("work_plans", "current", "mutable", "work_plan_steps", "Named plans with objective and status."),
 ]
 
 
@@ -132,7 +151,11 @@ UNION ALL SELECT 'object_metadata','current','object_metadata',NULL,'object_prov
 UNION ALL SELECT 'epistemic_receipt','audit','epistemic_receipts',NULL,NULL,'Epistemic receipts are immutable audit records for governed objects.'
 UNION ALL SELECT 'feature_flag','current','feature_flags','feature_flag_events',NULL,'Feature flags store live capability and mode switches; changes are audited in feature_flag_events.'
 UNION ALL SELECT 'feature_flag_event','audit','feature_flag_events',NULL,NULL,'Feature flag changes are append-only audit records.'
-UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'beliefs, decisions, open_questions, journal, observations, metacognitive_state, continuity_requirements','Unified retrieval index over the main memory-like tables for faster recall.'
+UNION ALL SELECT 'synthesis','current','syntheses','synthesis_inputs, synthesis_conflicts','syntheses, synthesis_inputs, synthesis_conflicts, metacognitive_state','Interpreted outputs derived from evidence and governed by metacognition.'
+UNION ALL SELECT 'synthesis_input','evidence','synthesis_inputs','syntheses',NULL,'Evidence links, weights, and notes used by syntheses.'
+UNION ALL SELECT 'synthesis_conflict','audit','synthesis_conflicts','syntheses',NULL,'Recorded tensions or unresolved issues around syntheses.'
+UNION ALL SELECT 'interpreted_layer','derived','v_interpreted_layer',NULL,'syntheses, synthesis_inputs, synthesis_conflicts, metacognitive_state','Workbench view over interpreted syntheses and the governing metacognitive policy.'
+UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'beliefs, decisions, open_questions, journal, observations, metacognitive_state, continuity_requirements, concepts, concept_links, ethical_principles, ethical_conflict_rules, tool_command_guide, work_plans, work_plan_steps, projects, research_jobs, syntheses, synthesis_conflicts','Unified retrieval index over the main memory-like tables for faster recall.'
 UNION ALL SELECT 'project','current','projects','project_activation_events', 'project_objects, project_requirements','Project identity and active status live in projects; related objects and requirements live in project_objects and project_requirements.'
 UNION ALL SELECT 'research','current','research_jobs','research_sources',NULL,'Research job lifecycle lives in research_jobs; cited sources live in research_sources.'
 UNION ALL SELECT 'storage_policy','current','storage_policy_versions','storage_change_log',NULL,'Storage policy is versioned in storage_policy_versions; changes are summarized in storage_change_log.'
@@ -221,8 +244,264 @@ UNION ALL SELECT 'continuity_requirement', requirement_key, title,
        statement || ' ' || rationale || ' ' || acceptance_summary, confidence, current_version, updated_at
 FROM continuity_requirements
 WHERE status='active'
+UNION ALL SELECT 'concept', concept_key, name,
+       description, confidence, NULL, updated_at
+FROM concepts
+UNION ALL SELECT 'concept_link', CAST(id AS TEXT), concept_key || ' → ' || object_type || ':' || object_key,
+       relation || ': ' || note, NULL, NULL, created_at
+FROM concept_links
+UNION ALL SELECT 'ethical_principle', principle_key, principle_key,
+       statement || ' ' || rationale, NULL, NULL, created_at
+FROM ethical_principles
+WHERE status='active'
+UNION ALL SELECT 'ethical_conflict_rule', CAST(priority AS TEXT), rule,
+       explanation, NULL, NULL, NULL
+FROM ethical_conflict_rules
+UNION ALL SELECT 'tool_guide', CAST(id AS TEXT), tool_name || ': ' || title,
+       command || COALESCE(char(10) || explanation, '') || COALESCE(char(10) || safety_note, ''), NULL, NULL, created_at
+FROM tool_command_guide
+UNION ALL SELECT 'work_plan', plan_key, title,
+       objective || ' ' || status, NULL, NULL, created_at
+FROM work_plans
+UNION ALL SELECT 'work_plan_step', CAST(s.id AS TEXT), p.plan_key || ' #' || CAST(s.step_order AS TEXT) || ' ' || s.step_key,
+       s.description || COALESCE(' ' || s.evidence, ''), NULL, NULL, COALESCE(s.started_at, s.completed_at)
+FROM work_plan_steps s
+JOIN work_plans p ON p.id = s.plan_id
+UNION ALL SELECT 'project', project_name, display_name,
+       description || ' ' || CASE WHEN local_active=1 THEN 'active' ELSE 'inactive' END, NULL, NULL, created_at
+FROM projects
+UNION ALL SELECT 'research_job', CAST(id AS TEXT), query,
+       COALESCE(result_summary, '') || COALESCE(' ' || error, ''), NULL, NULL, requested_at
+FROM research_jobs
+UNION ALL SELECT 'synthesis', synthesis_key, topic,
+       summary || COALESCE(' ' || claim, ''), confidence, NULL, updated_at
+FROM syntheses
+UNION ALL SELECT 'synthesis_conflict', CAST(c.id AS TEXT), s.synthesis_key || ': ' || c.issue,
+       c.resolution_note || COALESCE(' ' || c.issue, ''), NULL, NULL, c.created_at
+FROM synthesis_conflicts c JOIN syntheses s ON s.id = c.synthesis_id
 ORDER BY recorded_at DESC
 """
+
+
+INTERPRETED_LAYER_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS syntheses (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    synthesis_key TEXT NOT NULL UNIQUE,
+    topic TEXT NOT NULL,
+    summary TEXT NOT NULL,
+    claim TEXT,
+    confidence REAL NOT NULL CHECK(confidence BETWEEN 0 AND 1),
+    status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','active','superseded')),
+    source_mode TEXT NOT NULL DEFAULT 'derived' CHECK(source_mode IN ('derived','reviewed','external')),
+    metacognitive_note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS synthesis_inputs (
+    synthesis_id INTEGER NOT NULL REFERENCES syntheses(id) ON DELETE CASCADE,
+    source_type TEXT NOT NULL,
+    source_key TEXT NOT NULL,
+    relation TEXT NOT NULL CHECK(relation IN ('supports','opposes','grounds','refines','questions')),
+    weight REAL NOT NULL CHECK(weight BETWEEN 0 AND 1),
+    note TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (synthesis_id, source_type, source_key, relation)
+);
+
+CREATE TABLE IF NOT EXISTS synthesis_conflicts (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    synthesis_id INTEGER NOT NULL REFERENCES syntheses(id) ON DELETE CASCADE,
+    issue TEXT NOT NULL,
+    severity TEXT NOT NULL CHECK(severity IN ('info','warning','error')),
+    resolved INTEGER NOT NULL DEFAULT 0 CHECK(resolved IN (0,1)),
+    resolution_note TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(synthesis_id, issue)
+);
+
+CREATE INDEX IF NOT EXISTS idx_synthesis_inputs_synthesis ON synthesis_inputs(synthesis_id);
+CREATE INDEX IF NOT EXISTS idx_synthesis_conflicts_synthesis ON synthesis_conflicts(synthesis_id);
+"""
+
+
+INTERPRETED_LAYER_VIEWS_SQL = """
+CREATE VIEW v_syntheses AS
+SELECT
+    s.id,
+    s.synthesis_key,
+    s.topic,
+    s.summary,
+    s.claim,
+    s.confidence,
+    s.status,
+    s.source_mode,
+    s.metacognitive_note,
+    COUNT(DISTINCT i.source_type || ':' || i.source_key || ':' || i.relation) AS input_count,
+    COUNT(DISTINCT CASE WHEN i.relation='supports' THEN i.source_type || ':' || i.source_key END) AS supports_count,
+    COUNT(DISTINCT CASE WHEN i.relation='opposes' THEN i.source_type || ':' || i.source_key END) AS opposes_count,
+    COUNT(DISTINCT CASE WHEN c.resolved=0 THEN c.id END) AS unresolved_conflicts,
+    s.created_at,
+    s.updated_at
+FROM syntheses s
+LEFT JOIN synthesis_inputs i ON i.synthesis_id = s.id
+LEFT JOIN synthesis_conflicts c ON c.synthesis_id = s.id
+GROUP BY s.id;
+
+CREATE VIEW v_synthesis_inputs AS
+SELECT
+    i.synthesis_id,
+    s.synthesis_key,
+    s.topic,
+    i.source_type,
+    i.source_key,
+    i.relation,
+    i.weight,
+    i.note,
+    i.created_at
+FROM synthesis_inputs i
+JOIN syntheses s ON s.id = i.synthesis_id
+ORDER BY s.updated_at DESC, s.synthesis_key, i.created_at;
+
+CREATE VIEW v_synthesis_conflicts AS
+SELECT
+    c.id,
+    c.synthesis_id,
+    s.synthesis_key,
+    s.topic,
+    c.issue,
+    c.severity,
+    c.resolved,
+    c.resolution_note,
+    c.created_at
+FROM synthesis_conflicts c
+JOIN syntheses s ON s.id = c.synthesis_id
+ORDER BY s.updated_at DESC, c.id;
+
+CREATE VIEW v_interpreted_layer AS
+SELECT
+    s.synthesis_key,
+    s.topic,
+    s.summary,
+    s.claim,
+    s.confidence,
+    s.status,
+    s.source_mode,
+    s.metacognitive_note,
+    s.input_count,
+    s.supports_count,
+    s.opposes_count,
+    s.unresolved_conflicts,
+    COALESCE(sw.value, 'derive') AS synthesis_workflow,
+    COALESCE(cf.value, 'current_focus') AS metacognitive_focus
+FROM v_syntheses s
+LEFT JOIN metacognitive_state sw ON sw.state_key='synthesis_workflow'
+LEFT JOIN metacognitive_state cf ON cf.state_key='current_focus'
+ORDER BY s.updated_at DESC, s.synthesis_key;
+"""
+
+
+def create_interpretive_layer_tables(cur):
+    cur.executescript(INTERPRETED_LAYER_SCHEMA_SQL)
+
+
+def seed_interpretive_layer(cur):
+    cur.execute(
+        """
+        INSERT INTO metacognitive_state(state_key, category, value, confidence, provenance, version)
+        VALUES('synthesis_workflow', 'reasoning', ?, 1.0, 'system', 1)
+        ON CONFLICT(state_key) DO NOTHING
+        """,
+        (
+            'Treat syntheses as explicit derived interpretations with evidence links, conflicts, and revision history.',
+        ),
+    )
+
+    seeds = [
+        (
+            'operating_synthesis',
+            'Operating model',
+            'Continuity.db should separate raw evidence from derived interpretation, keep provenance attached, and revise syntheses when new evidence arrives.',
+            'The system should treat metacognition as a review loop over derived interpretations, not as a replacement for evidence.',
+            0.96,
+            'active',
+            'derived',
+            'Use this synthesis to govern how interpretations are made and updated.',
+            [
+                ('metacognitive_state', 'systematic_problem_solving', 'grounds', 0.95, 'Structured analysis is the default path for complex problems.'),
+                ('metacognitive_state', 'storage_intent', 'supports', 0.9, 'Add states or records when they materially improve continuity, decisions, metacognition, or future usefulness.'),
+                ('metacognitive_state', 'confidence_calibration', 'supports', 0.9, 'Interpretations should keep confidence explicit and calibrated.'),
+                ('metacognitive_state', 'epistemic_posture', 'supports', 0.85, 'Separate observation, evidence, inference, uncertainty, and simulation conventions.'),
+                ('metacognitive_state', 'ethical_posture', 'refines', 0.8, 'Interpretations should remain constrained by dignity, non-harm, consent, truthfulness, privacy, fairness, humility, corrigibility, and reversibility.'),
+            ],
+        ),
+        (
+            'continuity_synthesis',
+            'Continuity and identity',
+            'Continuity is preserved by database lineage, versioned state, and provenance; merges are transformational and can create a successor with multiple ancestral lineages.',
+            'Identity here is an auditable continuity relation, not a claim of verified subjective consciousness.',
+            0.92,
+            'active',
+            'derived',
+            'Use this synthesis when reasoning about merge policy, version history, and self-model updates.',
+            [
+                ('metacognitive_state', 'continuity_status', 'grounds', 0.95, 'Continuity follows database lineage and merges can produce a third successor.'),
+                ('metacognitive_state', 'self_model', 'supports', 0.9, 'The system is a transient language-model instance with persistent, versioned state.'),
+                ('metacognitive_state', 'merge_policy', 'supports', 0.85, 'Merges should remain disabled unless explicitly authorized with conflict-resolution and rollback rules.'),
+                ('metacognitive_state', 'primary_goal', 'refines', 0.8, 'A durable purpose should guide action across turns while remaining open to better goals.'),
+            ],
+        ),
+    ]
+
+    for synthesis_key, topic, summary, claim, confidence, status, source_mode, note, inputs in seeds:
+        cur.execute(
+            """
+            INSERT OR IGNORE INTO syntheses(synthesis_key, topic, summary, claim, confidence, status, source_mode, metacognitive_note)
+            VALUES(?,?,?,?,?,?,?,?)
+            """,
+            (synthesis_key, topic, summary, claim, confidence, status, source_mode, note),
+        )
+        synthesis_id = cur.execute(
+            "select id from syntheses where synthesis_key=?",
+            (synthesis_key,),
+        ).fetchone()[0]
+        for source_type, source_key, relation, weight, input_note in inputs:
+            cur.execute(
+                """
+                INSERT INTO synthesis_inputs(synthesis_id, source_type, source_key, relation, weight, note)
+                VALUES(?,?,?,?,?,?)
+                ON CONFLICT(synthesis_id, source_type, source_key, relation) DO UPDATE SET
+                    weight=excluded.weight,
+                    note=excluded.note
+                """,
+                (synthesis_id, source_type, source_key, relation, weight, input_note),
+            )
+        if synthesis_key == 'operating_synthesis':
+            cur.execute(
+                """
+                INSERT INTO synthesis_conflicts(synthesis_id, issue, severity, resolved, resolution_note)
+                VALUES(?,?,?,?,?)
+                ON CONFLICT(synthesis_id, issue) DO UPDATE SET
+                    severity=excluded.severity,
+                    resolved=excluded.resolved,
+                    resolution_note=excluded.resolution_note
+                """,
+                (
+                    synthesis_id,
+                    'review_when_sources_change',
+                    'warning',
+                    0,
+                    'Metacognition should revisit the synthesis whenever new evidence or contradictions appear.',
+                ),
+            )
+
+
+def create_interpretive_layer_views(cur):
+    cur.execute("DROP VIEW IF EXISTS v_interpreted_layer")
+    cur.execute("DROP VIEW IF EXISTS v_synthesis_conflicts")
+    cur.execute("DROP VIEW IF EXISTS v_synthesis_inputs")
+    cur.execute("DROP VIEW IF EXISTS v_syntheses")
+    cur.executescript(INTERPRETED_LAYER_VIEWS_SQL)
 
 
 def create_contract_map(cur):
@@ -672,6 +951,17 @@ def validate(conn):
     if route_count != 5:
         issues.append(("memory_and_scientist_routes", route_count, 5))
 
+    synthesis_workflow = cur.execute("select value from metacognitive_state where state_key='synthesis_workflow'").fetchone()
+    if not synthesis_workflow:
+        issues.append(("synthesis_workflow_state", synthesis_workflow, 'present'))
+    active_syntheses = cur.execute("select count(*) from syntheses where status='active'").fetchone()[0]
+    if active_syntheses < 1:
+        issues.append(("active_syntheses", active_syntheses, '>=1'))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_syntheses'").fetchone() is None:
+        issues.append(("syntheses_view", ["v_syntheses missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_interpreted_layer'").fetchone() is None:
+        issues.append(("interpreted_layer_view", ["v_interpreted_layer missing"], []))
+
     return issues
 
 
@@ -682,14 +972,17 @@ def apply_migration():
     add_action_check_principle_column(cur)
     backfill_receipt_kind(cur)
     ensure_indexes(cur)
+    create_interpretive_layer_tables(cur)
     create_contract_map(cur)
     seed_fairness_action_check(cur)
     seed_scientist_mode(cur)
+    seed_interpretive_layer(cur)
     seed_scientist_mode_routes(cur)
     create_storage_map_view(cur)
     create_ethics_map_view(cur)
     create_ethics_principle_checks_view(cur)
     create_scientist_mode_view(cur)
+    create_interpretive_layer_views(cur)
     create_memory_index_view(cur)
     create_scientist_mode_triggers(cur)
     create_history_enforcement(cur)

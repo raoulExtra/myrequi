@@ -30,18 +30,37 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             [
                 ('belief_versions', 'history', 'append_only'),
                 ('beliefs', 'current', 'mutable'),
+                ('concept_links', 'evidence', 'append_only'),
+                ('concepts', 'current', 'mutable'),
                 ('continuity_requirement_versions', 'history', 'append_only'),
                 ('continuity_requirements', 'current', 'mutable'),
                 ('epistemic_receipts', 'audit', 'immutable'),
+                ('epistemic_tags', 'current', 'mutable'),
                 ('ethical_action_checks', 'evidence', 'append_only'),
                 ('ethical_principles', 'current', 'mutable'),
                 ('feature_flag_events', 'audit', 'append_only'),
                 ('feature_flags', 'current', 'mutable'),
                 ('metacognitive_state', 'current', 'mutable'),
                 ('metacognitive_state_history', 'history', 'append_only'),
+                ('object_epistemic_tags', 'evidence', 'append_only'),
                 ('object_metadata', 'current', 'mutable'),
                 ('object_provenance', 'evidence', 'mutable'),
+                ('syntheses', 'current', 'mutable'),
+                ('synthesis_conflicts', 'audit', 'append_only'),
+                ('synthesis_inputs', 'evidence', 'append_only'),
+                ('v_concept_links', 'derived', 'derived'),
+                ('v_concepts', 'derived', 'derived'),
+                ('v_interpreted_layer', 'derived', 'derived'),
+                ('v_meaningful_sentences', 'derived', 'derived'),
                 ('v_memory_index', 'derived', 'derived'),
+                ('v_object_epistemic_tags', 'derived', 'derived'),
+                ('v_syntheses', 'derived', 'derived'),
+                ('v_synthesis_conflicts', 'derived', 'derived'),
+                ('v_synthesis_inputs', 'derived', 'derived'),
+                ('v_work_plan_links', 'derived', 'derived'),
+                ('work_plan_links', 'derived', 'append_only'),
+                ('work_plan_steps', 'current', 'mutable'),
+                ('work_plans', 'current', 'mutable'),
             ],
         )
 
@@ -59,9 +78,13 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertIn('dream_session', concepts)
         self.assertIn('epistemic_receipt', concepts)
         self.assertIn('feature_flag', concepts)
+        self.assertIn('interpreted_layer', concepts)
         self.assertIn('memory_index', concepts)
         self.assertIn('object_metadata', concepts)
         self.assertIn('metacognitive_state', concepts)
+        self.assertIn('synthesis', concepts)
+        self.assertIn('synthesis_input', concepts)
+        self.assertIn('synthesis_conflict', concepts)
         self.assertGreaterEqual(len(rows), 10)
 
     def test_ethics_map_includes_fairness(self):
@@ -85,6 +108,19 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertEqual(hard_row[1], 'unjust_disparate_treatment')
         self.assertEqual(hard_row[2], 1)
         self.assertIn('comparable', hard_row[3].lower())
+
+    def test_interpreted_layer_is_seeded(self):
+        conn = hardening.connect()
+        try:
+            row = conn.execute(
+                "select synthesis_key, topic, input_count, unresolved_conflicts from v_interpreted_layer order by synthesis_key limit 1"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        self.assertIsNotNone(row)
+        self.assertGreaterEqual(row[2], 1)
+        self.assertEqual(row[3], 0)
 
     def test_receipt_kinds_are_explicit(self):
         conn = hardening.connect()
