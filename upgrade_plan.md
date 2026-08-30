@@ -18,6 +18,55 @@
   - timestamp
   - provenance
 
+## Observed data flow in the current DB
+
+1. **Incoming task / question**
+   - starts in the conversation layer and is framed by `metacognitive_state.current_focus` or `journal`
+2. **Recall**
+   - fetch from `beliefs`, `belief_versions`, `syntheses`, `reasoning_episodes`, `open_questions`, and `metacognitive_state`
+3. **Working packet**
+   - compress matches into a temporary context: active claims, relevant evidence, conflicts, uncertainties, next actions
+4. **Reasoning output**
+   - produce a decision, answer, or next step
+5. **Writeback**
+   - persist updated beliefs, new synthesis, episode record, open questions, and provenance links
+6. **Reflection / validation**
+   - update `metacognitive_state`, `synthesis_conflicts`, and history tables when uncertainty or contradiction appears
+
+## Table-by-table mapping
+
+### Episodic memory
+- `reasoning_episodes`: durable record of the reasoning result
+- `reasoning_episode_inputs`: links an episode to the evidence and questions that grounded it
+- `journal`: short conversational or operational notes
+- `open_questions`: unresolved, deferred, or resolved questions
+- `work_plans` / `work_plan_steps`: active or completed work over time
+
+### Semantic memory
+- `beliefs` / `belief_versions`: versioned claims and their history
+- `syntheses` / `synthesis_inputs`: derived conclusions from multiple sources
+- `synthesis_conflicts`: explicit warnings when a synthesis needs review
+- `concepts`: canonical named concepts used in reasoning
+- `object_metadata` / `object_provenance` / `provenance_catalog`: object-level provenance and review state
+
+### Metacognitive memory
+- `metacognitive_state`: current self-model, goals, focus, and epistemic posture
+- `metacognitive_state_history`: version history of those states
+- `storage_policy_versions`: what the system is allowed to store
+- `storage_quality_reviews`: whether stored items are useful, clear, and safe
+- `recording_policy`: when to record new memory
+- `continuity_requirement_validation`: quality checks on the continuity layer itself
+
+### Procedural memory
+- `tool_routes`: named tool patterns and invocation templates
+- `control_command_routes`: command hooks and enabled/disabled control actions
+- `work_plans` / `work_plan_steps`: repeatable process structure
+- `research_jobs` / `research_sources`: reusable evidence-gathering workflow
+
+### Not in scope for core recall
+- `thinker/thinker.db`: concept seed store and structured concept notes; useful only as auxiliary material
+- `chat.db`: not part of the core memory system
+
 ## MVP
 Goal: make memory useful in the next turn.
 
@@ -65,9 +114,10 @@ Goal: make memory a real thinking partner.
 - It improves with accumulated experience without collapsing into noise
 
 ## Priority order
-1. Recall API
-2. Ranking and filtering
-3. Working context builder
-4. Writeback policy
-5. Provenance and confidence
-6. Reflection and conflict handling
+1. `continuity.db` as the only core memory store
+2. Recall API
+3. Ranking and filtering
+4. Working context builder
+5. Writeback policy
+6. Provenance and confidence
+7. Reflection and conflict handling
