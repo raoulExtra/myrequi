@@ -50,10 +50,15 @@ class ContinuityDbHardeningTests(unittest.TestCase):
                 ('synthesis_inputs', 'evidence', 'append_only'),
                 ('v_concept_links', 'derived', 'derived'),
                 ('v_concepts', 'derived', 'derived'),
+                ('v_explain', 'derived', 'derived'),
                 ('v_interpreted_layer', 'derived', 'derived'),
+                ('v_item_links', 'derived', 'derived'),
+                ('v_items', 'derived', 'derived'),
                 ('v_meaningful_sentences', 'derived', 'derived'),
                 ('v_memory_index', 'derived', 'derived'),
+                ('v_meta', 'derived', 'derived'),
                 ('v_object_epistemic_tags', 'derived', 'derived'),
+                ('v_recall', 'derived', 'derived'),
                 ('v_syntheses', 'derived', 'derived'),
                 ('v_synthesis_conflicts', 'derived', 'derived'),
                 ('v_synthesis_inputs', 'derived', 'derived'),
@@ -79,9 +84,12 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertIn('epistemic_receipt', concepts)
         self.assertIn('feature_flag', concepts)
         self.assertIn('interpreted_layer', concepts)
+        self.assertIn('item_link', concepts)
         self.assertIn('memory_index', concepts)
         self.assertIn('object_metadata', concepts)
+        self.assertIn('raw_item', concepts)
         self.assertIn('metacognitive_state', concepts)
+        self.assertIn('recall', concepts)
         self.assertIn('synthesis', concepts)
         self.assertIn('synthesis_input', concepts)
         self.assertIn('synthesis_conflict', concepts)

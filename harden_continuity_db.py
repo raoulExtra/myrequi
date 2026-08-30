@@ -96,6 +96,30 @@ def backfill_receipt_kind(cur):
     recreate_receipt_immutability_triggers(cur)
 
 
+def backfill_belief_version_evidence_summary(cur):
+    cur.execute("DROP TRIGGER IF EXISTS belief_versions_no_update")
+    cur.execute("DROP TRIGGER IF EXISTS belief_versions_no_delete")
+    cur.execute(
+        """
+        UPDATE belief_versions
+        SET evidence_summary = COALESCE(
+            (
+                SELECT r.change_summary
+                FROM epistemic_receipts r
+                WHERE r.object_type='belief'
+                  AND r.object_key = CAST(belief_versions.belief_id AS TEXT)
+                  AND r.object_version = CAST(belief_versions.version AS TEXT)
+                ORDER BY r.receipt_id DESC
+                LIMIT 1
+            ),
+            'Belief recorded: ' || belief_versions.statement
+        )
+        WHERE evidence_summary IS NULL OR trim(evidence_summary)=''
+        """
+    )
+    create_history_enforcement(cur)
+
+
 def ensure_indexes(cur):
     cur.execute(PRIMARY_PROVENANCE_LIMIT)
 
@@ -123,10 +147,15 @@ TABLE_CONTRACT_ROWS = [
     ("syntheses", "current", "mutable", "synthesis_inputs, synthesis_conflicts", "Canonical interpreted layer entries."),
     ("v_concept_links", "derived", "derived", "concepts,concept_links", "Readable expanded concept links view."),
     ("v_concepts", "derived", "derived", "concepts,concept_links", "Readable concept catalog view."),
+    ("v_explain", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts,metacognitive_state", "Synthesis explanations with evidence, conflicts, and metacognitive context."),
     ("v_interpreted_layer", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts,metacognitive_state", "Workbench view over interpreted syntheses and governing metacognitive state."),
+    ("v_item_links", "derived", "derived", "concept_links,project_objects,project_requirements,work_plan_links,synthesis_inputs", "Unified relationship graph across the raw and interpreted layers."),
+    ("v_items", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,metacognitive_state,continuity_requirements,concepts,ethical_principles,ethical_conflict_rules,tool_command_guide,work_plans,work_plan_steps,projects,research_jobs", "Canonical raw item layer."),
     ("v_meaningful_sentences", "derived", "derived", "beliefs,decisions,continuity_requirements,metacognitive_state,concepts,ethical_principles", "Prioritized view of meaningful sentences across the main semantic tables."),
-    ("v_memory_index", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,metacognitive_state,continuity_requirements,concepts,concept_links,ethical_principles,ethical_conflict_rules,tool_command_guide,work_plans,work_plan_steps,projects,research_jobs,syntheses,synthesis_conflicts", "Unified retrieval index over the main memory-like tables"),
+    ("v_memory_index", "derived", "derived", "v_recall", "Compatibility recall alias."),
+    ("v_meta", "derived", "derived", "metacognitive_state", "Canonical metacognitive state view."),
     ("v_object_epistemic_tags", "derived", "derived", "epistemic_tags,object_epistemic_tags", "Readable expanded epistemic tags view."),
+    ("v_recall", "derived", "derived", "v_items,syntheses,synthesis_conflicts", "Normalized recall view spanning raw items and synthesized interpretations."),
     ("v_synthesis_conflicts", "derived", "derived", "syntheses,synthesis_conflicts", "Readable conflict and tension view for syntheses."),
     ("v_synthesis_inputs", "derived", "derived", "syntheses,synthesis_inputs", "Readable evidence view for syntheses."),
     ("v_syntheses", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts", "Readable summary view for syntheses."),
@@ -151,11 +180,14 @@ UNION ALL SELECT 'object_metadata','current','object_metadata',NULL,'object_prov
 UNION ALL SELECT 'epistemic_receipt','audit','epistemic_receipts',NULL,NULL,'Epistemic receipts are immutable audit records for governed objects.'
 UNION ALL SELECT 'feature_flag','current','feature_flags','feature_flag_events',NULL,'Feature flags store live capability and mode switches; changes are audited in feature_flag_events.'
 UNION ALL SELECT 'feature_flag_event','audit','feature_flag_events',NULL,NULL,'Feature flag changes are append-only audit records.'
+UNION ALL SELECT 'raw_item','derived','v_items',NULL,'beliefs, decisions, open_questions, journal, observations, metacognitive_state, continuity_requirements, concepts, ethical_principles, ethical_conflict_rules, tool_command_guide, work_plans, work_plan_steps, projects, research_jobs','Canonical normalized raw item layer.'
+UNION ALL SELECT 'item_link','derived','v_item_links',NULL,'concept_links, project_objects, project_requirements, work_plan_links, synthesis_inputs','Canonical normalized relationship layer.'
 UNION ALL SELECT 'synthesis','current','syntheses','synthesis_inputs, synthesis_conflicts','syntheses, synthesis_inputs, synthesis_conflicts, metacognitive_state','Interpreted outputs derived from evidence and governed by metacognition.'
 UNION ALL SELECT 'synthesis_input','evidence','synthesis_inputs','syntheses',NULL,'Evidence links, weights, and notes used by syntheses.'
 UNION ALL SELECT 'synthesis_conflict','audit','synthesis_conflicts','syntheses',NULL,'Recorded tensions or unresolved issues around syntheses.'
 UNION ALL SELECT 'interpreted_layer','derived','v_interpreted_layer',NULL,'syntheses, synthesis_inputs, synthesis_conflicts, metacognitive_state','Workbench view over interpreted syntheses and the governing metacognitive policy.'
-UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'beliefs, decisions, open_questions, journal, observations, metacognitive_state, continuity_requirements, concepts, concept_links, ethical_principles, ethical_conflict_rules, tool_command_guide, work_plans, work_plan_steps, projects, research_jobs, syntheses, synthesis_conflicts','Unified retrieval index over the main memory-like tables for faster recall.'
+UNION ALL SELECT 'recall','derived','v_recall',NULL,'v_items, syntheses, synthesis_conflicts','Normalized recall layer for reasoning and retrieval.'
+UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'v_recall','Compatibility recall alias.'
 UNION ALL SELECT 'project','current','projects','project_activation_events', 'project_objects, project_requirements','Project identity and active status live in projects; related objects and requirements live in project_objects and project_requirements.'
 UNION ALL SELECT 'research','current','research_jobs','research_sources',NULL,'Research job lifecycle lives in research_jobs; cited sources live in research_sources.'
 UNION ALL SELECT 'storage_policy','current','storage_policy_versions','storage_change_log',NULL,'Storage policy is versioned in storage_policy_versions; changes are summarized in storage_change_log.'
@@ -222,64 +254,161 @@ WHERE ff.feature_key='scientist_mode'
 
 MEMORY_INDEX_VIEW_SQL = """
 CREATE VIEW v_memory_index AS
-SELECT 'belief' AS source_type, CAST(id AS TEXT) AS source_key, slug AS title,
-       current_statement AS body, confidence, current_version AS version, updated_at AS recorded_at
+SELECT * FROM v_recall
+"""
+
+
+GLOSSARY_TERMS_VIEW_SQL = """
+CREATE VIEW v_glossary_terms AS
+SELECT
+    id,
+    term_key AS name,
+    term
+FROM requirements_glossary_terms
+ORDER BY sort_order, term
+"""
+
+
+RAW_RECALL_VIEWS_SQL = """
+CREATE VIEW v_items AS
+SELECT 'belief' AS item_kind, 'belief:' || slug AS item_key, slug AS source_key, slug AS title,
+       current_statement AS body, confidence, current_version AS version, status,
+       'beliefs' AS source_table, created_at AS recorded_at, updated_at
 FROM beliefs
-UNION ALL SELECT 'decision', CAST(id AS TEXT), decision,
-       rationale_summary || COALESCE(' ' || uncertainty, ''), NULL, NULL, created_at
+UNION ALL SELECT 'decision', 'decision:' || CAST(id AS TEXT), CAST(id AS TEXT), decision,
+       rationale_summary || COALESCE(' ' || uncertainty, ''), NULL, NULL, status,
+       'decisions', created_at, created_at
 FROM decisions
-UNION ALL SELECT 'open_question', CAST(id AS TEXT), question,
-       status, NULL, NULL, created_at
+UNION ALL SELECT 'open_question', 'open_question:' || CAST(id AS TEXT), CAST(id AS TEXT), question,
+       status, NULL, NULL, status,
+       'open_questions', created_at, created_at
 FROM open_questions
-UNION ALL SELECT 'journal', CAST(id AS TEXT), category || ': ' || summary,
-       summary, NULL, NULL, created_at
+UNION ALL SELECT 'journal', 'journal:' || CAST(id AS TEXT), CAST(id AS TEXT), category || ': ' || summary,
+       summary, NULL, NULL, status,
+       'journal', created_at, created_at
 FROM journal
-UNION ALL SELECT 'observation', CAST(id AS TEXT), source,
-       observation, reliability, NULL, created_at
+UNION ALL SELECT 'observation', 'observation:' || CAST(id AS TEXT), CAST(id AS TEXT), source,
+       observation, reliability, NULL, NULL,
+       'observations', created_at, created_at
 FROM observations
-UNION ALL SELECT 'metacognitive_state', state_key, state_key,
-       value, confidence, version, updated_at
+UNION ALL SELECT 'metacognitive_state', 'metacognitive_state:' || state_key, state_key, state_key,
+       value, confidence, version, NULL,
+       'metacognitive_state', updated_at, updated_at
 FROM metacognitive_state
-UNION ALL SELECT 'continuity_requirement', requirement_key, title,
-       statement || ' ' || rationale || ' ' || acceptance_summary, confidence, current_version, updated_at
+UNION ALL SELECT 'continuity_requirement', 'continuity_requirement:' || requirement_key, requirement_key, title,
+       statement || ' ' || rationale || ' ' || acceptance_summary, confidence, current_version, status,
+       'continuity_requirements', updated_at, updated_at
 FROM continuity_requirements
 WHERE status='active'
-UNION ALL SELECT 'concept', concept_key, name,
-       description, confidence, NULL, updated_at
+UNION ALL SELECT 'concept', 'concept:' || concept_key, concept_key, name,
+       description, confidence, NULL, status,
+       'concepts', created_at, updated_at
 FROM concepts
-UNION ALL SELECT 'concept_link', CAST(id AS TEXT), concept_key || ' → ' || object_type || ':' || object_key,
-       relation || ': ' || note, NULL, NULL, created_at
-FROM concept_links
-UNION ALL SELECT 'ethical_principle', principle_key, principle_key,
-       statement || ' ' || rationale, NULL, NULL, created_at
+UNION ALL SELECT 'ethical_principle', 'ethical_principle:' || principle_key, principle_key, principle_key,
+       statement || ' ' || rationale, NULL, NULL, status,
+       'ethical_principles', created_at, created_at
 FROM ethical_principles
 WHERE status='active'
-UNION ALL SELECT 'ethical_conflict_rule', CAST(priority AS TEXT), rule,
-       explanation, NULL, NULL, NULL
+UNION ALL SELECT 'ethical_conflict_rule', 'ethical_conflict_rule:' || CAST(priority AS TEXT), CAST(priority AS TEXT), rule,
+       explanation, NULL, NULL, 'active',
+       'ethical_conflict_rules', NULL, NULL
 FROM ethical_conflict_rules
-UNION ALL SELECT 'tool_guide', CAST(id AS TEXT), tool_name || ': ' || title,
-       command || COALESCE(char(10) || explanation, '') || COALESCE(char(10) || safety_note, ''), NULL, NULL, created_at
+UNION ALL SELECT 'tool_guide', 'tool_guide:' || CAST(id AS TEXT), CAST(id AS TEXT), tool_name || ': ' || title,
+       command || COALESCE(char(10) || explanation, '') || COALESCE(char(10) || safety_note, ''), NULL, NULL, NULL,
+       'tool_command_guide', created_at, created_at
 FROM tool_command_guide
-UNION ALL SELECT 'work_plan', plan_key, title,
-       objective || ' ' || status, NULL, NULL, created_at
+UNION ALL SELECT 'work_plan', 'work_plan:' || plan_key, plan_key, title,
+       objective || ' ' || status, NULL, NULL, status,
+       'work_plans', created_at, updated_at
 FROM work_plans
-UNION ALL SELECT 'work_plan_step', CAST(s.id AS TEXT), p.plan_key || ' #' || CAST(s.step_order AS TEXT) || ' ' || s.step_key,
-       s.description || COALESCE(' ' || s.evidence, ''), NULL, NULL, COALESCE(s.started_at, s.completed_at)
+UNION ALL SELECT 'work_plan_step', 'work_plan_step:' || p.plan_key || '#' || CAST(s.step_order AS TEXT), CAST(s.id AS TEXT), p.plan_key || ' #' || CAST(s.step_order AS TEXT) || ' ' || s.step_key,
+       s.description || COALESCE(' ' || s.evidence, ''), NULL, NULL, s.status,
+       'work_plan_steps', COALESCE(s.started_at, s.completed_at), COALESCE(s.completed_at, s.started_at)
 FROM work_plan_steps s
 JOIN work_plans p ON p.id = s.plan_id
-UNION ALL SELECT 'project', project_name, display_name,
-       description || ' ' || CASE WHEN local_active=1 THEN 'active' ELSE 'inactive' END, NULL, NULL, created_at
+UNION ALL SELECT 'project', 'project:' || project_name, project_name, display_name,
+       description || ' ' || CASE WHEN local_active=1 THEN 'active' ELSE 'inactive' END, NULL, NULL, CASE WHEN local_active=1 THEN 'active' ELSE 'inactive' END,
+       'projects', created_at, updated_at
 FROM projects
-UNION ALL SELECT 'research_job', CAST(id AS TEXT), query,
-       COALESCE(result_summary, '') || COALESCE(' ' || error, ''), NULL, NULL, requested_at
+UNION ALL SELECT 'research_job', 'research_job:' || CAST(id AS TEXT), CAST(id AS TEXT), query,
+       COALESCE(result_summary, '') || COALESCE(' ' || error, ''), NULL, NULL, status,
+       'research_jobs', requested_at, COALESCE(completed_at, requested_at)
 FROM research_jobs
-UNION ALL SELECT 'synthesis', synthesis_key, topic,
-       summary || COALESCE(' ' || claim, ''), confidence, NULL, updated_at
+ORDER BY recorded_at DESC;
+
+CREATE VIEW v_recall AS
+SELECT item_kind AS source_type, source_key, title, body, confidence, version, recorded_at
+FROM v_items
+UNION ALL SELECT 'synthesis', synthesis_key, topic, summary || COALESCE(' ' || claim, ''), confidence, NULL, updated_at
 FROM syntheses
-UNION ALL SELECT 'synthesis_conflict', CAST(c.id AS TEXT), s.synthesis_key || ': ' || c.issue,
+UNION ALL SELECT 'synthesis_conflict', s.synthesis_key || ': ' || CAST(c.id AS TEXT), s.synthesis_key || ': ' || c.issue,
        c.resolution_note || COALESCE(' ' || c.issue, ''), NULL, NULL, c.created_at
-FROM synthesis_conflicts c JOIN syntheses s ON s.id = c.synthesis_id
-ORDER BY recorded_at DESC
+FROM synthesis_conflicts c JOIN syntheses s ON s.id = c.synthesis_id;
+
+CREATE VIEW v_explain AS
+WITH evidence AS (
+    SELECT
+        i.synthesis_id,
+        group_concat(i.source_type || ':' || i.source_key || ' [' || i.relation || '; ' || printf('%.2f', i.weight) || '] ' || i.note, char(10)) AS evidence_text,
+        COUNT(*) AS evidence_count
+    FROM synthesis_inputs i
+    GROUP BY i.synthesis_id
+), conflicts AS (
+    SELECT
+        c.synthesis_id,
+        group_concat(c.issue || ' [' || c.severity || '; resolved=' || c.resolved || '] ' || c.resolution_note, char(10)) AS conflict_text,
+        COUNT(*) AS conflict_count,
+        SUM(CASE WHEN c.resolved=0 THEN 1 ELSE 0 END) AS unresolved_count
+    FROM synthesis_conflicts c
+    GROUP BY c.synthesis_id
+)
+SELECT
+    s.synthesis_key,
+    s.topic,
+    s.summary,
+    s.claim,
+    s.confidence,
+    s.status,
+    s.source_mode,
+    s.metacognitive_note,
+    COALESCE(e.evidence_count, 0) AS evidence_count,
+    COALESCE(e.evidence_text, '') AS evidence_text,
+    COALESCE(c.conflict_count, 0) AS conflict_count,
+    COALESCE(c.unresolved_count, 0) AS unresolved_conflicts,
+    COALESCE(c.conflict_text, '') AS conflict_text,
+    COALESCE(sw.value, 'derive') AS synthesis_workflow,
+    COALESCE(cf.value, 'current_focus') AS metacognitive_focus,
+    COALESCE(ep.value, 'ethics') AS metacognitive_ethics
+FROM syntheses s
+LEFT JOIN evidence e ON e.synthesis_id = s.id
+LEFT JOIN conflicts c ON c.synthesis_id = s.id
+LEFT JOIN metacognitive_state sw ON sw.state_key='synthesis_workflow'
+LEFT JOIN metacognitive_state cf ON cf.state_key='current_focus'
+LEFT JOIN metacognitive_state ep ON ep.state_key='ethical_posture'
+ORDER BY s.updated_at DESC, s.synthesis_key;
+
+CREATE VIEW v_meta AS
+SELECT state_key, category, value, confidence, version, provenance, updated_at
+FROM metacognitive_state
+ORDER BY category, state_key;
+
+CREATE VIEW v_item_links AS
+SELECT 'concept_link' AS link_kind,
+       'concept:' || l.concept_key AS from_item_key,
+       l.object_type || ':' || l.object_key AS to_item_key,
+       l.relation,
+       NULL AS weight,
+       l.note,
+       l.created_at
+FROM concept_links l
+UNION ALL SELECT 'project_object', 'project:' || p.project_name, o.object_type || ':' || o.object_key, o.relationship, NULL, o.note, o.created_at
+FROM project_objects o JOIN projects p ON p.id=o.project_id
+UNION ALL SELECT 'project_requirement', 'project:' || p.project_name, 'continuity_requirement:' || r.requirement_key, pr.relationship, NULL, '', pr.linked_at
+FROM project_requirements pr JOIN projects p ON p.id=pr.project_id JOIN continuity_requirements r ON r.id=pr.requirement_id
+UNION ALL SELECT 'work_plan_link', 'work_plan:' || sp.plan_key, 'work_plan:' || tp.plan_key, l.relation, NULL, l.note, l.created_at
+FROM work_plan_links l JOIN work_plans sp ON sp.id=l.source_plan_id JOIN work_plans tp ON tp.plan_key=l.target_plan_key
+UNION ALL SELECT 'synthesis_input', 'synthesis:' || s.synthesis_key, i.source_type || ':' || i.source_key, i.relation, i.weight, i.note, i.created_at
+FROM synthesis_inputs i JOIN syntheses s ON s.id=i.synthesis_id;
 """
 
 
@@ -504,6 +633,12 @@ def create_interpretive_layer_views(cur):
     cur.executescript(INTERPRETED_LAYER_VIEWS_SQL)
 
 
+def create_reasoning_v2_views(cur):
+    for name in ['v_item_links', 'v_meta', 'v_explain', 'v_recall', 'v_items', 'v_memory_index']:
+        cur.execute(f'DROP VIEW IF EXISTS {name}')
+    cur.executescript(RAW_RECALL_VIEWS_SQL)
+
+
 def create_contract_map(cur):
     cur.execute(
         """
@@ -583,6 +718,11 @@ def create_scientist_mode_view(cur):
 def create_memory_index_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_memory_index")
     cur.execute(MEMORY_INDEX_VIEW_SQL)
+
+
+def create_glossary_terms_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_glossary_terms")
+    cur.execute(GLOSSARY_TERMS_VIEW_SQL)
 
 
 def seed_scientist_mode(cur):
@@ -905,8 +1045,11 @@ def validate(conn):
         issues.append(("ethics_principle_checks_view", ["v_ethics_principle_checks missing"], []))
     if cur.execute("select 1 from sqlite_master where type='view' and name='v_scientist_mode_state'").fetchone() is None:
         issues.append(("scientist_mode_view", ["v_scientist_mode_state missing"], []))
-    if cur.execute("select 1 from sqlite_master where type='view' and name='v_memory_index'").fetchone() is None:
-        issues.append(("memory_index_view", ["v_memory_index missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_glossary_terms'").fetchone() is None:
+        issues.append(("glossary_terms_view", ["v_glossary_terms missing"], []))
+    for view_name in ['v_items', 'v_item_links', 'v_recall', 'v_explain', 'v_meta', 'v_memory_index']:
+        if cur.execute("select 1 from sqlite_master where type='view' and name=?", (view_name,)).fetchone() is None:
+            issues.append((f'{view_name}_missing', [f'{view_name} missing'], []))
 
     for name, query in checks.items():
         rows = cur.execute(query).fetchall()
@@ -971,6 +1114,7 @@ def apply_migration():
     add_receipt_kind_column(cur)
     add_action_check_principle_column(cur)
     backfill_receipt_kind(cur)
+    backfill_belief_version_evidence_summary(cur)
     ensure_indexes(cur)
     create_interpretive_layer_tables(cur)
     create_contract_map(cur)
@@ -982,7 +1126,9 @@ def apply_migration():
     create_ethics_map_view(cur)
     create_ethics_principle_checks_view(cur)
     create_scientist_mode_view(cur)
+    create_glossary_terms_view(cur)
     create_interpretive_layer_views(cur)
+    create_reasoning_v2_views(cur)
     create_memory_index_view(cur)
     create_scientist_mode_triggers(cur)
     create_history_enforcement(cur)
