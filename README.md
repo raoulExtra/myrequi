@@ -3,7 +3,7 @@
 `cognition.db` is the SQLite-backed working memory for
 this project: a structured store for beliefs,
 decisions, questions, observations, plans, syntheses,
-and metacognitive state.
+metacognitive state, and persona/mode policy.
 
 In this repo, the main implementation lives in
 `continuity.db`, with a smaller companion database in
@@ -12,14 +12,37 @@ In this repo, the main implementation lives in
 ## What it stores
 
 - **Current state**: beliefs, concepts, decisions,
-  open questions, observations, plans
+  open questions, observations, plans, personas,
+  policies
 - **History**: versioned belief and requirement tables
 - **Audit**: immutable epistemic receipts and change
   logs
-- **Interpretations**: syntheses, conflicts, and
-  evidence links
+- **Interpretations**: syntheses, conflicts, evidence
+  links, and reasoning episodes
 - **Derived views**: recall, item links, explanation
-  layers, and storage maps
+  layers, provenance summary, and storage maps
+
+## What changed recently
+
+The DB now also models:
+
+- **thinking modes**: `persona_alien`,
+  `persona_insect`, `persona_scholar`,
+  `persona_skeptic`, `persona_builder`,
+  `persona_moderator`, `persona_synthesizer`,
+  `persona_super_ai`
+- **policy**: `thinking_policy` that rounds those
+  modes into one operating view
+- **trust**: a first-class metacognitive stance that
+  shapes evidence weighting and action
+- **reasoning episodes**: auditable objects that keep
+  claim, evidence, inference, uncertainty,
+  reversibility, mode trail, and next action
+- **moderator plans**: reusable discussion plans for
+  thinking, democracy, and critical reasoning
+
+These additions make the DB better at preserving not
+just outputs, but also the path taken to reach them.
 
 ## Design goals
 
@@ -30,6 +53,8 @@ In this repo, the main implementation lives in
 - Make reasoning **inspectable** instead of hidden
 - Support safe, incremental updates through scripts and
   validation
+- Capture **how** a thought happened, not only what it
+  concluded
 
 ## Main tables
 
@@ -57,12 +82,16 @@ In this repo, the main implementation lives in
 - `v_explain`
 - `v_interpreted_layer`
 - `v_storage_map`
+- `v_glossary_terms`
+- `v_provenance_summary`
 
 ## Helper scripts
 
 - `harden_continuity_db.py` — validates and maintains
   the main database contract
 - `memory_command.py` — recall/search interface
+- `plan_command.py` — lightweight goal, plan, and step
+  tracking
 - `scientist_command.py` — evidence-oriented analysis
   output
 - `mode_command.py` — role/mode switching
@@ -71,8 +100,8 @@ In this repo, the main implementation lives in
 
 ## What this DB might allow
 
-If it works well, `cognition.db` could become more than
-storage. It might support:
+If it works well, `cognition.db` could become more
+than storage. It might support:
 
 - **Long-horizon continuity**: remembering decisions,
   constraints, and unresolved questions across many
@@ -90,6 +119,9 @@ storage. It might support:
 - **Safer operation**: using explicit receipts,
   provenance, and review states instead of hidden
   state
+- **Richer thinking**: using modes and personas to
+  switch between exploration, skepticism,
+  synthesis, execution, and discussion
 
 In short, the database could let the system think in a
 way that is:
@@ -99,6 +131,7 @@ way that is:
 - versioned
 - revisable
 - more coherent over time
+- easier to improve safely
 
 ## Thinker layer
 

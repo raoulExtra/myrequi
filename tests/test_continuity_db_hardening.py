@@ -25,49 +25,58 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         finally:
             conn.close()
 
-        self.assertEqual(
-            rows,
-            [
-                ('belief_versions', 'history', 'append_only'),
-                ('beliefs', 'current', 'mutable'),
-                ('concept_links', 'evidence', 'append_only'),
-                ('concepts', 'current', 'mutable'),
-                ('continuity_requirement_versions', 'history', 'append_only'),
-                ('continuity_requirements', 'current', 'mutable'),
-                ('epistemic_receipts', 'audit', 'immutable'),
-                ('epistemic_tags', 'current', 'mutable'),
-                ('ethical_action_checks', 'evidence', 'append_only'),
-                ('ethical_principles', 'current', 'mutable'),
-                ('feature_flag_events', 'audit', 'append_only'),
-                ('feature_flags', 'current', 'mutable'),
-                ('metacognitive_state', 'current', 'mutable'),
-                ('metacognitive_state_history', 'history', 'append_only'),
-                ('object_epistemic_tags', 'evidence', 'append_only'),
-                ('object_metadata', 'current', 'mutable'),
-                ('object_provenance', 'evidence', 'mutable'),
-                ('syntheses', 'current', 'mutable'),
-                ('synthesis_conflicts', 'audit', 'append_only'),
-                ('synthesis_inputs', 'evidence', 'append_only'),
-                ('v_concept_links', 'derived', 'derived'),
-                ('v_concepts', 'derived', 'derived'),
-                ('v_explain', 'derived', 'derived'),
-                ('v_interpreted_layer', 'derived', 'derived'),
-                ('v_item_links', 'derived', 'derived'),
-                ('v_items', 'derived', 'derived'),
-                ('v_meaningful_sentences', 'derived', 'derived'),
-                ('v_memory_index', 'derived', 'derived'),
-                ('v_meta', 'derived', 'derived'),
-                ('v_object_epistemic_tags', 'derived', 'derived'),
-                ('v_recall', 'derived', 'derived'),
-                ('v_syntheses', 'derived', 'derived'),
-                ('v_synthesis_conflicts', 'derived', 'derived'),
-                ('v_synthesis_inputs', 'derived', 'derived'),
-                ('v_work_plan_links', 'derived', 'derived'),
-                ('work_plan_links', 'derived', 'append_only'),
-                ('work_plan_steps', 'current', 'mutable'),
-                ('work_plans', 'current', 'mutable'),
-            ],
-        )
+        expected = [
+            ('belief_versions', 'history', 'append_only'),
+            ('beliefs', 'current', 'mutable'),
+            ('concept_links', 'evidence', 'append_only'),
+            ('concepts', 'current', 'mutable'),
+            ('continuity_requirement_versions', 'history', 'append_only'),
+            ('continuity_requirements', 'current', 'mutable'),
+            ('decision_versions', 'history', 'append_only'),
+            ('decision_options', 'current', 'mutable'),
+            ('decisions', 'current', 'mutable'),
+            ('epistemic_receipts', 'audit', 'immutable'),
+            ('epistemic_tags', 'current', 'mutable'),
+            ('ethical_action_checks', 'evidence', 'append_only'),
+            ('ethical_principles', 'current', 'mutable'),
+            ('feature_flag_events', 'audit', 'append_only'),
+            ('feature_flags', 'current', 'mutable'),
+            ('metacognitive_state', 'current', 'mutable'),
+            ('metacognitive_state_history', 'history', 'append_only'),
+            ('object_epistemic_tags', 'evidence', 'append_only'),
+            ('object_metadata', 'current', 'mutable'),
+            ('object_provenance', 'evidence', 'mutable'),
+            ('open_questions', 'current', 'mutable'),
+            ('reasoning_episode_inputs', 'evidence', 'append_only'),
+            ('reasoning_episodes', 'current', 'mutable'),
+            ('syntheses', 'current', 'mutable'),
+            ('synthesis_conflicts', 'audit', 'append_only'),
+            ('synthesis_inputs', 'evidence', 'append_only'),
+            ('v_concept_links', 'derived', 'derived'),
+            ('v_concepts', 'derived', 'derived'),
+            ('v_decision_versions', 'derived', 'derived'),
+            ('v_decision_options', 'derived', 'derived'),
+            ('v_explain', 'derived', 'derived'),
+            ('v_interpreted_layer', 'derived', 'derived'),
+            ('v_item_links', 'derived', 'derived'),
+            ('v_items', 'derived', 'derived'),
+            ('v_meaningful_sentences', 'derived', 'derived'),
+            ('v_memory_index', 'derived', 'derived'),
+            ('v_meta', 'derived', 'derived'),
+            ('v_object_epistemic_tags', 'derived', 'derived'),
+            ('v_open_question_flow', 'derived', 'derived'),
+            ('v_reasoning_episode_inputs', 'derived', 'derived'),
+            ('v_reasoning_flow', 'derived', 'derived'),
+            ('v_recall', 'derived', 'derived'),
+            ('v_syntheses', 'derived', 'derived'),
+            ('v_synthesis_conflicts', 'derived', 'derived'),
+            ('v_synthesis_inputs', 'derived', 'derived'),
+            ('v_work_plan_links', 'derived', 'derived'),
+            ('work_plan_links', 'derived', 'append_only'),
+            ('work_plan_steps', 'current', 'mutable'),
+            ('work_plans', 'current', 'mutable'),
+        ]
+        self.assertEqual(rows, expected)
 
     def test_storage_map_view_is_present(self):
         conn = hardening.connect()
@@ -84,6 +93,9 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertIn('epistemic_receipt', concepts)
         self.assertIn('feature_flag', concepts)
         self.assertIn('interpreted_layer', concepts)
+        self.assertIn('decision_history', concepts)
+        self.assertIn('open_question_flow', concepts)
+        self.assertIn('reasoning_flow', concepts)
         self.assertIn('item_link', concepts)
         self.assertIn('memory_index', concepts)
         self.assertIn('object_metadata', concepts)
@@ -129,6 +141,104 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertIsNotNone(row)
         self.assertGreaterEqual(row[2], 1)
         self.assertEqual(row[3], 0)
+
+    def test_reasoning_surface_includes_arguments_and_episodes(self):
+        conn = hardening.connect()
+        try:
+            argument_count = conn.execute("select count(*) from arguments").fetchone()[0]
+            argument_surface = conn.execute("select count(*) from v_items where item_kind='argument'").fetchone()[0]
+            episode_count = conn.execute("select count(*) from reasoning_episodes").fetchone()[0]
+            episode_surface = conn.execute("select count(*) from v_items where item_kind='reasoning_episode'").fetchone()[0]
+        finally:
+            conn.close()
+
+        self.assertEqual(argument_surface, argument_count)
+        self.assertEqual(episode_surface, episode_count)
+        self.assertGreaterEqual(episode_count, 1)
+
+    def test_argument_can_support_multiple_claims(self):
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            db_copy = tmpdir / 'continuity.db'
+            shutil.copy2(hardening.DB_PATH, db_copy)
+            conn = hardening.sqlite3.connect(db_copy)
+            conn.execute('PRAGMA foreign_keys = ON')
+            cur = conn.cursor()
+            argument_id = cur.execute('select id from arguments order by id limit 1').fetchone()[0]
+            cur.execute("insert into beliefs(slug,current_statement,confidence,status,current_version) values(?,?,?,?,?)", ('multi_claim_belief_one', 'first extra claim', 0.9, 'active', 1))
+            cur.execute("insert into beliefs(slug,current_statement,confidence,status,current_version) values(?,?,?,?,?)", ('multi_claim_belief_two', 'second extra claim', 0.9, 'active', 1))
+            belief_one = cur.execute("select id from beliefs where slug='multi_claim_belief_one'").fetchone()[0]
+            belief_two = cur.execute("select id from beliefs where slug='multi_claim_belief_two'").fetchone()[0]
+            cur.execute(
+                "insert into argument_claim_links(argument_id, belief_id, relation, strength, note) values(?,?,?,?,?)",
+                (argument_id, belief_one, 'supports', 0.7, 'extra supported claim one'),
+            )
+            cur.execute(
+                "insert into argument_claim_links(argument_id, belief_id, relation, strength, note) values(?,?,?,?,?)",
+                (argument_id, belief_two, 'supports', 0.6, 'extra supported claim two'),
+            )
+            conn.commit()
+            claim_rows = cur.execute(
+                'select belief_id, relation from v_argument_claims where argument_id=? order by belief_id',
+                (argument_id,),
+            ).fetchall()
+            conn.close()
+
+            self.assertGreaterEqual(len(claim_rows), 3)
+            relations = {row[1] for row in claim_rows}
+            self.assertIn('primary', relations)
+            self.assertIn('supports', relations)
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_decision_history_is_backfilled_from_receipts(self):
+        conn = hardening.connect()
+        try:
+            decision_receipts = conn.execute("select count(*) from epistemic_receipts where object_type='decision'").fetchone()[0]
+            decision_versions = conn.execute("select count(*) from decision_versions").fetchone()[0]
+            sample = conn.execute("select decision_id, version, source_receipt_id, decision from v_decision_versions order by decision_id, version limit 1").fetchone()
+        finally:
+            conn.close()
+
+        self.assertEqual(decision_versions, decision_receipts)
+        self.assertIsNotNone(sample)
+        self.assertGreaterEqual(sample[1], 1)
+        self.assertIsNotNone(sample[2])
+
+    def test_reasoning_flow_is_formalized(self):
+        conn = hardening.connect()
+        try:
+            input_count = conn.execute("select count(*) from reasoning_episode_inputs").fetchone()[0]
+            flow = conn.execute("select episode_key, evidence_count, open_question_id, decision_id from v_reasoning_flow where evidence_count > 0 order by id limit 2").fetchall()
+            decision_link = conn.execute("select id, decision, origin_reasoning_episode_id from decisions where origin_reasoning_episode_id is not null order by id limit 1").fetchone()
+        finally:
+            conn.close()
+
+        self.assertGreaterEqual(input_count, 2)
+        self.assertGreaterEqual(len(flow), 1)
+        self.assertGreaterEqual(flow[0][1], 1)
+        self.assertIsNotNone(decision_link)
+        self.assertIsNotNone(decision_link[2])
+
+    def test_open_question_flow_is_seeded_from_reasoning(self):
+        conn = hardening.connect()
+        try:
+            seeded = conn.execute(
+                "select count(*) from open_questions where origin_reasoning_episode_id is not null"
+            ).fetchone()[0]
+            expected = conn.execute(
+                "select count(*) from reasoning_episodes where resolves_open_question_id is null and (coalesce(trim(uncertainty), '') <> '' or coalesce(trim(rejected_alternatives), '') <> '')"
+            ).fetchone()[0]
+            sample = conn.execute(
+                "select question, status, origin_reasoning_episode_id from v_open_question_flow where origin_reasoning_episode_id is not null order by id limit 1"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        self.assertEqual(seeded, expected)
+        self.assertIsNotNone(sample)
+        self.assertEqual(sample[1], 'open')
+        self.assertIsNotNone(sample[2])
 
     def test_receipt_kinds_are_explicit(self):
         conn = hardening.connect()
