@@ -10,6 +10,8 @@ source_requirement: 004-requi-continuity-db-starter-guidance.md
 - [R4 requirement](004-requi-continuity-db-starter-guidance.md)
 
 ## Verification ideas
-- The documentation names continuity.db as the source of truth.
-- The documentation summarizes the main guidance from starter.md.
-- The documentation makes the memory-db guidance easy to find.
+- The documentation names continuity.db and explains what project data lives there.
+- The documentation explains what belongs in the filesystem.
+- The documentation points readers to starter.md for the memory-db guidance.
+- The guidance lives in a Markdown file under the project base docs/ directory.
+- The documentation makes the continuity.db and filesystem guidance easy to find.

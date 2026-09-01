@@ -1,0 +1,14 @@
+{
+  "args": [
+    "--path", ".",
+    "--requi", "004-requi-continuity-db-starter-guidance.md",
+    "--path", "docs",
+    "--evidence", "memory-and-filesystem-guidance.md",
+    "--filesystem-cue", "docs/",
+    "--marker", "REF_EXISTS",
+    "--path", "examples/r4_1_checker",
+    "--link-file", "phase_1_1_ok.md",
+    "--link-target", "004.1-requi-continuity-db-file-level-evidence.md",
+    "--json"
+  ]
+}
