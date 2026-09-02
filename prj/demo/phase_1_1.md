@@ -1,8 +1,8 @@
 PROJECT PHASE 1.1
-inherits_from: phase_0
+inherits_from: -
 purpose: index the canonical demo requirements and acceptance criteria.
 goal: provide one place to navigate the demo project's req/acc set without duplicating the spec.
-outcome: a clean index for the demo requirement tree.
+outcome: a clean index for the demo requirements
 
 standard:
 - [Global file organization standard](../base/002-requi-prj-file-organization-standard.md)

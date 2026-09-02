@@ -27,6 +27,11 @@ TABLE_CONTRACT_ROWS = [
     ("syntheses", "current", "mutable", "synthesis_inputs, synthesis_conflicts", "Canonical interpreted layer entries."),
     ("v_concept_links", "derived", "derived", "concepts,concept_links", "Readable expanded concept links view."),
     ("v_concepts", "derived", "derived", "concepts,concept_links", "Readable concept catalog view."),
+    ("v_problem_solving_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable problem-solving patterns and their links."),
+    ("v_problem_understanding_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable problem-understanding patterns and their links."),
+    ("v_lean_thinking_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable lean-thinking patterns and their links."),
+    ("v_decision_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable decision patterns and their links."),
+    ("v_decision_options", "derived", "derived", "decision_options,decisions", "Readable decision option comparison view."),
     ("v_decision_versions", "derived", "derived", "decision_versions,decisions,epistemic_receipts", "Receipt-backed decision snapshot history."),
     ("v_explain", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts,metacognitive_state", "Synthesis explanations with evidence, conflicts, and metacognitive context."),
     ("v_open_question_flow", "derived", "derived", "open_questions,reasoning_episodes", "Lifecycle view linking open questions to their originating and resolving reasoning episodes."),
@@ -54,6 +59,14 @@ CREATE VIEW v_storage_map AS
 SELECT 'belief' AS concept,'current' AS storage_role,'beliefs' AS current_table,'belief_versions' AS history_table,NULL AS related_tables,'Current belief statement and confidence live in beliefs; prior versions live in belief_versions.' AS notes
 UNION ALL SELECT 'continuity_requirement','current','continuity_requirements','continuity_requirement_versions',NULL,'Current requirement text and status live in continuity_requirements; prior versions live in continuity_requirement_versions.'
 UNION ALL SELECT 'metacognitive_state','current','metacognitive_state','metacognitive_state_history',NULL,'Current metacognitive state lives in metacognitive_state; prior versions live in metacognitive_state_history.'
+UNION ALL SELECT 'vision','derived','v_visions','metacognitive_state',NULL,'Vision is exposed as a readable view over metacognitive_state.'
+UNION ALL SELECT 'mission','derived','v_missions','projects',NULL,'Mission is exposed as a readable view over projects.'
+UNION ALL SELECT 'strategy','derived','v_strategies','concepts',NULL,'Strategy is exposed as a readable view over concepts.'
+UNION ALL SELECT 'plan','derived','v_plans','work_plans',NULL,'Plan is exposed as a readable view over work_plans.'
+UNION ALL SELECT 'problem_solving_patterns','derived','v_problem_solving_patterns','concepts,concept_links',NULL,'Problem-solving patterns are exposed as a readable recall view over the reusable pattern catalog and its links.'
+UNION ALL SELECT 'problem_understanding_patterns','derived','v_problem_understanding_patterns','concepts,concept_links',NULL,'Problem-understanding patterns are exposed as a readable recall view over the reusable pattern catalog and its links.'
+UNION ALL SELECT 'lean_thinking_patterns','derived','v_lean_thinking_patterns','concepts,concept_links',NULL,'Lean-thinking patterns are exposed as a readable recall view over the reusable lean pattern catalog and its links.'
+UNION ALL SELECT 'decision_patterns','derived','v_decision_patterns','concepts,concept_links',NULL,'Decision patterns are exposed as a readable recall view over the reusable decision pattern catalog and its links.'
 UNION ALL SELECT 'decision','current','decisions','decision_versions, reasoning_episodes, decision_options',NULL,'Decisions are stored as current rows in decisions; receipt-backed history lives in decision_versions, reasoning links live in reasoning_episodes, and candidate options live in decision_options.'
 UNION ALL SELECT 'decision_option','current','decision_options','decisions',NULL,'Decision candidate rows live in decision_options and point back to their parent decision.'
 UNION ALL SELECT 'decision_history','history','decision_versions','decisions',NULL,'Receipt-backed decision snapshots live in decision_versions.'

@@ -32,8 +32,8 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('concepts', 'current', 'mutable'),
             ('continuity_requirement_versions', 'history', 'append_only'),
             ('continuity_requirements', 'current', 'mutable'),
-            ('decision_versions', 'history', 'append_only'),
             ('decision_options', 'current', 'mutable'),
+            ('decision_versions', 'history', 'append_only'),
             ('decisions', 'current', 'mutable'),
             ('epistemic_receipts', 'audit', 'immutable'),
             ('epistemic_tags', 'current', 'mutable'),
@@ -54,8 +54,8 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('synthesis_inputs', 'evidence', 'append_only'),
             ('v_concept_links', 'derived', 'derived'),
             ('v_concepts', 'derived', 'derived'),
-            ('v_decision_versions', 'derived', 'derived'),
             ('v_decision_options', 'derived', 'derived'),
+            ('v_decision_versions', 'derived', 'derived'),
             ('v_explain', 'derived', 'derived'),
             ('v_interpreted_layer', 'derived', 'derived'),
             ('v_item_links', 'derived', 'derived'),
@@ -191,6 +191,48 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         finally:
             shutil.rmtree(tmpdir)
 
+    def test_reasoning_pattern_reuse_claim_has_argument(self):
+        conn = hardening.connect()
+        try:
+            belief_id = conn.execute(
+                "select id from beliefs where slug='reasoning_pattern_reuse_improves_thinking'"
+            ).fetchone()[0]
+            argument_count = conn.execute(
+                "select count(*) from arguments where belief_id=?",
+                (belief_id,),
+            ).fetchone()[0]
+            primary_claim = conn.execute(
+                "select relation from v_argument_claims where belief_slug='reasoning_pattern_reuse_improves_thinking' and relation='primary'"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        self.assertGreaterEqual(argument_count, 1)
+        self.assertIsNotNone(primary_claim)
+
+    def test_core_thinking_patterns_are_stored(self):
+        conn = hardening.connect()
+        try:
+            concept_rows = conn.execute(
+                "select concept_key from concepts where concept_key in ('failure_mode_scan','decision_option_comparison','hypothesis_test_update') order by concept_key"
+            ).fetchall()
+            req_rows = conn.execute(
+                "select requirement_key from continuity_requirements where requirement_key in ('CDB-13.10','CDB-13.11','CDB-13.12') order by requirement_key"
+            ).fetchall()
+            plan_row = conn.execute(
+                "select plan_key from work_plans where plan_key='core_thinking_patterns'"
+            ).fetchone()
+            episode_row = conn.execute(
+                "select episode_key from reasoning_episodes where episode_key='core_thinking_patterns_20260831100000'"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        self.assertEqual([r[0] for r in concept_rows], ['decision_option_comparison', 'failure_mode_scan', 'hypothesis_test_update'])
+        self.assertEqual([r[0] for r in req_rows], ['CDB-13.10', 'CDB-13.11', 'CDB-13.12'])
+        self.assertIsNotNone(plan_row)
+        self.assertIsNotNone(episode_row)
+
     def test_decision_history_is_backfilled_from_receipts(self):
         conn = hardening.connect()
         try:
@@ -230,7 +272,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
                 "select count(*) from reasoning_episodes where resolves_open_question_id is null and (coalesce(trim(uncertainty), '') <> '' or coalesce(trim(rejected_alternatives), '') <> '')"
             ).fetchone()[0]
             sample = conn.execute(
-                "select question, status, origin_reasoning_episode_id from v_open_question_flow where origin_reasoning_episode_id is not null order by id limit 1"
+                "select question, status, origin_reasoning_episode_id from v_open_question_flow where origin_reasoning_episode_id is not null and status='open' order by id limit 1"
             ).fetchone()
         finally:
             conn.close()

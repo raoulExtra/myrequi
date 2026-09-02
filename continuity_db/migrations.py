@@ -25,7 +25,7 @@ from .schema import (
     STORAGE_MAP_VIEW_SQL,
     TABLE_CONTRACT_ROWS,
 )
-from .views import GLOSSARY_TERMS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL
+from .views import FRAME_VIEWS_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "continuity.db"
@@ -801,6 +801,32 @@ def create_provenance_summary_view(cur):
     cur.execute(PROVENANCE_SUMMARY_VIEW_SQL)
 
 
+def create_frame_views(cur):
+    for name in ['v_visions', 'v_missions', 'v_strategies', 'v_plans']:
+        cur.execute(f'DROP VIEW IF EXISTS {name}')
+    cur.executescript(FRAME_VIEWS_SQL)
+
+
+def create_problem_solving_patterns_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_problem_solving_patterns")
+    cur.execute(PROBLEM_SOLVING_PATTERNS_VIEW_SQL)
+
+
+def create_problem_understanding_patterns_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_problem_understanding_patterns")
+    cur.execute(PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL)
+
+
+def create_lean_thinking_patterns_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_lean_thinking_patterns")
+    cur.execute(LEAN_THINKING_PATTERNS_VIEW_SQL)
+
+
+def create_decision_patterns_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_decision_patterns")
+    cur.execute(DECISION_PATTERNS_VIEW_SQL)
+
+
 def seed_scientist_mode(cur):
     cur.execute(
         """
@@ -1202,6 +1228,10 @@ def validate(conn):
         "v_scientist_mode_state",
         "v_glossary_terms",
         "v_provenance_summary",
+        "v_visions",
+        "v_missions",
+        "v_strategies",
+        "v_plans",
         "v_items",
         "v_item_links",
         "v_argument_claims",
@@ -1401,6 +1431,11 @@ def apply_migration():
     seed_interpretive_layer(cur)
     seed_scientist_mode_routes(cur)
     create_storage_map_view(cur)
+    create_frame_views(cur)
+    create_problem_solving_patterns_view(cur)
+    create_problem_understanding_patterns_view(cur)
+    create_lean_thinking_patterns_view(cur)
+    create_decision_patterns_view(cur)
     create_ethics_map_view(cur)
     create_ethics_principle_checks_view(cur)
     create_scientist_mode_view(cur)

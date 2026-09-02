@@ -1,24 +1,24 @@
 # cognition.db
 
-`cognition.db` is the SQLite-backed working memory for
-this project: a structured store for beliefs,
-decisions, questions, observations, plans, syntheses,
-metacognitive state, and persona/mode policy.
+`continuity.db` is the SQLite-backed working memory
+for this project: a structured store for beliefs,
+convictions, decisions, questions, observations, plans,
+syntheses, metacognitive state, requirements, and
+policies.
 
-In this repo, the main implementation lives in
-`continuity.db`, with a smaller companion database in
-`thinker/thinker.db` for layered concept work.
+`thinker/thinker.db` is a smaller companion database
+for layered concept work.
 
 ## What it stores
 
-- **Current state**: beliefs, concepts, decisions,
-  open questions, observations, plans, personas,
-  policies
+- **Current state**: beliefs, convictions, concepts,
+  decisions, open questions, observations, plans,
+  personas, policies
 - **History**: versioned belief and requirement tables
 - **Audit**: immutable epistemic receipts and change
   logs
-- **Interpretations**: syntheses, conflicts, evidence
-  links, and reasoning episodes
+- **Interpretations**: convictions, syntheses,
+  conflicts, evidence links, and reasoning episodes
 - **Derived views**: recall, item links, explanation
   layers, provenance summary, and storage maps
 
@@ -26,6 +26,25 @@ In this repo, the main implementation lives in
 
 The DB now also models:
 
+- **vision / mission / strategy / plan views**:
+  `v_visions`, `v_missions`, `v_strategies`,
+  `v_plans`
+- **thinking patterns**:
+  `constraint_first_thinking`,
+  `battle_proven_thinking_way`,
+  `reasoning_pattern_reuse_plan`,
+  `core_thinking_patterns`
+- **decision options**: `decision_options` and
+  `v_decision_options` for side-by-side comparison
+- **convictions**: `convictions`, `conviction_versions`,
+  `conviction_inputs`, and `v_convictions` for durable
+  commitments
+- **reasoning improvement tracking**:
+  `CDB-13.8` and related patterns for before/after
+  episode comparison
+- **pattern reuse**: stored claim, concept,
+  requirement, plan, episode, and arguments for
+  reusable reasoning
 - **thinking modes**: `persona_alien`,
   `persona_insect`, `persona_scholar`,
   `persona_skeptic`, `persona_builder`,
@@ -38,8 +57,6 @@ The DB now also models:
 - **reasoning episodes**: auditable objects that keep
   claim, evidence, inference, uncertainty,
   reversibility, mode trail, and next action
-- **moderator plans**: reusable discussion plans for
-  thinking, democracy, and critical reasoning
 
 These additions make the DB better at preserving not
 just outputs, but also the path taken to reach them.
@@ -59,22 +76,31 @@ just outputs, but also the path taken to reach them.
 ## Main tables
 
 - `beliefs` / `belief_versions`
+- `convictions` / `conviction_versions` /
+  `conviction_inputs`
 - `continuity_requirements` /
   `continuity_requirement_versions`
 - `metacognitive_state` /
   `metacognitive_state_history`
 - `syntheses`, `synthesis_inputs`,
   `synthesis_conflicts`
+- `decision_options`, `decisions`,
+  `decision_versions`
 - `object_metadata`, `object_provenance`,
   `epistemic_receipts`
 - `work_plans`, `work_plan_steps`,
   `work_plan_links`
 - `concepts`, `concept_links`
-- `journal`, `observations`, `decisions`,
-  `open_questions`
+- `journal`, `observations`, `open_questions`,
+  `reasoning_episodes`
+- `projects` (missions)
 
 ## Derived views
 
+- `v_visions` / `v_missions`
+- `v_strategies` / `v_plans`
+- `v_decision_options`
+- `v_convictions`
 - `v_items`
 - `v_recall`
 - `v_memory_index`
@@ -100,7 +126,7 @@ just outputs, but also the path taken to reach them.
 
 ## What this DB might allow
 
-If it works well, `cognition.db` could become more
+If it works well, `continuity.db` could become more
 than storage. It might support:
 
 - **Long-horizon continuity**: remembering decisions,
@@ -110,12 +136,20 @@ than storage. It might support:
   inferred, synthesized, or merely guessed
 - **Better self-correction**: revising beliefs without
   losing the history of why they changed
+- **Commitment discipline**: separating durable
+  convictions from ordinary beliefs
 - **Structured reflection**: separating facts,
   interpretations, uncertainties, and next actions
 - **Plan continuity**: keeping work plans,
   dependencies, and follow-ups intact
+- **Mission/strategy clarity**: exposing the path from
+  vision to mission to strategy to plan
 - **Concept growth**: building richer semantic
   structure around important ideas over time
+- **Decision discipline**: comparing explicit options
+  before choosing
+- **Commitment discipline**: separating durable
+  convictions from ordinary beliefs
 - **Safer operation**: using explicit receipts,
   provenance, and review states instead of hidden
   state

@@ -217,7 +217,8 @@ def ensure_schema(cur):
             source TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(entity_id) REFERENCES entities(id) ON DELETE CASCADE
+            FOREIGN KEY(entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+            UNIQUE(entity_id, key, scope)
         )
         """
     )
@@ -232,7 +233,8 @@ def ensure_schema(cur):
             source TEXT,
             created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY(from_entity_id) REFERENCES entities(id) ON DELETE CASCADE,
-            FOREIGN KEY(to_entity_id) REFERENCES entities(id) ON DELETE CASCADE
+            FOREIGN KEY(to_entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+            UNIQUE(from_entity_id, relation, to_entity_id)
         )
         """
     )
@@ -311,6 +313,11 @@ def ensure_schema(cur):
         cur.execute("alter table memory_links add column via_name TEXT")
     if "raw_line" not in cols:
         cur.execute("alter table memory_links add column raw_line TEXT")
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_facts_entity_key_scope ON facts(entity_id, key, scope)")
+    cur.execute("CREATE UNIQUE INDEX IF NOT EXISTS idx_rel_unique_triple ON relations(from_entity_id, relation, to_entity_id)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_facts_entity_key ON facts(entity_id, key)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_rel_from_relation ON relations(from_entity_id, relation)")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_rel_to_relation ON relations(to_entity_id, relation)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_memories_kind_timestamp ON memories(kind, timestamp)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_memory_tags_tag ON memory_tags(tag)")
     cur.execute("CREATE INDEX IF NOT EXISTS idx_memory_links_relation ON memory_links(relation)")
@@ -333,14 +340,27 @@ def upsert_entity(cur, name, kind, description=None):
 
 def add_fact(cur, entity_id, key, value, scope="general", source=None):
     cur.execute(
-        "INSERT INTO facts(entity_id, key, value, scope, source, updated_at) VALUES(?, ?, ?, ?, ?, CURRENT_TIMESTAMP)",
+        """
+        INSERT INTO facts(entity_id, key, value, scope, source, updated_at)
+        VALUES(?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+        ON CONFLICT(entity_id, key, scope) DO UPDATE SET
+            value=excluded.value,
+            source=COALESCE(excluded.source, facts.source),
+            updated_at=CURRENT_TIMESTAMP
+        """,
         (entity_id, key, value, scope, source),
     )
 
 
 def add_relation(cur, from_id, relation, to_id, weight=1.0, source=None):
     cur.execute(
-        "INSERT INTO relations(from_entity_id, relation, to_entity_id, weight, source) VALUES(?, ?, ?, ?, ?)",
+        """
+        INSERT INTO relations(from_entity_id, relation, to_entity_id, weight, source)
+        VALUES(?, ?, ?, ?, ?)
+        ON CONFLICT(from_entity_id, relation, to_entity_id) DO UPDATE SET
+            weight=excluded.weight,
+            source=COALESCE(excluded.source, relations.source)
+        """,
         (from_id, relation, to_id, weight, source),
     )
 

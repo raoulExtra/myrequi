@@ -25,7 +25,8 @@ SCHEMA = [
         source TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(entity_id) REFERENCES entities(id) ON DELETE CASCADE
+        FOREIGN KEY(entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+        UNIQUE(entity_id, key, scope)
     )
     """,
     """
@@ -38,7 +39,8 @@ SCHEMA = [
         source TEXT,
         created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY(from_entity_id) REFERENCES entities(id) ON DELETE CASCADE,
-        FOREIGN KEY(to_entity_id) REFERENCES entities(id) ON DELETE CASCADE
+        FOREIGN KEY(to_entity_id) REFERENCES entities(id) ON DELETE CASCADE,
+        UNIQUE(from_entity_id, relation, to_entity_id)
     )
     """,
     """
@@ -60,6 +62,8 @@ SCHEMA = [
         FOREIGN KEY(entity_id) REFERENCES entities(id) ON DELETE CASCADE
     )
     """,
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_facts_entity_key_scope ON facts(entity_id, key, scope)",
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_rel_unique_triple ON relations(from_entity_id, relation, to_entity_id)",
     "CREATE INDEX IF NOT EXISTS idx_facts_entity_key ON facts(entity_id, key)",
     "CREATE INDEX IF NOT EXISTS idx_rel_from_relation ON relations(from_entity_id, relation)",
     "CREATE INDEX IF NOT EXISTS idx_rel_to_relation ON relations(to_entity_id, relation)",

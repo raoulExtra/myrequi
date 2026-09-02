@@ -1,44 +1,83 @@
-# Battle-Proven Thinking Way
+# Learn topic fast: Kanban
 
-- plan_key: `battle_proven_thinking_way`
-- status: active
-- created_at: 2026-08-31 19:25:08
-- updated_at: 2026-08-31 19:27:37
+## Goal
+Learn enough Kanban to explain it, apply it, and test it in a real workflow.
 
-## Objective
-Use adversarial questioning and thin-slice execution to choose implementation options that survive stress tests.
+## Pattern references
+- `pattern:restate_problem`
+- `pattern:identify_goal`
+- `pattern:list_inputs_outputs`
+- `pattern:find_constraints`
+- `pattern:define_value`
+- `pattern:limit_wip`
+- `pattern:shrink_batch_size`
+- `pattern:remove_waste`
+- `pattern:build_feedback`
+- `pattern:verify_with_tests`
+- `pattern:record_rationale`
+- `pattern:review_after_action`
 
-## Prompt
-Use this plan when you need a reliable way to choose an implementation or next action.
+## Restated problem
+Kanban is a lightweight workflow system for managing work visually, limiting work in progress, and improving flow through feedback.
 
-Grill-me mode:
-- aggressively test each proposal with skeptical questions before committing
-- challenge assumptions, failure modes, and hidden costs
-- require a cheap falsification test for each option
-- prefer the smallest reversible choice that still proves value
+## What to learn first
+- What Kanban is for: flow, visibility, and WIP control
+- Core elements: board, columns, cards, policies, WIP limits
+- How work moves: pull-based progression instead of push-based batching
+- How improvement happens: observe flow, remove bottlenecks, adjust policies
 
-Loop:
-1. State the goal.
-2. List hard constraints.
-3. List unknowns.
-4. Generate 3-5 options.
-5. Grill each option: what would fail, what is weakest, what evidence is missing?
-6. Pick the smallest reversible option.
-7. Test fast.
-8. Update based on evidence.
+## Inputs / outputs
+**Inputs**
+- work items
+- workflow stages
+- policies
+- WIP limits
+- bottleneck signals
 
-Rules:
-- avoid overdesign
-- expose tradeoffs early
-- keep options reversible
-- prefer the smallest testable step
-- do not accept a proposal without a clear falsification test
+**Outputs**
+- clearer flow
+- less overload
+- faster delivery
+- visible blockers
+- better process decisions
 
-## Steps
-1. state_goal — State the goal in one sentence. [pending]
-2. list_constraints — List hard constraints and non-negotiables. [pending]
-3. list_unknowns — List unknowns and what evidence is missing. [pending]
-4. generate_options — Generate 3-5 options that satisfy the constraints. [pending]
-5. choose_thin_slice — Choose the smallest reversible option. [pending]
-6. test_fast — Test the chosen option as soon as possible. [pending]
-7. update_evidence — Update the decision using new evidence. [pending]
+## Constraints
+- keep WIP low
+- avoid overcomplicating the board
+- make policies explicit
+- use small batches of change
+- learn from actual flow, not theory alone
+
+## Minimal learning path
+1. Restate Kanban in one sentence.
+2. Draw a simple board with 3–5 columns.
+3. Add 5 sample cards.
+4. Set WIP limits.
+5. Simulate pull-based movement.
+6. Identify one bottleneck.
+7. Change one policy.
+8. Review whether flow improved.
+
+## Fast practice test
+Answer these:
+- What problem does Kanban solve?
+- Why is WIP limiting important?
+- What is a pull system?
+- How do you spot a bottleneck?
+- What change would improve flow?
+
+## Feedback loop
+- What was easy to understand?
+- What still feels fuzzy?
+- What example made it click?
+- What should be tested next?
+
+## Rationale
+Kanban is best learned by doing a small visual workflow, observing flow, and adjusting based on evidence.
+
+## Review after action
+After a short trial, record:
+- what slowed work down
+- what improved clarity
+- what rule mattered most
+- what to standardize next

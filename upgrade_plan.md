@@ -44,6 +44,7 @@
 
 ### Semantic memory
 - `beliefs` / `belief_versions`: versioned claims and their history
+- `convictions` / `conviction_versions` / `conviction_inputs`: durable commitments and working judgments with explicit provenance
 - `syntheses` / `synthesis_inputs`: derived conclusions from multiple sources
 - `synthesis_conflicts`: explicit warnings when a synthesis needs review
 - `concepts`: canonical named concepts used in reasoning
@@ -85,13 +86,27 @@ Goal: make memory useful in the next turn.
 ## v1
 Goal: make memory reliable for ongoing work.
 
-- TODO: add multi-layer recall across episodic, semantic, procedural, and metacognitive memory
-- TODO: rank by relevance, confidence, recency, and layer priority
-- TODO: version beliefs with update history
-- TODO: detect conflicts between old and new statements
-- TODO: separate raw evidence from derived synthesis
-- TODO: add a reflection step after major tasks
-- TODO: link episodes, beliefs, projects, and open questions
+1. TODO: add multi-layer recall across episodic, semantic, procedural, and metacognitive memory
+   - expose one recall path that can return layered packets
+   - keep `continuity.db` as the only core memory store
+
+2. TODO: rank by relevance, confidence, recency, and layer priority
+   - prefer strong exact matches
+   - keep weaker matches available but lower
+
+3. TODO: version beliefs with update history
+   - preserve prior belief statements
+   - keep current belief rows and append-only history in sync
+
+4. TODO: add an explicit convictions layer for durable commitments
+   - keep convictions distinct from ordinary beliefs
+   - require explicit provenance and version history
+   - use convictions to guide action and judgment
+
+5. TODO: detect conflicts between old and new statements
+6. TODO: separate raw evidence from derived synthesis
+7. TODO: add a reflection step after major tasks
+8. TODO: link episodes, beliefs, convictions, projects, and open questions
 
 **Success criteria**
 - Contradictions are visible
@@ -101,7 +116,15 @@ Goal: make memory reliable for ongoing work.
 ## v2
 Goal: make memory a real thinking partner.
 
-- TODO: add persistent planning and goal tracking
+### Lightweight persistent planning and goal tracking
+- TODO: keep one current primary goal in `metacognitive_state.primary_goal`
+- TODO: keep one active plan per topic in `work_plans`
+- TODO: keep 3–7 actionable steps in `work_plan_steps`
+- TODO: use `open_questions` for blockers and unresolved dependencies
+- TODO: write a short `journal` note when a step completes or the goal changes
+- TODO: write a `reasoning_episode` when the goal is revised or a plan is replaced
+
+### Broader v2 work
 - TODO: tune recall by task type and intent
 - TODO: generate synthesis from accumulated evidence
 - TODO: monitor uncertainty, bias, and stale assumptions
