@@ -1,6 +1,9 @@
 TABLE_CONTRACT_ROWS = [
     ("belief_versions", "history", "append_only", "beliefs", "Immutable belief history"),
     ("beliefs", "current", "mutable", "belief_versions", "Canonical current belief row"),
+    ("conviction_inputs", "evidence", "append_only", "convictions", "Evidence links grounding convictions."),
+    ("conviction_versions", "history", "append_only", "convictions", "Immutable conviction history."),
+    ("convictions", "current", "mutable", "conviction_versions, conviction_inputs", "Canonical current conviction row for durable commitments and working judgments."),
     ("concept_links", "evidence", "append_only", "concepts", "Links from concepts to beliefs, decisions, requirements, and states."),
     ("concepts", "current", "mutable", "concept_links", "Canonical concept catalog."),
     ("continuity_requirement_versions", "history", "append_only", "continuity_requirements", "Immutable requirement history"),
@@ -27,6 +30,7 @@ TABLE_CONTRACT_ROWS = [
     ("syntheses", "current", "mutable", "synthesis_inputs, synthesis_conflicts", "Canonical interpreted layer entries."),
     ("v_concept_links", "derived", "derived", "concepts,concept_links", "Readable expanded concept links view."),
     ("v_concepts", "derived", "derived", "concepts,concept_links", "Readable concept catalog view."),
+    ("v_convictions", "derived", "derived", "convictions,conviction_versions,conviction_inputs", "Readable conviction catalog and history view."),
     ("v_problem_solving_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable problem-solving patterns and their links."),
     ("v_problem_understanding_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable problem-understanding patterns and their links."),
     ("v_lean_thinking_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable lean-thinking patterns and their links."),
@@ -41,6 +45,7 @@ TABLE_CONTRACT_ROWS = [
     ("v_item_links", "derived", "derived", "concept_links,project_objects,project_requirements,work_plan_links,synthesis_inputs", "Unified relationship graph across the raw and interpreted layers."),
     ("v_items", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,arguments,reasoning_episodes,metacognitive_state,continuity_requirements,concepts,ethical_principles,ethical_conflict_rules,tool_command_guide,work_plans,work_plan_steps,projects,research_jobs", "Canonical raw item layer including arguments and reasoning episodes."),
     ("v_meaningful_sentences", "derived", "derived", "beliefs,decisions,continuity_requirements,metacognitive_state,concepts,ethical_principles", "Prioritized view of meaningful sentences across the main semantic tables."),
+    ("v_entry_points", "derived", "derived", "v_recall", "Curated GPT-friendly entry points over recall items."),
     ("v_memory_index", "derived", "derived", "v_recall", "Compatibility recall alias."),
     ("v_meta", "derived", "derived", "metacognitive_state", "Canonical metacognitive state view."),
     ("v_object_epistemic_tags", "derived", "derived", "epistemic_tags,object_epistemic_tags", "Readable expanded epistemic tags view."),
@@ -57,6 +62,7 @@ TABLE_CONTRACT_ROWS = [
 STORAGE_MAP_VIEW_SQL = """
 CREATE VIEW v_storage_map AS
 SELECT 'belief' AS concept,'current' AS storage_role,'beliefs' AS current_table,'belief_versions' AS history_table,NULL AS related_tables,'Current belief statement and confidence live in beliefs; prior versions live in belief_versions.' AS notes
+UNION ALL SELECT 'conviction','current','convictions','conviction_versions, conviction_inputs',NULL,'Durable commitments and working judgments live in convictions; supporting evidence lives in conviction_inputs and history in conviction_versions.'
 UNION ALL SELECT 'continuity_requirement','current','continuity_requirements','continuity_requirement_versions',NULL,'Current requirement text and status live in continuity_requirements; prior versions live in continuity_requirement_versions.'
 UNION ALL SELECT 'metacognitive_state','current','metacognitive_state','metacognitive_state_history',NULL,'Current metacognitive state lives in metacognitive_state; prior versions live in metacognitive_state_history.'
 UNION ALL SELECT 'vision','derived','v_visions','metacognitive_state',NULL,'Vision is exposed as a readable view over metacognitive_state.'
@@ -93,6 +99,7 @@ UNION ALL SELECT 'synthesis_input','evidence','synthesis_inputs','syntheses',NUL
 UNION ALL SELECT 'synthesis_conflict','audit','synthesis_conflicts','syntheses',NULL,'Recorded tensions or unresolved issues around syntheses.'
 UNION ALL SELECT 'interpreted_layer','derived','v_interpreted_layer',NULL,'syntheses, synthesis_inputs, synthesis_conflicts, metacognitive_state','Workbench view over interpreted syntheses and the governing metacognitive policy.'
 UNION ALL SELECT 'recall','derived','v_recall',NULL,'v_items, syntheses, synthesis_conflicts','Normalized recall layer for reasoning and retrieval.'
+UNION ALL SELECT 'entry_points','derived','v_entry_points',NULL,'v_recall','Curated GPT-friendly entry points over recall items.'
 UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'v_recall','Compatibility recall alias.'
 UNION ALL SELECT 'project','current','projects','project_activation_events', 'project_objects, project_requirements','Project identity and active status live in projects; related objects and requirements live in project_objects and project_requirements.'
 UNION ALL SELECT 'research','current','research_jobs','research_sources',NULL,'Research job lifecycle lives in research_jobs; cited sources live in research_sources.'
@@ -187,6 +194,37 @@ ORDER BY
         ELSE 5
     END,
     recorded_at DESC
+"""
+
+CONVICTIONS_VIEW_SQL = """
+CREATE VIEW v_convictions AS
+SELECT 'conviction' AS item_kind,
+       'conviction:' || slug AS item_key,
+       slug AS source_key,
+       slug AS title,
+       current_statement AS body,
+       confidence,
+       current_version AS version,
+       status,
+       'convictions' AS source_table,
+       created_at AS recorded_at,
+       updated_at AS updated_at
+FROM convictions
+UNION ALL
+SELECT 'conviction_version' AS item_kind,
+       'conviction_version:' || CAST(cv.id AS TEXT) AS item_key,
+       COALESCE(c.slug, CAST(cv.conviction_id AS TEXT)) AS source_key,
+       COALESCE(c.slug, CAST(cv.conviction_id AS TEXT)) AS title,
+       cv.statement AS body,
+       cv.confidence,
+       cv.version,
+       COALESCE(c.status, 'active') AS status,
+       'conviction_versions' AS source_table,
+       cv.created_at AS recorded_at,
+       cv.created_at AS updated_at
+FROM conviction_versions cv
+LEFT JOIN convictions c ON c.id = cv.conviction_id
+ORDER BY recorded_at DESC
 """
 
 WRITEBACK_POLICY_VIEW_SQL = """
@@ -334,14 +372,33 @@ ORDER BY base.recorded_at DESC;
 CREATE VIEW v_recall AS
 SELECT item_kind AS source_type, source_key, title, body, condition, confidence, version, recorded_at
 FROM v_items
-UNION ALL SELECT 'synthesis', synthesis_key, topic, summary || COALESCE(' ' || claim, ''), COALESCE(mc.condition, ''), confidence, NULL, updated_at
-FROM syntheses
-LEFT JOIN memory_conditions mc ON mc.source_type='synthesis' AND mc.source_key = syntheses.synthesis_key
+UNION ALL SELECT 'synthesis', synthesis_key, topic, summary || COALESCE(' ' || claim, ''), COALESCE(mc.condition, ''), confidence, NULL, s.updated_at
+FROM syntheses s
+LEFT JOIN memory_conditions mc ON mc.source_type='synthesis' AND mc.source_key = s.synthesis_key
 UNION ALL SELECT 'synthesis_conflict', s.synthesis_key || ': ' || CAST(c.id AS TEXT), s.synthesis_key || ': ' || c.issue,
        c.resolution_note || COALESCE(' ' || c.issue, ''), COALESCE(mc.condition, ''), NULL, NULL, c.created_at
 FROM synthesis_conflicts c
 JOIN syntheses s ON s.id = c.synthesis_id
 LEFT JOIN memory_conditions mc ON mc.source_type='synthesis_conflict' AND mc.source_key = CAST(c.id AS TEXT);
+
+CREATE VIEW v_entry_points AS
+SELECT
+    source_type AS entry_kind,
+    source_key AS entry_key,
+    title,
+    body,
+    condition,
+    confidence,
+    version,
+    recorded_at,
+    CASE
+        WHEN source_type IN ('decision', 'open_question', 'work_plan') THEN 'actionable'
+        WHEN source_type IN ('reasoning_episode', 'synthesis') THEN 'analysis'
+        ELSE 'context'
+    END AS entry_role
+FROM v_recall
+WHERE source_type IN ('belief', 'concept', 'journal', 'observation', 'project', 'work_plan', 'decision', 'open_question', 'reasoning_episode', 'synthesis')
+ORDER BY recorded_at DESC, entry_role, entry_kind, entry_key;
 
 CREATE VIEW v_explain AS
 WITH evidence AS (

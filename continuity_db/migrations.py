@@ -12,6 +12,7 @@ from .schema import (
     INTERPRETED_LAYER_SCHEMA_SQL,
     INTERPRETED_LAYER_VIEWS_SQL,
     DECISION_OPTIONS_VIEW_SQL,
+    CONVICTIONS_VIEW_SQL,
     MEMORY_INDEX_VIEW_SQL,
     MEMORY_PACKET_VIEW_SQL,
     WRITEBACK_POLICY_VIEW_SQL,
@@ -177,6 +178,32 @@ def backfill_epistemic_receipt_provenance(cur):
             (json.dumps(provenance_json, ensure_ascii=False), receipt_id),
         )
     recreate_receipt_immutability_triggers(cur)
+
+
+def ensure_primary_object_provenance(cur, object_type, object_key, provenance_key='database_state', note='Primary origin of this seeded object.'):
+    row = cur.execute(
+        "select id from object_metadata where object_type=? and object_key=?",
+        (object_type, object_key),
+    ).fetchone()
+    if not row:
+        return
+    metadata_id = row[0]
+    exists = cur.execute(
+        "select 1 from object_provenance where metadata_id=? and role='primary' limit 1",
+        (metadata_id,),
+    ).fetchone()
+    if not exists:
+        cur.execute(
+            "insert into object_provenance(metadata_id, provenance_key, role, note) values(?,?,?,?)",
+            (metadata_id, provenance_key, 'primary', note),
+        )
+
+
+def seed_morphology_concept_provenance(cur):
+    for trigger in ['receipt_provenance_attach', 'receipt_provenance_delete', 'receipt_provenance_update']:
+        drop_trigger(cur, trigger)
+    for key in ['morphology.common_prefixes', 'morphology.common_suffixes']:
+        ensure_primary_object_provenance(cur, 'concept', key)
 
 
 def ensure_indexes(cur):
@@ -695,7 +722,7 @@ def create_decision_options_view(cur):
 
 
 def create_reasoning_v2_views(cur):
-    for name in ['v_item_links', 'v_meta', 'v_explain', 'v_recall', 'v_items', 'v_memory_index', 'v_decision_versions', 'v_decision_options', 'v_open_question_flow', 'v_reasoning_episode_inputs', 'v_reasoning_flow']:
+    for name in ['v_item_links', 'v_meta', 'v_explain', 'v_recall', 'v_entry_points', 'v_items', 'v_memory_index', 'v_decision_versions', 'v_decision_options', 'v_open_question_flow', 'v_reasoning_episode_inputs', 'v_reasoning_flow']:
         cur.execute(f'DROP VIEW IF EXISTS {name}')
     cur.executescript(RAW_RECALL_VIEWS_SQL)
 
@@ -799,6 +826,11 @@ def create_glossary_terms_view(cur):
 def create_provenance_summary_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_provenance_summary")
     cur.execute(PROVENANCE_SUMMARY_VIEW_SQL)
+
+
+def create_convictions_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_convictions")
+    cur.executescript(CONVICTIONS_VIEW_SQL)
 
 
 def create_frame_views(cur):
@@ -1232,12 +1264,14 @@ def validate(conn):
         "v_missions",
         "v_strategies",
         "v_plans",
+        "v_convictions",
         "v_items",
         "v_item_links",
         "v_argument_claims",
         "v_recall",
         "v_explain",
         "v_meta",
+        "v_entry_points",
         "v_memory_index",
         "v_decision_versions",
         "v_decision_options",
@@ -1421,6 +1455,7 @@ def apply_migration():
     create_contract_map(cur)
     seed_fairness_action_check(cur)
     seed_scientist_mode(cur)
+    seed_morphology_concept_provenance(cur)
     seed_memory_mvp_requirements(cur)
     seed_reasoning_episodes(cur)
     backfill_reasoning_episode_inputs(cur)
@@ -1441,6 +1476,7 @@ def apply_migration():
     create_scientist_mode_view(cur)
     create_glossary_terms_view(cur)
     create_provenance_summary_view(cur)
+    create_convictions_view(cur)
     create_interpretive_layer_views(cur)
     create_argument_claims_view(cur)
     create_decision_options_view(cur)

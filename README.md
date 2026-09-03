@@ -103,6 +103,7 @@ just outputs, but also the path taken to reach them.
 - `v_convictions`
 - `v_items`
 - `v_recall`
+- `v_entry_points`
 - `v_memory_index`
 - `v_item_links`
 - `v_explain`
