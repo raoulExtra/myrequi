@@ -1,7 +1,8 @@
 # Memory and filesystem guidance
 
 ## continuity.db
-The demo project uses `continuity.db` for project-level memory and structure.
+The demo project uses `continuity.db` for project-level
+memory and structure.
 Typical data in the database includes:
 
 - `projects`
@@ -10,7 +11,8 @@ Typical data in the database includes:
 - `project_requirements`
 
 ## filesystem
-The demo project uses the filesystem for working project material and narrative guidance.
+The demo project uses the filesystem for working project
+material and narrative guidance.
 Typical filesystem-resident material includes:
 
 - `phase_*.md` files for phase navigation

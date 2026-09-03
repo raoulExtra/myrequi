@@ -1,0 +1,32 @@
+{
+  "nodes": [
+    { "id": 1, "label": "System", "weight": 5.0, "weight_int": 5, "text": "A mind finds systems by drawing boundaries." },
+    { "id": 2, "label": "Boundary", "weight": 4.0, "weight_int": 4, "text": "Boundaries separate what belongs together." },
+    { "id": 3, "label": "Feedback", "weight": 5.0, "weight_int": 5, "text": "Feedback turns output into learning." },
+    { "id": 4, "label": "Memory", "weight": 4.0, "weight_int": 4, "text": "Memory keeps what persists across time." },
+    { "id": 5, "label": "Weight", "weight": 3.0, "weight_int": 3, "text": "Weight marks what matters more." },
+    { "id": 6, "label": "Constraint", "weight": 4.0, "weight_int": 4, "text": "Constraints guide action and reduce risk." },
+    { "id": 7, "label": "Path", "weight": 4.0, "weight_int": 4, "text": "The best path is not always the shortest path." },
+    { "id": 8, "label": "Learning", "weight": 5.0, "weight_int": 5, "text": "Learning appears when feedback changes future choice." },
+    { "id": 9, "label": "Search", "weight": 4.0, "weight_int": 4, "text": "Search explores options under constraints." },
+    { "id": 10, "label": "Story", "weight": 3.0, "weight_int": 3, "text": "A bigger story emerges when the same words return." },
+    { "id": 11, "label": "Reappearance", "weight": 5.0, "weight_int": 5, "text": "Words reappear as motifs in new roles." }
+  ],
+  "edges": [
+    { "from": 1, "to": 2, "label": "system uses boundary", "weight": 3.0 },
+    { "from": 2, "to": 4, "label": "boundary frames memory", "weight": 2.0 },
+    { "from": 4, "to": 3, "label": "memory enables feedback", "weight": 3.0 },
+    { "from": 3, "to": 8, "label": "feedback becomes learning", "weight": 3.0 },
+    { "from": 8, "to": 9, "label": "learning drives search", "weight": 2.0 },
+    { "from": 9, "to": 7, "label": "search finds paths", "weight": 3.0 },
+    { "from": 7, "to": 5, "label": "paths carry weight", "weight": 2.0 },
+    { "from": 5, "to": 6, "label": "weight shapes constraints", "weight": 2.0 },
+    { "from": 6, "to": 10, "label": "constraints shape story", "weight": 2.0 },
+    { "from": 10, "to": 11, "label": "story reappears", "weight": 3.0 },
+    { "from": 11, "to": 1, "label": "reappearance returns to system", "weight": 2.0 },
+    { "from": 2, "to": 3, "label": "boundary enables feedback", "weight": 2.0 },
+    { "from": 6, "to": 7, "label": "constraint narrows path", "weight": 3.0 },
+    { "from": 1, "to": 9, "label": "system becomes search space", "weight": 2.0 },
+    { "from": 4, "to": 5, "label": "memory assigns weight", "weight": 1.0 }
+  ]
+}

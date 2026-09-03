@@ -1,0 +1,116 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "label": "Module",
+      "weight": 5,
+      "text": "Module"
+    },
+    {
+      "id": 2,
+      "label": "If",
+      "weight": 4,
+      "text": "If"
+    },
+    {
+      "id": 3,
+      "label": "Name",
+      "weight": 3,
+      "text": "ready"
+    },
+    {
+      "id": 4,
+      "label": "Load",
+      "weight": 2,
+      "text": "Load"
+    },
+    {
+      "id": 5,
+      "label": "Expr",
+      "weight": 3,
+      "text": "Expr"
+    },
+    {
+      "id": 6,
+      "label": "Call",
+      "weight": 3,
+      "text": "Call"
+    },
+    {
+      "id": 7,
+      "label": "Name",
+      "weight": 3,
+      "text": "print"
+    },
+    {
+      "id": 8,
+      "label": "Load",
+      "weight": 2,
+      "text": "Load"
+    },
+    {
+      "id": 9,
+      "label": "Constant",
+      "weight": 3,
+      "text": "go"
+    }
+  ],
+  "edges": [
+    {
+      "from": 1,
+      "to": 2,
+      "label": "body",
+      "weight": 1,
+      "order": 1
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": "test",
+      "weight": 1,
+      "order": 2
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "label": "ctx",
+      "weight": 1,
+      "order": 3
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "label": "body",
+      "weight": 1,
+      "order": 4
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "label": "value",
+      "weight": 1,
+      "order": 5
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "label": "func",
+      "weight": 1,
+      "order": 6
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "label": "ctx",
+      "weight": 1,
+      "order": 7
+    },
+    {
+      "from": 6,
+      "to": 9,
+      "label": "args",
+      "weight": 1,
+      "order": 8
+    }
+  ]
+}

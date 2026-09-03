@@ -17,4 +17,6 @@ source_requirement: R1-G-graph.md
 - A node may have a text field in the JSON source.
 - That node text is stored in a separate database table.
 - Each edge has a weight with default value 1 when omitted.
-- A reviewer can inspect the graph and confirm the float weights, optional integer weights, and node text are represented correctly.
+- A reviewer can inspect the graph and confirm the float
+  weights, optional integer weights, and node text are
+  represented correctly.

@@ -1,0 +1,259 @@
+{
+  "type": "Module",
+  "body": [
+    {
+      "type": "FunctionDef",
+      "name": "init_db",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "db_path", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "Return",
+          "value": {
+            "type": "Constant",
+            "value": "initialized db",
+            "kind": null
+          }
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    },
+    {
+      "type": "FunctionDef",
+      "name": "load_graph",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "db_path", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "graph_file", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "If",
+          "test": {
+            "type": "Name",
+            "id": "graph_file",
+            "ctx": { "type": "Load" }
+          },
+          "body": [
+            {
+              "type": "Return",
+              "value": { "type": "Constant", "value": "loaded graph", "kind": null }
+            }
+          ],
+          "orelse": [
+            {
+              "type": "Return",
+              "value": { "type": "Constant", "value": "missing graph", "kind": null }
+            }
+          ]
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    },
+    {
+      "type": "FunctionDef",
+      "name": "export_graph",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "db_path", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "graph_id", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "out_file", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "Return",
+          "value": { "type": "Constant", "value": "exported graph", "kind": null }
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    },
+    {
+      "type": "FunctionDef",
+      "name": "compare_graph",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "db_path", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "graph_id", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "json_file", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "Return",
+          "value": { "type": "Constant", "value": "comparison result", "kind": null }
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    },
+    {
+      "type": "FunctionDef",
+      "name": "run_algorithm",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "db_path", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "graph_id", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "algo", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "start", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "goal", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "Return",
+          "value": { "type": "Constant", "value": "path result", "kind": null }
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    },
+    {
+      "type": "FunctionDef",
+      "name": "list_graphs",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "db_path", "annotation": null, "type_comment": null },
+          { "type": "arg", "arg": "graph_id", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "Return",
+          "value": { "type": "Constant", "value": "graph list", "kind": null }
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    },
+    {
+      "type": "FunctionDef",
+      "name": "parse_cli",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "argv", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "Return",
+          "value": { "type": "Constant", "value": "parsed cli", "kind": null }
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    },
+    {
+      "type": "FunctionDef",
+      "name": "main",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          { "type": "arg", "arg": "argv", "annotation": null, "type_comment": null }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "If",
+          "test": {
+            "type": "Name",
+            "id": "argv",
+            "ctx": { "type": "Load" }
+          },
+          "body": [
+            {
+              "type": "Expr",
+              "value": {
+                "type": "Call",
+                "func": { "type": "Name", "id": "print", "ctx": { "type": "Load" } },
+                "args": [
+                  { "type": "Constant", "value": "graph tool", "kind": null }
+                ],
+                "keywords": []
+              }
+            }
+          ],
+          "orelse": [
+            {
+              "type": "Return",
+              "value": { "type": "Constant", "value": 0, "kind": null }
+            }
+          ]
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    }
+  ],
+  "type_ignores": []
+}

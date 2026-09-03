@@ -13,7 +13,10 @@ source_requirement: R6-G-graph-algo.md
 - The demo project supports an `--algo` argument.
 - The demo project accepts `--id` to select the graph.
 - The demo project accepts a start node argument.
-- The demo project may accept an optional goal node argument.
+- The demo project may accept an optional goal node
+  argument.
 - The selected algorithm runs on the selected graph.
 - `A*` is an example supported algorithm.
-- A reviewer can confirm the algorithm selection, graph selection, start node, and optional goal node are connected.
+- A reviewer can confirm the algorithm selection, graph
+  selection, start node, and optional goal node are
+  connected.

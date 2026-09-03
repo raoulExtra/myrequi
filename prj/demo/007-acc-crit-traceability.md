@@ -10,6 +10,9 @@ source_requirement: 007-requi-traceability.md
 - [R7 requirement](007-requi-traceability.md)
 
 ## Verification ideas
-- Each requirement file states the stakeholder need it supports.
-- Each requirement can be traced back to at least one stated need.
-- The traceability links are readable from the phase document.
+- Each requirement file states the stakeholder need it
+  supports.
+- Each requirement can be traced back to at least one stated
+  need.
+- The traceability links are readable from the phase
+  document.

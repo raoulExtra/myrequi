@@ -1,0 +1,1065 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "label": "by",
+      "weight": 20.0,
+      "weight_int": 20,
+      "text": "by"
+    },
+    {
+      "id": 2,
+      "label": "path",
+      "weight": 18.0,
+      "weight_int": 18,
+      "text": "path"
+    },
+    {
+      "id": 3,
+      "label": "Feedback",
+      "weight": 16.0,
+      "weight_int": 16,
+      "text": "Feedback"
+    },
+    {
+      "id": 4,
+      "label": "The",
+      "weight": 16.0,
+      "weight_int": 16,
+      "text": "The"
+    },
+    {
+      "id": 5,
+      "label": "is",
+      "weight": 16.0,
+      "weight_int": 16,
+      "text": "is"
+    },
+    {
+      "id": 6,
+      "label": "memory",
+      "weight": 14.0,
+      "weight_int": 14,
+      "text": "memory"
+    },
+    {
+      "id": 7,
+      "label": "weight",
+      "weight": 14.0,
+      "weight_int": 14,
+      "text": "weight"
+    },
+    {
+      "id": 8,
+      "label": "A",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "A"
+    },
+    {
+      "id": 9,
+      "label": "Constraints",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "Constraints"
+    },
+    {
+      "id": 10,
+      "label": "and",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "and"
+    },
+    {
+      "id": 11,
+      "label": "boundaries",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "boundaries"
+    },
+    {
+      "id": 12,
+      "label": "learning",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "learning"
+    },
+    {
+      "id": 13,
+      "label": "should",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "should"
+    },
+    {
+      "id": 14,
+      "label": "system",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "system"
+    },
+    {
+      "id": 15,
+      "label": "systems",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "systems"
+    },
+    {
+      "id": 16,
+      "label": "than",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "than"
+    },
+    {
+      "id": 17,
+      "label": "useful",
+      "weight": 12.0,
+      "weight_int": 12,
+      "text": "useful"
+    },
+    {
+      "id": 18,
+      "label": "You",
+      "weight": 10.0,
+      "weight_int": 10,
+      "text": "You"
+    },
+    {
+      "id": 19,
+      "label": "abstraction",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "abstraction"
+    },
+    {
+      "id": 20,
+      "label": "always",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "always"
+    },
+    {
+      "id": 21,
+      "label": "an",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "an"
+    },
+    {
+      "id": 22,
+      "label": "answer",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "answer"
+    },
+    {
+      "id": 23,
+      "label": "are",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "are"
+    },
+    {
+      "id": 24,
+      "label": "be",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "be"
+    },
+    {
+      "id": 25,
+      "label": "before",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "before"
+    },
+    {
+      "id": 26,
+      "label": "best",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "best"
+    },
+    {
+      "id": 27,
+      "label": "better",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "better"
+    },
+    {
+      "id": 28,
+      "label": "can",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "can"
+    },
+    {
+      "id": 29,
+      "label": "complex",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "complex"
+    },
+    {
+      "id": 30,
+      "label": "depends",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "depends"
+    },
+    {
+      "id": 31,
+      "label": "drawing",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "drawing"
+    },
+    {
+      "id": 32,
+      "label": "easier",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "easier"
+    },
+    {
+      "id": 33,
+      "label": "elegant",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "elegant"
+    },
+    {
+      "id": 34,
+      "label": "finds",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "finds"
+    },
+    {
+      "id": 35,
+      "label": "good",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "good"
+    },
+    {
+      "id": 36,
+      "label": "improve",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "improve"
+    },
+    {
+      "id": 37,
+      "label": "into",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "into"
+    },
+    {
+      "id": 38,
+      "label": "it",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "it"
+    },
+    {
+      "id": 39,
+      "label": "its",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "its"
+    },
+    {
+      "id": 40,
+      "label": "learns",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "learns"
+    },
+    {
+      "id": 41,
+      "label": "make",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "make"
+    },
+    {
+      "id": 42,
+      "label": "measure",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "measure"
+    },
+    {
+      "id": 43,
+      "label": "mind",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "mind"
+    },
+    {
+      "id": 44,
+      "label": "mistakes",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "mistakes"
+    },
+    {
+      "id": 45,
+      "label": "model",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "model"
+    },
+    {
+      "id": 46,
+      "label": "more",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "more"
+    },
+    {
+      "id": 47,
+      "label": "not",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "not"
+    },
+    {
+      "id": 48,
+      "label": "often",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "often"
+    },
+    {
+      "id": 49,
+      "label": "on",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "on"
+    },
+    {
+      "id": 50,
+      "label": "one",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "one"
+    },
+    {
+      "id": 51,
+      "label": "optimize",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "optimize"
+    },
+    {
+      "id": 52,
+      "label": "options",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "options"
+    },
+    {
+      "id": 53,
+      "label": "output",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "output"
+    },
+    {
+      "id": 54,
+      "label": "reduce",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "reduce"
+    },
+    {
+      "id": 55,
+      "label": "remembers",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "remembers"
+    },
+    {
+      "id": 56,
+      "label": "repeats",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "repeats"
+    },
+    {
+      "id": 57,
+      "label": "right",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "right"
+    },
+    {
+      "id": 58,
+      "label": "risk",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "risk"
+    },
+    {
+      "id": 59,
+      "label": "searches",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "searches"
+    },
+    {
+      "id": 60,
+      "label": "shortest",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "shortest"
+    },
+    {
+      "id": 61,
+      "label": "steps",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "steps"
+    },
+    {
+      "id": 62,
+      "label": "that",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "that"
+    },
+    {
+      "id": 63,
+      "label": "to",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "to"
+    },
+    {
+      "id": 64,
+      "label": "turns",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "turns"
+    },
+    {
+      "id": 65,
+      "label": "valuable",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "valuable"
+    },
+    {
+      "id": 66,
+      "label": "what",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "what"
+    },
+    {
+      "id": 67,
+      "label": "without",
+      "weight": 8.0,
+      "weight_int": 8,
+      "text": "without"
+    },
+    {
+      "id": 68,
+      "label": "Clear",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "Clear"
+    },
+    {
+      "id": 69,
+      "label": "Small",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "Small"
+    },
+    {
+      "id": 70,
+      "label": "carefully",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "carefully"
+    },
+    {
+      "id": 71,
+      "label": "control",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "control"
+    },
+    {
+      "id": 72,
+      "label": "fails",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "fails"
+    },
+    {
+      "id": 73,
+      "label": "perfect",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "perfect"
+    },
+    {
+      "id": 74,
+      "label": "task",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "task"
+    },
+    {
+      "id": 75,
+      "label": "understand",
+      "weight": 6.0,
+      "weight_int": 6,
+      "text": "understand"
+    }
+  ],
+  "edges": [
+    {
+      "from": 1,
+      "to": 2,
+      "label": "sent11: by→path",
+      "weight": 0.95
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "label": "sent11: by→feedback",
+      "weight": 0.95
+    },
+    {
+      "from": 1,
+      "to": 7,
+      "label": "sent11: by→weight",
+      "weight": 0.8
+    },
+    {
+      "from": 1,
+      "to": 31,
+      "label": "sent11: by→drawing",
+      "weight": 0.8
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "label": "sent8: path→is",
+      "weight": 1.0
+    },
+    {
+      "from": 2,
+      "to": 7,
+      "label": "motif: path to weight",
+      "weight": 1.2
+    },
+    {
+      "from": 3,
+      "to": 12,
+      "label": "motif: feedback to learning",
+      "weight": 1.4
+    },
+    {
+      "from": 3,
+      "to": 55,
+      "label": "sent11: feedback→remembers",
+      "weight": 1.0
+    },
+    {
+      "from": 3,
+      "to": 64,
+      "label": "sent3: Feedback→turns",
+      "weight": 1.0
+    },
+    {
+      "from": 4,
+      "to": 26,
+      "label": "sent8: The→best",
+      "weight": 0.8
+    },
+    {
+      "from": 4,
+      "to": 57,
+      "label": "sent6: The→right",
+      "weight": 0.8
+    },
+    {
+      "from": 4,
+      "to": 60,
+      "label": "sent8: the→shortest",
+      "weight": 0.8
+    },
+    {
+      "from": 4,
+      "to": 74,
+      "label": "sent6: the→task",
+      "weight": 0.8
+    },
+    {
+      "from": 5,
+      "to": 27,
+      "label": "sent10: is→better",
+      "weight": 0.8
+    },
+    {
+      "from": 5,
+      "to": 47,
+      "label": "sent8: is→not",
+      "weight": 0.8
+    },
+    {
+      "from": 5,
+      "to": 73,
+      "label": "sent2: is→perfect",
+      "weight": 0.8
+    },
+    {
+      "from": 6,
+      "to": 44,
+      "label": "motif: memory to mistakes",
+      "weight": 1.1
+    },
+    {
+      "from": 6,
+      "to": 56,
+      "label": "sent5: memory→repeats",
+      "weight": 1.0
+    },
+    {
+      "from": 7,
+      "to": 10,
+      "label": "sent11: weight→and",
+      "weight": 0.8
+    },
+    {
+      "from": 8,
+      "to": 14,
+      "label": "sent5: A→system",
+      "weight": 0.95
+    },
+    {
+      "from": 8,
+      "to": 17,
+      "label": "sent10: A→useful",
+      "weight": 0.8
+    },
+    {
+      "from": 8,
+      "to": 35,
+      "label": "sent2: A→good",
+      "weight": 0.8
+    },
+    {
+      "from": 8,
+      "to": 43,
+      "label": "sent11: A→mind",
+      "weight": 0.8
+    },
+    {
+      "from": 9,
+      "to": 23,
+      "label": "sent7: Constraints→are",
+      "weight": 1.0
+    },
+    {
+      "from": 9,
+      "to": 52,
+      "label": "motif: constraints to options",
+      "weight": 1.0
+    },
+    {
+      "from": 10,
+      "to": 36,
+      "label": "sent4: and→improve",
+      "weight": 0.8
+    },
+    {
+      "from": 10,
+      "to": 59,
+      "label": "sent11: and→searches",
+      "weight": 0.8
+    },
+    {
+      "from": 11,
+      "to": 40,
+      "label": "sent11: boundaries→learns",
+      "weight": 1.0
+    },
+    {
+      "from": 11,
+      "to": 41,
+      "label": "sent1: boundaries→make",
+      "weight": 1.0
+    },
+    {
+      "from": 13,
+      "to": 24,
+      "label": "sent2: should→be",
+      "weight": 0.8
+    },
+    {
+      "from": 13,
+      "to": 51,
+      "label": "sent9: should→optimize",
+      "weight": 0.8
+    },
+    {
+      "from": 14,
+      "to": 67,
+      "label": "sent5: system→without",
+      "weight": 1.0
+    },
+    {
+      "from": 15,
+      "to": 1,
+      "label": "sent11: systems→by",
+      "weight": 0.8
+    },
+    {
+      "from": 15,
+      "to": 32,
+      "label": "sent1: systems→easier",
+      "weight": 0.8
+    },
+    {
+      "from": 16,
+      "to": 21,
+      "label": "sent10: than→an",
+      "weight": 0.8
+    },
+    {
+      "from": 16,
+      "to": 52,
+      "label": "sent7: than→options",
+      "weight": 0.8
+    },
+    {
+      "from": 17,
+      "to": 22,
+      "label": "sent10: useful→answer",
+      "weight": 0.8
+    },
+    {
+      "from": 17,
+      "to": 25,
+      "label": "sent2: useful→before",
+      "weight": 0.8
+    },
+    {
+      "from": 18,
+      "to": 13,
+      "label": "sent9: You→should",
+      "weight": 0.8
+    },
+    {
+      "from": 18,
+      "to": 28,
+      "label": "sent9: you→can",
+      "weight": 0.8
+    },
+    {
+      "from": 19,
+      "to": 30,
+      "label": "sent6: abstraction→depends",
+      "weight": 0.8
+    },
+    {
+      "from": 20,
+      "to": 4,
+      "label": "sent8: always→the",
+      "weight": 0.8
+    },
+    {
+      "from": 21,
+      "to": 33,
+      "label": "sent10: an→elegant",
+      "weight": 0.8
+    },
+    {
+      "from": 22,
+      "to": 5,
+      "label": "sent10: answer→is",
+      "weight": 0.8
+    },
+    {
+      "from": 23,
+      "to": 48,
+      "label": "sent7: are→often",
+      "weight": 0.8
+    },
+    {
+      "from": 24,
+      "to": 17,
+      "label": "sent2: be→useful",
+      "weight": 0.8
+    },
+    {
+      "from": 25,
+      "to": 38,
+      "label": "sent2: before→it",
+      "weight": 0.8
+    },
+    {
+      "from": 26,
+      "to": 2,
+      "label": "sent8: best→path",
+      "weight": 0.95
+    },
+    {
+      "from": 27,
+      "to": 16,
+      "label": "sent10: better→than",
+      "weight": 0.8
+    },
+    {
+      "from": 28,
+      "to": 42,
+      "label": "sent9: can→measure",
+      "weight": 0.8
+    },
+    {
+      "from": 29,
+      "to": 15,
+      "label": "sent1: complex→systems",
+      "weight": 0.8
+    },
+    {
+      "from": 30,
+      "to": 49,
+      "label": "sent6: depends→on",
+      "weight": 0.8
+    },
+    {
+      "from": 31,
+      "to": 11,
+      "label": "sent11: drawing→boundaries",
+      "weight": 0.95
+    },
+    {
+      "from": 32,
+      "to": 63,
+      "label": "sent1: easier→to",
+      "weight": 0.8
+    },
+    {
+      "from": 33,
+      "to": 50,
+      "label": "sent10: elegant→one",
+      "weight": 0.8
+    },
+    {
+      "from": 34,
+      "to": 15,
+      "label": "sent11: finds→systems",
+      "weight": 0.8
+    },
+    {
+      "from": 35,
+      "to": 45,
+      "label": "sent2: good→model",
+      "weight": 0.8
+    },
+    {
+      "from": 36,
+      "to": 71,
+      "label": "sent4: improve→control",
+      "weight": 0.8
+    },
+    {
+      "from": 37,
+      "to": 12,
+      "label": "sent3: into→learning",
+      "weight": 0.95
+    },
+    {
+      "from": 38,
+      "to": 5,
+      "label": "sent2: it→is",
+      "weight": 0.8
+    },
+    {
+      "from": 39,
+      "to": 44,
+      "label": "sent5: its→mistakes",
+      "weight": 0.8
+    },
+    {
+      "from": 40,
+      "to": 1,
+      "label": "sent11: learns→by",
+      "weight": 0.8
+    },
+    {
+      "from": 41,
+      "to": 29,
+      "label": "sent1: make→complex",
+      "weight": 0.8
+    },
+    {
+      "from": 42,
+      "to": 70,
+      "label": "sent9: measure→carefully",
+      "weight": 0.8
+    },
+    {
+      "from": 43,
+      "to": 34,
+      "label": "sent11: mind→finds",
+      "weight": 0.8
+    },
+    {
+      "from": 45,
+      "to": 13,
+      "label": "sent2: model→should",
+      "weight": 0.8
+    },
+    {
+      "from": 46,
+      "to": 65,
+      "label": "sent7: more→valuable",
+      "weight": 0.8
+    },
+    {
+      "from": 47,
+      "to": 20,
+      "label": "sent8: not→always",
+      "weight": 0.8
+    },
+    {
+      "from": 48,
+      "to": 46,
+      "label": "sent7: often→more",
+      "weight": 0.8
+    },
+    {
+      "from": 49,
+      "to": 4,
+      "label": "sent6: on→the",
+      "weight": 0.8
+    },
+    {
+      "from": 50,
+      "to": 62,
+      "label": "sent10: one→that",
+      "weight": 0.8
+    },
+    {
+      "from": 51,
+      "to": 66,
+      "label": "sent9: optimize→what",
+      "weight": 0.8
+    },
+    {
+      "from": 53,
+      "to": 37,
+      "label": "sent3: output→into",
+      "weight": 0.8
+    },
+    {
+      "from": 54,
+      "to": 58,
+      "label": "sent4: reduce→risk",
+      "weight": 0.8
+    },
+    {
+      "from": 55,
+      "to": 1,
+      "label": "sent11: remembers→by",
+      "weight": 0.8
+    },
+    {
+      "from": 56,
+      "to": 39,
+      "label": "sent5: repeats→its",
+      "weight": 0.8
+    },
+    {
+      "from": 57,
+      "to": 19,
+      "label": "sent6: right→abstraction",
+      "weight": 0.8
+    },
+    {
+      "from": 58,
+      "to": 10,
+      "label": "sent4: risk→and",
+      "weight": 0.8
+    },
+    {
+      "from": 59,
+      "to": 1,
+      "label": "sent11: searches→by",
+      "weight": 0.8
+    },
+    {
+      "from": 60,
+      "to": 2,
+      "label": "sent8: shortest→path",
+      "weight": 0.95
+    },
+    {
+      "from": 61,
+      "to": 54,
+      "label": "sent4: steps→reduce",
+      "weight": 0.8
+    },
+    {
+      "from": 62,
+      "to": 72,
+      "label": "sent10: that→fails",
+      "weight": 0.8
+    },
+    {
+      "from": 63,
+      "to": 75,
+      "label": "sent1: to→understand",
+      "weight": 0.8
+    },
+    {
+      "from": 64,
+      "to": 53,
+      "label": "sent3: turns→output",
+      "weight": 0.8
+    },
+    {
+      "from": 65,
+      "to": 16,
+      "label": "sent7: valuable→than",
+      "weight": 0.8
+    },
+    {
+      "from": 66,
+      "to": 18,
+      "label": "sent9: what→you",
+      "weight": 0.8
+    },
+    {
+      "from": 67,
+      "to": 6,
+      "label": "sent5: without→memory",
+      "weight": 0.95
+    },
+    {
+      "from": 68,
+      "to": 11,
+      "label": "sent1: Clear→boundaries",
+      "weight": 0.95
+    },
+    {
+      "from": 69,
+      "to": 61,
+      "label": "sent4: Small→steps",
+      "weight": 0.8
+    }
+  ]
+}

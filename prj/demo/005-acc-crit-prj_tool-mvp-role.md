@@ -11,5 +11,7 @@ source_requirement: 005-requi-prj_tool-mvp-role.md
 
 ## Verification ideas
 - The documentation mentions prj_tool.
-- The documentation explains prj_tool's role in the MVP workflow.
-- The documentation explains that prj_tool can inspect and navigate the project filespace.
+- The documentation explains prj_tool's role in the MVP
+  workflow.
+- The documentation explains that prj_tool can inspect and
+  navigate the project filespace.

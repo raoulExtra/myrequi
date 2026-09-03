@@ -1,0 +1,64 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "label": "Module",
+      "weight": 5,
+      "text": "Module"
+    },
+    {
+      "id": 2,
+      "label": "Assign",
+      "weight": 4,
+      "text": "Assign"
+    },
+    {
+      "id": 3,
+      "label": "Name",
+      "weight": 3,
+      "text": "x"
+    },
+    {
+      "id": 4,
+      "label": "Store",
+      "weight": 2,
+      "text": "Store"
+    },
+    {
+      "id": 5,
+      "label": "Constant",
+      "weight": 3,
+      "text": "1"
+    }
+  ],
+  "edges": [
+    {
+      "from": 1,
+      "to": 2,
+      "label": "body",
+      "weight": 1,
+      "order": 1
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": "targets",
+      "weight": 1,
+      "order": 2
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "label": "ctx",
+      "weight": 1,
+      "order": 3
+    },
+    {
+      "from": 2,
+      "to": 5,
+      "label": "value",
+      "weight": 1,
+      "order": 4
+    }
+  ]
+}

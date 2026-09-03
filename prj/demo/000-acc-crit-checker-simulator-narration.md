@@ -10,10 +10,14 @@ source_requirement: 000-requi-checker-simulator-narration.md
 - [R0 requirement](000-requi-checker-simulator-narration.md)
 
 ## Verification ideas
-- The simulator narrates argument processing in numbered steps.
-- The simulator shows when `--root` and `--path` are applied.
+- The simulator narrates argument processing in numbered
+  steps.
+- The simulator shows when `--root` and `--path` are
+  applied.
 - The simulator shows when a JSON arg file is loaded.
 - The simulator shows when the requirement file is read.
 - The simulator shows when marker terms are extracted.
-- The simulator shows when evidence and link checks would run.
-- The simulator output is driven by the provided test config.
+- The simulator shows when evidence and link checks would
+  run.
+- The simulator output is driven by the provided test
+  config.

@@ -11,5 +11,7 @@ source_requirement: 001-requi-markdown-docs.md
 
 ## Verification ideas
 - The demo project contains markdown documentation files.
-- The markdown files are readable and use a consistent style.
-- A reviewer can confirm the documentation exists by listing the project files.
+- The markdown files are readable and use a consistent
+  style.
+- A reviewer can confirm the documentation exists by listing
+  the project files.

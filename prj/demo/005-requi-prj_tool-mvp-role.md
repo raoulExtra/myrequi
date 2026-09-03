@@ -6,10 +6,13 @@ phase: phase_1_1
 
 # R5: prj_tool is documented
 
-The demo project documentation SHALL mention prj_tool and its MVP-ready role in inspecting and navigating the project filespace.
+The demo project documentation SHALL mention prj_tool and
+its MVP-ready role in inspecting and navigating the project
+filespace.
 
 ## Traceability
-- stakeholder need: the demo project should reflect that prj_tool already exists and can support the MVP workflow
+- stakeholder need: the demo project should reflect that
+  prj_tool already exists and can support the MVP workflow
 - related phase: [phase_1_1](phase_1_1.md)
 
 ## Acceptance criteria

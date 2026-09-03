@@ -6,7 +6,8 @@ phase: phase_1_1
 
 # R7: Requirement traceability
 
-Each requirement SHALL be traceable to at least one stated stakeholder need.
+Each requirement SHALL be traceable to at least one stated
+stakeholder need.
 
 ## Traceability
 - stakeholder need: all stated needs for the demo project

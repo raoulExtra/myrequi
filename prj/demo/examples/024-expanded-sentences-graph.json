@@ -1,0 +1,186 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "label": "System",
+      "weight": 5.0,
+      "weight_int": 5,
+      "text": "A mind can be understood as a system of related parts."
+    },
+    {
+      "id": 2,
+      "label": "Boundary",
+      "weight": 5.0,
+      "weight_int": 5,
+      "text": "A boundary separates what belongs together from what does not."
+    },
+    {
+      "id": 3,
+      "label": "Memory",
+      "weight": 4.0,
+      "weight_int": 4,
+      "text": "Memory preserves what persists across time."
+    },
+    {
+      "id": 4,
+      "label": "Feedback",
+      "weight": 5.0,
+      "weight_int": 5,
+      "text": "Feedback turns output into future change."
+    },
+    {
+      "id": 5,
+      "label": "Learning",
+      "weight": 5.0,
+      "weight_int": 5,
+      "text": "Learning happens when feedback changes the next choice."
+    },
+    {
+      "id": 6,
+      "label": "Search",
+      "weight": 4.0,
+      "weight_int": 4,
+      "text": "Search explores options under constraints."
+    },
+    {
+      "id": 7,
+      "label": "Path",
+      "weight": 4.0,
+      "weight_int": 4,
+      "text": "A path is a chosen route through options."
+    },
+    {
+      "id": 8,
+      "label": "Weight",
+      "weight": 3.0,
+      "weight_int": 3,
+      "text": "Weight marks what matters more."
+    },
+    {
+      "id": 9,
+      "label": "Constraint",
+      "weight": 4.0,
+      "weight_int": 4,
+      "text": "Constraints guide and limit action."
+    },
+    {
+      "id": 10,
+      "label": "Story",
+      "weight": 3.0,
+      "weight_int": 3,
+      "text": "A bigger story emerges when words return in new roles."
+    },
+    {
+      "id": 11,
+      "label": "Reappearance",
+      "weight": 5.0,
+      "weight_int": 5,
+      "text": "The same words reappear as motifs across contexts."
+    },
+    {
+      "id": 12,
+      "label": "Meaning",
+      "weight": 4.0,
+      "weight_int": 4,
+      "text": "Meaning connects repeated words into an intelligible whole."
+    }
+  ],
+  "edges": [
+    {
+      "from": 1,
+      "to": 2,
+      "label": "system needs boundary",
+      "weight": 3.0
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": "boundary frames memory",
+      "weight": 2.5
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "label": "memory supports feedback",
+      "weight": 3.0
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "label": "feedback creates learning",
+      "weight": 3.5
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "label": "learning drives search",
+      "weight": 2.5
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "label": "search chooses path",
+      "weight": 3.0
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "label": "path carries weight",
+      "weight": 2.0
+    },
+    {
+      "from": 8,
+      "to": 9,
+      "label": "weight meets constraint",
+      "weight": 2.0
+    },
+    {
+      "from": 9,
+      "to": 10,
+      "label": "constraint shapes story",
+      "weight": 2.0
+    },
+    {
+      "from": 10,
+      "to": 11,
+      "label": "story brings reappearance",
+      "weight": 3.0
+    },
+    {
+      "from": 11,
+      "to": 12,
+      "label": "reappearance creates meaning",
+      "weight": 3.0
+    },
+    {
+      "from": 12,
+      "to": 1,
+      "label": "meaning returns to system",
+      "weight": 2.5
+    },
+    {
+      "from": 2,
+      "to": 4,
+      "label": "boundary enables feedback",
+      "weight": 2.0
+    },
+    {
+      "from": 5,
+      "to": 9,
+      "label": "learning respects constraints",
+      "weight": 1.5
+    },
+    {
+      "from": 6,
+      "to": 9,
+      "label": "search is constrained",
+      "weight": 2.0
+    },
+    {
+      "from": 10,
+      "to": 1,
+      "label": "story models system",
+      "weight": 1.5
+    }
+  ]
+}

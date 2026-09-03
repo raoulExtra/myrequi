@@ -1,0 +1,40 @@
+{
+  "type": "Module",
+  "body": [
+    {
+      "type": "If",
+      "test": {
+        "type": "Name",
+        "id": "ready",
+        "ctx": {
+          "type": "Load"
+        }
+      },
+      "body": [
+        {
+          "type": "Expr",
+          "value": {
+            "type": "Call",
+            "func": {
+              "type": "Name",
+              "id": "print",
+              "ctx": {
+                "type": "Load"
+              }
+            },
+            "args": [
+              {
+                "type": "Constant",
+                "value": "go",
+                "kind": null
+              }
+            ],
+            "keywords": []
+          }
+        }
+      ],
+      "orelse": []
+    }
+  ],
+  "type_ignores": []
+}

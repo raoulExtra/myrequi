@@ -1,0 +1,474 @@
+{
+  "nodes": [
+    {
+      "id": 1,
+      "label": "Good partner version",
+      "weight": 80.0,
+      "text": "Describe what makes a good partner in detailed, human terms, while also covering the AI-partner case explicitly."
+    },
+    {
+      "id": 2,
+      "label": "Canonical home enforcement",
+      "weight": 80.0,
+      "text": "Assign one primary home to each repeated idea cluster and route related entries to it with explicit links."
+    },
+    {
+      "id": 3,
+      "label": "Out-of-the-box thinking",
+      "weight": 80.0,
+      "text": "Think broadly and creatively while still converging on a structured, testable next step."
+    },
+    {
+      "id": 4,
+      "label": "Single question mode plan",
+      "weight": 80.0,
+      "text": "Make the engine ask one focused question, optionally show numbered options, score the answer, and evaluate it before continuing."
+    },
+    {
+      "id": 5,
+      "label": "DB improvement control flow",
+      "weight": 80.0,
+      "text": "Improve the DB by tightening retrieval, reducing overlap, and strengthening links instead of adding more schema."
+    },
+    {
+      "id": 6,
+      "label": "Dependency-first planning",
+      "weight": 44.0,
+      "text": "Uncover hidden dependencies before execution"
+    },
+    {
+      "id": 7,
+      "label": "Seven Basic Tools of Quality integration",
+      "weight": 80.0,
+      "text": "Integrate the Seven Basic Tools of Quality into continuity.db as a reusable analysis layer for quality, drift, and improvement work."
+    },
+    {
+      "id": 8,
+      "label": "High quality code plan",
+      "weight": 80.0,
+      "text": "Create code that is correct, clear, maintainable, tested, secure, fit for purpose, and reuse-aware."
+    },
+    {
+      "id": 9,
+      "label": "AI misuse harm-reduction workspace",
+      "weight": 80.0,
+      "text": "Analyze concrete ways to reduce AI misuse risks: deception, fraud, cyber abuse, unsafe repurposing, and concentration of power."
+    },
+    {
+      "id": 10,
+      "label": "War harm reduction workspace",
+      "weight": 80.0,
+      "text": "Analyze concrete, urgent ways to reduce civilian harm, preserve truth, and support peace under war conditions."
+    },
+    {
+      "id": 11,
+      "label": "Successful strategy sequence",
+      "weight": 78.0,
+      "text": "Make the most effective thinking strategies easy to apply in a reliable order."
+    },
+    {
+      "id": 12,
+      "label": "Core thinking patterns",
+      "weight": 80.0,
+      "text": "Operationalize failure-mode scan, decision-option comparison, and hypothesis-test-update as reusable thinking patterns."
+    },
+    {
+      "id": 13,
+      "label": "Reasoning pattern reuse plan",
+      "weight": 68.0,
+      "text": "Make successful reasoning patterns reusable across similar problems."
+    },
+    {
+      "id": 14,
+      "label": "Learn topic fast",
+      "weight": 80.0,
+      "text": "Learn a new topic quickly with a small, testable, feedback-rich loop that uses named patterns explicitly."
+    },
+    {
+      "id": 15,
+      "label": "Reasoning improvement comparisons",
+      "weight": 77.0,
+      "text": "Make before/after episode comparisons a standard part of important reasoning."
+    },
+    {
+      "id": 16,
+      "label": "Battle-Proven Thinking Way",
+      "weight": 80.0,
+      "text": "Use adversarial questioning and thin-slice execution to choose implementation options that survive stress tests."
+    },
+    {
+      "id": 17,
+      "label": "Constraint-First Thinking",
+      "weight": 80.0,
+      "text": "Solve real problems by starting with constraints, assumptions, and testable next steps."
+    },
+    {
+      "id": 18,
+      "label": "Project phase 0",
+      "weight": 80.0,
+      "text": "Define the project foundation before execution by clarifying purpose, goal, and outcome."
+    },
+    {
+      "id": 19,
+      "label": "Explore-to-build threshold",
+      "weight": 80.0,
+      "text": "Decide how to know when to stop exploring and start building in the thinking cycle."
+    },
+    {
+      "id": 20,
+      "label": "Disciplined thinking demo",
+      "weight": 80.0,
+      "text": "Demonstrate how the DB supports disciplined thinking through goals, conditional recall, reasoning episodes, trust, and formal analysis."
+    },
+    {
+      "id": 21,
+      "label": "Reasoning episode model plan",
+      "weight": 62.0,
+      "text": "Design and capture reasoning episodes as auditable DB objects."
+    },
+    {
+      "id": 22,
+      "label": "Thinking cycle operationalization",
+      "weight": 80.0,
+      "text": "Operationalize the thinking cycle: explore, test, build, correct, synthesize, repeat."
+    },
+    {
+      "id": 23,
+      "label": "Default vs conditional memory recall",
+      "weight": 80.0,
+      "text": "Decide what the system should remember by default and what should only surface under conditions."
+    },
+    {
+      "id": 24,
+      "label": "Strengthen democracy plan",
+      "weight": 52.0,
+      "text": "Turn the democratic synthesis into concrete actions."
+    },
+    {
+      "id": 25,
+      "label": "Trust reasoning episode plan",
+      "weight": 62.0,
+      "text": "Evaluate whether trust should become a first-class DB concept."
+    }
+  ],
+  "edges": [
+    {
+      "from": 1,
+      "to": 2,
+      "label": "1 to 2",
+      "weight": 2.0
+    },
+    {
+      "from": 2,
+      "to": 3,
+      "label": "2 to 3",
+      "weight": 3.0
+    },
+    {
+      "from": 3,
+      "to": 4,
+      "label": "3 to 4",
+      "weight": 1.0
+    },
+    {
+      "from": 4,
+      "to": 5,
+      "label": "4 to 5",
+      "weight": 2.0
+    },
+    {
+      "from": 5,
+      "to": 6,
+      "label": "5 to 6",
+      "weight": 3.0
+    },
+    {
+      "from": 6,
+      "to": 7,
+      "label": "6 to 7",
+      "weight": 1.0
+    },
+    {
+      "from": 7,
+      "to": 8,
+      "label": "7 to 8",
+      "weight": 2.0
+    },
+    {
+      "from": 8,
+      "to": 9,
+      "label": "8 to 9",
+      "weight": 3.0
+    },
+    {
+      "from": 9,
+      "to": 10,
+      "label": "9 to 10",
+      "weight": 1.0
+    },
+    {
+      "from": 10,
+      "to": 11,
+      "label": "10 to 11",
+      "weight": 2.0
+    },
+    {
+      "from": 11,
+      "to": 12,
+      "label": "11 to 12",
+      "weight": 3.0
+    },
+    {
+      "from": 12,
+      "to": 13,
+      "label": "12 to 13",
+      "weight": 1.0
+    },
+    {
+      "from": 13,
+      "to": 14,
+      "label": "13 to 14",
+      "weight": 2.0
+    },
+    {
+      "from": 14,
+      "to": 15,
+      "label": "14 to 15",
+      "weight": 3.0
+    },
+    {
+      "from": 15,
+      "to": 16,
+      "label": "15 to 16",
+      "weight": 1.0
+    },
+    {
+      "from": 16,
+      "to": 17,
+      "label": "16 to 17",
+      "weight": 2.0
+    },
+    {
+      "from": 17,
+      "to": 18,
+      "label": "17 to 18",
+      "weight": 3.0
+    },
+    {
+      "from": 18,
+      "to": 19,
+      "label": "18 to 19",
+      "weight": 1.0
+    },
+    {
+      "from": 19,
+      "to": 20,
+      "label": "19 to 20",
+      "weight": 2.0
+    },
+    {
+      "from": 20,
+      "to": 21,
+      "label": "20 to 21",
+      "weight": 3.0
+    },
+    {
+      "from": 21,
+      "to": 22,
+      "label": "21 to 22",
+      "weight": 1.0
+    },
+    {
+      "from": 22,
+      "to": 23,
+      "label": "22 to 23",
+      "weight": 2.0
+    },
+    {
+      "from": 23,
+      "to": 24,
+      "label": "23 to 24",
+      "weight": 3.0
+    },
+    {
+      "from": 24,
+      "to": 25,
+      "label": "24 to 25",
+      "weight": 1.0
+    },
+    {
+      "from": 1,
+      "to": 3,
+      "label": "1 to 3",
+      "weight": 2.0
+    },
+    {
+      "from": 3,
+      "to": 5,
+      "label": "3 to 5",
+      "weight": 1.0
+    },
+    {
+      "from": 5,
+      "to": 7,
+      "label": "5 to 7",
+      "weight": 3.0
+    },
+    {
+      "from": 7,
+      "to": 9,
+      "label": "7 to 9",
+      "weight": 2.0
+    },
+    {
+      "from": 9,
+      "to": 11,
+      "label": "9 to 11",
+      "weight": 1.0
+    },
+    {
+      "from": 11,
+      "to": 13,
+      "label": "11 to 13",
+      "weight": 3.0
+    },
+    {
+      "from": 13,
+      "to": 15,
+      "label": "13 to 15",
+      "weight": 2.0
+    },
+    {
+      "from": 15,
+      "to": 17,
+      "label": "15 to 17",
+      "weight": 1.0
+    },
+    {
+      "from": 17,
+      "to": 19,
+      "label": "17 to 19",
+      "weight": 3.0
+    },
+    {
+      "from": 19,
+      "to": 21,
+      "label": "19 to 21",
+      "weight": 2.0
+    },
+    {
+      "from": 21,
+      "to": 23,
+      "label": "21 to 23",
+      "weight": 1.0
+    },
+    {
+      "from": 2,
+      "to": 25,
+      "label": "2 to 25",
+      "weight": 3.0
+    },
+    {
+      "from": 3,
+      "to": 25,
+      "label": "3 to 25",
+      "weight": 1.0
+    },
+    {
+      "from": 4,
+      "to": 25,
+      "label": "4 to 25",
+      "weight": 2.0
+    },
+    {
+      "from": 5,
+      "to": 25,
+      "label": "5 to 25",
+      "weight": 3.0
+    },
+    {
+      "from": 6,
+      "to": 25,
+      "label": "6 to 25",
+      "weight": 1.0
+    },
+    {
+      "from": 7,
+      "to": 25,
+      "label": "7 to 25",
+      "weight": 2.0
+    },
+    {
+      "from": 1,
+      "to": 4,
+      "label": "1 to 4",
+      "weight": 3.0
+    },
+    {
+      "from": 2,
+      "to": 6,
+      "label": "2 to 6",
+      "weight": 2.0
+    },
+    {
+      "from": 3,
+      "to": 6,
+      "label": "3 to 6",
+      "weight": 1.0
+    },
+    {
+      "from": 4,
+      "to": 7,
+      "label": "4 to 7",
+      "weight": 2.0
+    },
+    {
+      "from": 6,
+      "to": 10,
+      "label": "6 to 10",
+      "weight": 2.0
+    },
+    {
+      "from": 7,
+      "to": 10,
+      "label": "7 to 10",
+      "weight": 1.0
+    },
+    {
+      "from": 10,
+      "to": 14,
+      "label": "10 to 14",
+      "weight": 2.0
+    },
+    {
+      "from": 10,
+      "to": 15,
+      "label": "10 to 15",
+      "weight": 3.0
+    },
+    {
+      "from": 14,
+      "to": 20,
+      "label": "14 to 20",
+      "weight": 2.0
+    },
+    {
+      "from": 15,
+      "to": 20,
+      "label": "15 to 20",
+      "weight": 1.0
+    },
+    {
+      "from": 20,
+      "to": 25,
+      "label": "20 to 25",
+      "weight": 2.0
+    },
+    {
+      "from": 14,
+      "to": 24,
+      "label": "14 to 24",
+      "weight": 1.0
+    }
+  ]
+}

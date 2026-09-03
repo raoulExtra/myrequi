@@ -15,4 +15,5 @@ source_requirement: R4-G-graph-tool-init.md
 - Running `--init` creates an SQLite database file.
 - The database contains the graph storage schema.
 - The database is empty of graph rows after initialization.
-- A reviewer can confirm the database was created successfully.
+- A reviewer can confirm the database was created
+  successfully.

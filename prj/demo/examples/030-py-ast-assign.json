@@ -1,0 +1,24 @@
+{
+  "type": "Module",
+  "body": [
+    {
+      "type": "Assign",
+      "targets": [
+        {
+          "type": "Name",
+          "id": "x",
+          "ctx": {
+            "type": "Store"
+          }
+        }
+      ],
+      "value": {
+        "type": "Constant",
+        "value": 1,
+        "kind": null
+      },
+      "type_comment": null
+    }
+  ],
+  "type_ignores": []
+}

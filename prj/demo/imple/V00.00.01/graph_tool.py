@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import ast
 import json
 import math
 import re
@@ -7,6 +8,11 @@ import sqlite3
 import sys
 from heapq import heappop, heappush
 from pathlib import Path
+
+try:
+    import py_from_ast
+except ModuleNotFoundError:  # pragma: no cover - test/import fallback
+    py_from_ast = None
 
 __version__ = "V00.00.01"
 
@@ -59,6 +65,9 @@ def init_db(db_path: str | Path) -> Path:
     path.parent.mkdir(parents=True, exist_ok=True)
     with sqlite3.connect(path) as con:
         con.executescript(SCHEMA_SQL)
+        columns = {row[1] for row in con.execute("PRAGMA table_info(graph_nodes)")}
+        if "weight_int" not in columns:
+            con.execute("ALTER TABLE graph_nodes ADD COLUMN weight_int INTEGER")
     return path
 
 
@@ -103,6 +112,16 @@ def _node_sort_key(value: str) -> tuple[int, int | str]:
     if value.isdigit():
         return (0, int(value))
     return (1, value)
+
+
+def _beam_sort_key(path_keys: list[str], cost: float, goal_key: str) -> tuple:
+    completed = 0 if path_keys and path_keys[-1] == goal_key else 1
+    return (
+        completed,
+        cost,
+        len(path_keys),
+        tuple(_node_sort_key(key) for key in path_keys),
+    )
 
 
 def _db_graph_data(db_path: str | Path, graph_id: int) -> dict:
@@ -260,11 +279,17 @@ def compare_graph(db_path: str | Path, graph_id: int, json_file: str | Path) -> 
     return report
 
 
-def run_algorithm(db_path: str | Path, graph_id: int, algo: str, start: object, goal: object | None = None) -> dict:
+def run_algorithm(
+    db_path: str | Path,
+    graph_id: int,
+    algo: str,
+    start: object,
+    goal: object | None = None,
+    beam_width: int = 3,
+    filter_min_weight: float | None = None,
+) -> dict:
     graph = _db_graph_data(db_path, graph_id)
     algo_name = algo.strip().lower()
-    if algo_name not in {"a*", "astar", "a-star"}:
-        raise SystemExit(f"unsupported algorithm: {algo}")
 
     node_map = {str(node["id"]): node["id"] for node in graph["nodes"]}
     if not node_map:
@@ -280,48 +305,118 @@ def run_algorithm(db_path: str | Path, graph_id: int, algo: str, start: object, 
         if goal_key not in node_map:
             raise SystemExit(f"goal node not found: {goal}")
 
-    adjacency: dict[str, list[tuple[str, float]]] = {}
-    for edge in graph["edges"]:
-        adjacency.setdefault(str(edge["from"]), []).append((str(edge["to"]), float(edge["weight"])))
+    if algo_name in {"a*", "astar", "a-star"}:
+        adjacency: dict[str, list[tuple[str, float]]] = {}
+        for edge in graph["edges"]:
+            adjacency.setdefault(str(edge["from"]), []).append((str(edge["to"]), float(edge["weight"])))
 
-    open_heap: list[tuple[float, int, str]] = []
-    heappush(open_heap, (0.0, 0, start_key))
-    came_from: dict[str, str] = {}
-    g_score: dict[str, float] = {start_key: 0.0}
-    seen: set[str] = set()
-    counter = 0
+        open_heap: list[tuple[float, int, str]] = []
+        heappush(open_heap, (0.0, 0, start_key))
+        came_from: dict[str, str] = {}
+        g_score: dict[str, float] = {start_key: 0.0}
+        seen: set[str] = set()
+        counter = 0
 
-    while open_heap:
-        _, _, current = heappop(open_heap)
-        if current in seen:
-            continue
-        seen.add(current)
-        if current == goal_key:
-            break
-        for neighbor, cost in adjacency.get(current, []):
-            tentative = g_score[current] + cost
-            if tentative < g_score.get(neighbor, math.inf):
-                came_from[neighbor] = current
-                g_score[neighbor] = tentative
-                counter += 1
-                heappush(open_heap, (tentative, counter, neighbor))
+        while open_heap:
+            _, _, current = heappop(open_heap)
+            if current in seen:
+                continue
+            seen.add(current)
+            if current == goal_key:
+                break
+            for neighbor, cost in adjacency.get(current, []):
+                tentative = g_score[current] + cost
+                if tentative < g_score.get(neighbor, math.inf):
+                    came_from[neighbor] = current
+                    g_score[neighbor] = tentative
+                    counter += 1
+                    heappush(open_heap, (tentative, counter, neighbor))
 
-    if goal_key not in g_score:
-        raise SystemExit(f"no path found for graph {graph_id}")
+        if goal_key not in g_score:
+            raise SystemExit(f"no path found for graph {graph_id}")
 
-    path_keys = [goal_key]
-    while path_keys[-1] != start_key:
-        path_keys.append(came_from[path_keys[-1]])
-    path_keys.reverse()
-    path = [node_map[key] for key in path_keys]
-    return {
-        "graph_id": graph_id,
-        "algo": algo,
-        "start": node_map[start_key],
-        "goal": node_map[goal_key],
-        "path": path,
-        "cost": g_score[goal_key],
-    }
+        path_keys = [goal_key]
+        while path_keys[-1] != start_key:
+            path_keys.append(came_from[path_keys[-1]])
+        path_keys.reverse()
+        path = [node_map[key] for key in path_keys]
+        return {
+            "graph_id": graph_id,
+            "algo": algo,
+            "start": node_map[start_key],
+            "goal": node_map[goal_key],
+            "path": path,
+            "cost": g_score[goal_key],
+        }
+
+    if algo_name in {"beam", "beam-search", "beam_search"}:
+        beam_width = max(1, int(beam_width))
+        adjacency: dict[str, list[tuple[str, float]]] = {}
+        for edge in graph["edges"]:
+            from_node = str(edge["from"])
+            to_node = str(edge["to"])
+            cost = float(edge["weight"])
+            if filter_min_weight is not None and cost < filter_min_weight:
+                continue
+            adjacency.setdefault(from_node, []).append((to_node, cost))
+
+        beam: list[tuple[list[str], float]] = [([start_key], 0.0)]
+        best_complete: tuple[list[str], float] | None = None
+        best_complete_score: tuple | None = None
+        max_steps = max(1, len(node_map))
+
+        for _ in range(max_steps):
+            candidates: list[tuple[tuple, list[str], float]] = []
+            for path_keys, cost in beam:
+                current = path_keys[-1]
+                if current == goal_key:
+                    score = _beam_sort_key(path_keys, cost, goal_key)
+                    if best_complete_score is None or score < best_complete_score:
+                        best_complete = (path_keys, cost)
+                        best_complete_score = score
+                    candidates.append((score, path_keys, cost))
+                    continue
+                for neighbor, edge_cost in adjacency.get(current, []):
+                    if neighbor in path_keys:
+                        continue
+                    new_path = path_keys + [neighbor]
+                    new_cost = cost + edge_cost
+                    score = _beam_sort_key(new_path, new_cost, goal_key)
+                    if neighbor == goal_key and (
+                        best_complete_score is None or score < best_complete_score
+                    ):
+                        best_complete = (new_path, new_cost)
+                        best_complete_score = score
+                    candidates.append((score, new_path, new_cost))
+
+            if not candidates:
+                break
+            candidates.sort(key=lambda item: item[0])
+            beam = [(path, cost) for _, path, cost in candidates[:beam_width]]
+
+            for path_keys, cost in beam:
+                if path_keys[-1] == goal_key:
+                    score = _beam_sort_key(path_keys, cost, goal_key)
+                    if best_complete_score is None or score < best_complete_score:
+                        best_complete = (path_keys, cost)
+                        best_complete_score = score
+
+        if best_complete is None:
+            raise SystemExit(f"no path found for graph {graph_id}")
+
+        path = [node_map[key] for key in best_complete[0]]
+        return {
+            "graph_id": graph_id,
+            "algo": algo,
+            "start": node_map[start_key],
+            "goal": node_map[goal_key],
+            "path": path,
+            "cost": best_complete[1],
+            "beam_width": beam_width,
+            "filter_min_weight": filter_min_weight,
+        }
+
+    raise SystemExit(f"unsupported algorithm: {algo}")
 
 
 def list_graphs(db_path: str | Path, graph_id: int | None = None) -> list[dict]:
@@ -369,8 +464,11 @@ def parse_cli(argv: list[str] | None = None) -> dict:
     export_path: Path | None = None
     compare_path: Path | None = None
     algo_name: str | None = None
+    py_flag: bool | None = None
     start_node: object | None = None
     goal_node: object | None = None
+    beam_width: int = 3
+    filter_min_weight: float | None = None
 
     def need_value(index: int) -> str:
         if index + 1 >= len(args):
@@ -381,7 +479,13 @@ def parse_cli(argv: list[str] | None = None) -> dict:
     while i < len(args):
         token = args[i]
         if token in ("-h", "--help"):
-            print("graph_tool.py --init DB | --db DB --load GRAPH.json | --db DB --list | --db DB --export [FILE] --id GRAPH_ID | --db DB --compare JSON --id GRAPH_ID | --db DB --algo NAME --start NODE [--goal NODE] --id GRAPH_ID")
+            print(
+                "graph_tool.py --init DB | --db DB --load GRAPH.json | "
+                "--db DB --list | --db DB --export [FILE] --id GRAPH_ID | "
+                "--db DB --compare JSON --id GRAPH_ID | --db DB --algo NAME "
+                "--start NODE [--goal NODE] [--beam-width N] "
+                "[--filter-min-weight W] --id GRAPH_ID | --db DB --py --id GRAPH_ID"
+            )
             raise SystemExit(0)
         if token in ("-v", "--version"):
             print(f"graph_tool.py {__version__}")
@@ -422,12 +526,24 @@ def parse_cli(argv: list[str] | None = None) -> dict:
             algo_name = need_value(i)
             i += 2
             continue
+        if token == "--py":
+            py_flag = True
+            i += 1
+            continue
         if token == "--start":
             start_node = need_value(i)
             i += 2
             continue
         if token == "--goal":
             goal_node = need_value(i)
+            i += 2
+            continue
+        if token == "--beam-width":
+            beam_width = int(need_value(i))
+            i += 2
+            continue
+        if token == "--filter-min-weight":
+            filter_min_weight = float(need_value(i))
             i += 2
             continue
         raise SystemExit(f"unrecognized argument: {token}")
@@ -441,8 +557,11 @@ def parse_cli(argv: list[str] | None = None) -> dict:
         "export": export_path,
         "compare": compare_path,
         "algo": algo_name,
+        "py": py_flag,
         "start": start_node,
         "goal": goal_node,
+        "beam_width": beam_width,
+        "filter_min_weight": filter_min_weight,
     }
 
 
@@ -490,12 +609,36 @@ def main(argv: list[str] | None = None) -> int:
             raise SystemExit("--id is required for --algo")
         if parsed["start"] is None:
             raise SystemExit("--start is required for --algo")
-        report = run_algorithm(parsed["db"], parsed["id"], parsed["algo"], parsed["start"], parsed["goal"])
+        report = run_algorithm(
+            parsed["db"],
+            parsed["id"],
+            parsed["algo"],
+            parsed["start"],
+            parsed["goal"],
+            beam_width=parsed["beam_width"],
+            filter_min_weight=parsed["filter_min_weight"],
+        )
         path_text = " -> ".join(str(item) for item in report["path"])
         goal_text = f" goal={report['goal']}" if parsed["goal"] is not None else ""
-        print(f"ran {report['algo']} on graph {report['graph_id']}: start={report['start']}{goal_text} path={path_text} cost={report['cost']}")
+        extra = ""
+        if parsed["algo"].strip().lower() in {"beam", "beam-search", "beam_search"}:
+            extra = f" beam_width={report['beam_width']}"
+            if report["filter_min_weight"] is not None:
+                extra += f" filter_min_weight={report['filter_min_weight']}"
+        print(f"ran {report['algo']} on graph {report['graph_id']}: start={report['start']}{goal_text}{extra} path={path_text} cost={report['cost']}")
         return 0
-    raise SystemExit("either --init, --load, --list, --export, --compare, or --algo is required")
+    if parsed["py"]:
+        if parsed["id"] is None:
+            raise SystemExit("--id is required for --py")
+        if py_from_ast is None:
+            raise SystemExit("py_from_ast module is unavailable")
+        graph = _db_graph_data(parsed["db"], parsed["id"])
+        tree = py_from_ast.graph_to_ast(graph)
+        output_path = Path("compare.py")
+        output_path.write_text(ast.unparse(tree) + "\n", encoding="utf-8")
+        print(f"wrote {output_path}")
+        return 0
+    raise SystemExit("either --init, --load, --list, --export, --compare, --algo, or --py is required")
 
 
 if __name__ == "__main__":

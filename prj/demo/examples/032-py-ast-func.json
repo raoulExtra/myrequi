@@ -1,0 +1,53 @@
+{
+  "type": "Module",
+  "body": [
+    {
+      "type": "FunctionDef",
+      "name": "double",
+      "args": {
+        "type": "arguments",
+        "posonlyargs": [],
+        "args": [
+          {
+            "type": "arg",
+            "arg": "x",
+            "annotation": null,
+            "type_comment": null
+          }
+        ],
+        "vararg": null,
+        "kwonlyargs": [],
+        "kw_defaults": [],
+        "kwarg": null,
+        "defaults": []
+      },
+      "body": [
+        {
+          "type": "Return",
+          "value": {
+            "type": "BinOp",
+            "left": {
+              "type": "Name",
+              "id": "x",
+              "ctx": {
+                "type": "Load"
+              }
+            },
+            "op": {
+              "type": "Mult"
+            },
+            "right": {
+              "type": "Constant",
+              "value": 2,
+              "kind": null
+            }
+          }
+        }
+      ],
+      "decorator_list": [],
+      "returns": null,
+      "type_comment": null
+    }
+  ],
+  "type_ignores": []
+}
