@@ -18,6 +18,10 @@ TABLE_CONTRACT_ROWS = [
     ("ethical_principles", "current", "mutable", "ethical_action_checks", "Active ethical principles and priorities"),
     ("feature_flag_events", "audit", "append_only", "feature_flags", "Audit trail for feature flag changes"),
     ("feature_flags", "current", "mutable", "feature_flag_events", "Switchable feature flags that control modes and capability gates"),
+    ("component_influence_modes", "current", "mutable", "component_influence", "Named influence presets for default and state-specific modes."),
+    ("component_influence", "current", "mutable", "component_influence_history, component_influence_modes", "Current influence settings with defaults, overrides, and history."),
+    ("component_influence_presets", "current", "mutable", "component_influence_modes", "Named preset rows for influence modes."),
+    ("component_influence_history", "history", "append_only", "component_influence", "History of influence changes across component presets."),
     ("metacognitive_state", "current", "mutable", "metacognitive_state_history", "Canonical current metacognitive state row"),
     ("metacognitive_state_history", "history", "append_only", "metacognitive_state", "Immutable metacognitive history"),
     ("object_epistemic_tags", "evidence", "append_only", "epistemic_tags", "Per-object epistemic tags."),
@@ -46,9 +50,16 @@ TABLE_CONTRACT_ROWS = [
     ("v_items", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,arguments,reasoning_episodes,metacognitive_state,continuity_requirements,concepts,ethical_principles,ethical_conflict_rules,tool_command_guide,work_plans,work_plan_steps,projects,research_jobs", "Canonical raw item layer including arguments and reasoning episodes."),
     ("v_meaningful_sentences", "derived", "derived", "beliefs,decisions,continuity_requirements,metacognitive_state,concepts,ethical_principles", "Prioritized view of meaningful sentences across the main semantic tables."),
     ("v_entry_points", "derived", "derived", "v_recall", "Curated GPT-friendly entry points over recall items."),
+    ("v_component_influence", "derived", "derived", "component_influence,component_influence_modes", "Current influence settings with presets and overrides."),
+    ("v_component_influence_history", "derived", "derived", "component_influence_history,component_influence_modes", "History of influence changes across component presets."),
+    ("v_component_influence_modes", "derived", "derived", "component_influence_modes", "Named influence presets for default and state-specific modes."),
+    ("v_component_influence_presets", "derived", "derived", "component_influence_presets,component_influence_modes", "Named preset rows for each influence mode."),
+    ("v_core_model", "derived", "derived", "beliefs,convictions,continuity_requirements,work_plans,work_plan_steps,reasoning_episodes,epistemic_receipts,metacognitive_state", "Compact four-layer summary of the engine's tightened model."),
     ("v_memory_index", "derived", "derived", "v_recall", "Compatibility recall alias."),
+    ("v_schema_catalog", "derived", "derived", "sqlite_master", "Readable catalog of tables and views for discovery and entry-point searches."),
     ("v_meta", "derived", "derived", "metacognitive_state", "Canonical metacognitive state view."),
     ("v_object_epistemic_tags", "derived", "derived", "epistemic_tags,object_epistemic_tags", "Readable expanded epistemic tags view."),
+    ("v_tag_search", "derived", "derived", "epistemic_tags,object_epistemic_tags,metacognitive_state", "Searchable tag-to-object view that expands persona-style metacognitive states."),
     ("v_recall", "derived", "derived", "v_items,syntheses,synthesis_conflicts", "Normalized recall view spanning raw items and synthesized interpretations."),
     ("v_synthesis_conflicts", "derived", "derived", "syntheses,synthesis_conflicts", "Readable conflict and tension view for syntheses."),
     ("v_synthesis_inputs", "derived", "derived", "syntheses,synthesis_inputs", "Readable evidence view for syntheses."),
@@ -66,9 +77,16 @@ UNION ALL SELECT 'conviction','current','convictions','conviction_versions, conv
 UNION ALL SELECT 'continuity_requirement','current','continuity_requirements','continuity_requirement_versions',NULL,'Current requirement text and status live in continuity_requirements; prior versions live in continuity_requirement_versions.'
 UNION ALL SELECT 'metacognitive_state','current','metacognitive_state','metacognitive_state_history',NULL,'Current metacognitive state lives in metacognitive_state; prior versions live in metacognitive_state_history.'
 UNION ALL SELECT 'vision','derived','v_visions','metacognitive_state',NULL,'Vision is exposed as a readable view over metacognitive_state.'
+UNION ALL SELECT 'schema_catalog','derived','v_schema_catalog',NULL,'sqlite_master','Readable catalog of tables and views for discovery and entry-point searches.'
+UNION ALL SELECT 'core_model','derived','v_core_model',NULL,'beliefs, convictions, continuity_requirements, work_plans, work_plan_steps, reasoning_episodes, epistemic_receipts, metacognitive_state','Compact four-layer summary of the engine''s tightened model.'
+UNION ALL SELECT 'policy','derived','v_core_model',NULL,'metacognitive_state, component_influence, component_influence_modes, component_influence_presets, feature_flags, epistemic_tags','Policy is exposed through the tightened core model rather than as a standalone table.'
 UNION ALL SELECT 'mission','derived','v_missions','projects',NULL,'Mission is exposed as a readable view over projects.'
 UNION ALL SELECT 'strategy','derived','v_strategies','concepts',NULL,'Strategy is exposed as a readable view over concepts.'
 UNION ALL SELECT 'plan','derived','v_plans','work_plans',NULL,'Plan is exposed as a readable view over work_plans.'
+UNION ALL SELECT 'influence','current','component_influence','component_influence_history,component_influence_modes',NULL,'Adjustable influence settings for components, with defaults, overrides, and history.'
+UNION ALL SELECT 'influence_mode','current','component_influence_modes','component_influence',NULL,'Named presets such as default, high_attention, low_attention, startup, error_recovery, and evolved.'
+UNION ALL SELECT 'influence_preset','current','component_influence_presets','component_influence_modes',NULL,'Named preset rows for influence modes.'
+UNION ALL SELECT 'influence_history','history','component_influence_history','component_influence',NULL,'Change history for component influence settings.'
 UNION ALL SELECT 'problem_solving_patterns','derived','v_problem_solving_patterns','concepts,concept_links',NULL,'Problem-solving patterns are exposed as a readable recall view over the reusable pattern catalog and its links.'
 UNION ALL SELECT 'problem_understanding_patterns','derived','v_problem_understanding_patterns','concepts,concept_links',NULL,'Problem-understanding patterns are exposed as a readable recall view over the reusable pattern catalog and its links.'
 UNION ALL SELECT 'lean_thinking_patterns','derived','v_lean_thinking_patterns','concepts,concept_links',NULL,'Lean-thinking patterns are exposed as a readable recall view over the reusable lean pattern catalog and its links.'
@@ -101,6 +119,8 @@ UNION ALL SELECT 'interpreted_layer','derived','v_interpreted_layer',NULL,'synth
 UNION ALL SELECT 'recall','derived','v_recall',NULL,'v_items, syntheses, synthesis_conflicts','Normalized recall layer for reasoning and retrieval.'
 UNION ALL SELECT 'entry_points','derived','v_entry_points',NULL,'v_recall','Curated GPT-friendly entry points over recall items.'
 UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'v_recall','Compatibility recall alias.'
+UNION ALL SELECT 'schema_catalog','derived','v_schema_catalog',NULL,'sqlite_master','Readable catalog of tables and views for discovery and entry-point searches.'
+UNION ALL SELECT 'tag_search','derived','v_tag_search',NULL,'epistemic_tags,object_epistemic_tags,metacognitive_state','Searchable tag-to-object view that expands persona-style metacognitive states.'
 UNION ALL SELECT 'project','current','projects','project_activation_events', 'project_objects, project_requirements','Project identity and active status live in projects; related objects and requirements live in project_objects and project_requirements.'
 UNION ALL SELECT 'research','current','research_jobs','research_sources',NULL,'Research job lifecycle lives in research_jobs; cited sources live in research_sources.'
 UNION ALL SELECT 'storage_policy','current','storage_policy_versions','storage_change_log',NULL,'Storage policy is versioned in storage_policy_versions; changes are summarized in storage_change_log.'
@@ -717,6 +737,71 @@ CREATE TABLE IF NOT EXISTS decision_options (
 
 CREATE INDEX IF NOT EXISTS idx_decision_options_decision ON decision_options(decision_id);
 CREATE INDEX IF NOT EXISTS idx_decision_options_status ON decision_options(status);
+"""
+
+COMPONENT_INFLUENCE_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS component_influence_modes (
+    mode_key TEXT PRIMARY KEY,
+    label TEXT NOT NULL,
+    description TEXT NOT NULL,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS component_influence (
+    component_type TEXT NOT NULL,
+    component_key TEXT NOT NULL,
+    mode_key TEXT NOT NULL REFERENCES component_influence_modes(mode_key),
+    default_score REAL NOT NULL CHECK(default_score BETWEEN 0 AND 1),
+    current_score REAL NOT NULL CHECK(current_score BETWEEN 0 AND 1),
+    override_reason TEXT NOT NULL DEFAULT '',
+    updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (component_type, component_key)
+);
+
+CREATE TABLE IF NOT EXISTS component_influence_presets (
+    mode_key TEXT NOT NULL REFERENCES component_influence_modes(mode_key),
+    component_type TEXT NOT NULL,
+    component_key TEXT NOT NULL,
+    preset_score REAL NOT NULL CHECK(preset_score BETWEEN 0 AND 1),
+    reason TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (mode_key, component_type, component_key)
+);
+
+CREATE TABLE IF NOT EXISTS component_influence_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    component_type TEXT NOT NULL,
+    component_key TEXT NOT NULL,
+    mode_key TEXT NOT NULL,
+    default_score REAL NOT NULL CHECK(default_score BETWEEN 0 AND 1),
+    previous_score REAL NOT NULL CHECK(previous_score BETWEEN 0 AND 1),
+    current_score REAL NOT NULL CHECK(current_score BETWEEN 0 AND 1),
+    delta REAL NOT NULL,
+    reason TEXT NOT NULL DEFAULT '',
+    changed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_component_influence_mode ON component_influence(mode_key);
+CREATE INDEX IF NOT EXISTS idx_component_influence_history_component ON component_influence_history(component_type, component_key);
+CREATE INDEX IF NOT EXISTS idx_component_influence_presets_mode ON component_influence_presets(mode_key);
+CREATE TRIGGER IF NOT EXISTS component_influence_history_ai AFTER INSERT ON component_influence
+BEGIN
+    INSERT INTO component_influence_history(
+        component_type, component_key, mode_key, default_score, previous_score, current_score, delta, reason
+    ) VALUES (
+        NEW.component_type, NEW.component_key, NEW.mode_key, NEW.default_score, NEW.default_score, NEW.current_score,
+        NEW.current_score - NEW.default_score, NEW.override_reason
+    );
+END;
+CREATE TRIGGER IF NOT EXISTS component_influence_history_au AFTER UPDATE ON component_influence
+BEGIN
+    INSERT INTO component_influence_history(
+        component_type, component_key, mode_key, default_score, previous_score, current_score, delta, reason
+    ) VALUES (
+        NEW.component_type, NEW.component_key, NEW.mode_key, NEW.default_score, OLD.current_score, NEW.current_score,
+        NEW.current_score - OLD.current_score, COALESCE(NULLIF(NEW.override_reason, ''), 'updated')
+    );
+END;
 """
 
 INTERPRETED_LAYER_SCHEMA_SQL = """

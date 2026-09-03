@@ -36,9 +36,6 @@ The DB now also models:
   `core_thinking_patterns`
 - **decision options**: `decision_options` and
   `v_decision_options` for side-by-side comparison
-- **convictions**: `convictions`, `conviction_versions`,
-  `conviction_inputs`, and `v_convictions` for durable
-  commitments
 - **reasoning improvement tracking**:
   `CDB-13.8` and related patterns for before/after
   episode comparison
@@ -49,17 +46,39 @@ The DB now also models:
   `persona_insect`, `persona_scholar`,
   `persona_skeptic`, `persona_builder`,
   `persona_moderator`, `persona_synthesizer`,
-  `persona_super_ai`
+  `persona_super_ai`, `persona_system_analyst`
 - **policy**: `thinking_policy` that rounds those
   modes into one operating view
+- **quality**: first-class quality concept and linked
+  quality-focused work plans
 - **trust**: a first-class metacognitive stance that
   shapes evidence weighting and action
 - **reasoning episodes**: auditable objects that keep
   claim, evidence, inference, uncertainty,
   reversibility, mode trail, and next action
+- **tightened core model**: `v_core_model` as a
+  compact four-layer summary of state, action, audit,
+  and policy
 
 These additions make the DB better at preserving not
 just outputs, but also the path taken to reach them.
+
+## Tightened core model
+
+For day-to-day thinking, the DB works best when you
+keep the core model small:
+
+- **state**: observations, beliefs, convictions,
+  open questions, decisions
+- **action**: continuity requirements, work plans,
+  steps, projects
+- **audit**: receipts, reasoning episodes, version
+  history, provenance
+- **policy**: metacognitive state, influence modes,
+  feature flags, epistemic tags
+
+Everything else should usually be a view, alias, or
+supporting metadata.
 
 ## Design goals
 
@@ -105,7 +124,16 @@ just outputs, but also the path taken to reach them.
 - `v_recall`
 - `v_entry_points`
 - `v_memory_index`
+- `v_schema_catalog`
+- `v_tag_search`
+- `v_component_influence`
+- `v_component_influence_presets`
+- `v_component_influence_history`
+- `v_component_influence_modes`
 - `v_item_links`
+- `error_recovery_influence_flow` work plan
+- `evolved_baseline_demo` work plan
+- `concept_links` for concept-to-plan relationships
 - `v_explain`
 - `v_interpreted_layer`
 - `v_storage_map`

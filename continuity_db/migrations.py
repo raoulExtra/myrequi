@@ -25,8 +25,9 @@ from .schema import (
     SCIENTIST_MODE_VIEW_SQL,
     STORAGE_MAP_VIEW_SQL,
     TABLE_CONTRACT_ROWS,
+    COMPONENT_INFLUENCE_SCHEMA_SQL,
 )
-from .views import FRAME_VIEWS_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL
+from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, TAG_SEARCH_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "continuity.db"
@@ -228,6 +229,222 @@ def create_memory_conditions_table(cur):
         """
     )
     cur.execute("CREATE INDEX IF NOT EXISTS idx_memory_conditions_condition ON memory_conditions(condition)")
+
+
+def create_component_influence_tables(cur):
+    cur.executescript(COMPONENT_INFLUENCE_SCHEMA_SQL)
+
+
+def seed_component_influence_modes(cur):
+    modes = [
+        ('default', 'Default', 'Baseline influence preset.'),
+        ('high_attention', 'High attention', 'Preset for focused, high-salience operation.'),
+        ('low_attention', 'Low attention', 'Preset for low-salience or background operation.'),
+        ('startup', 'Startup', 'Preset for initialization and warm-up.'),
+        ('error_recovery', 'Error recovery', 'Preset for correction and stabilization after failure.'),
+        ('evolved', 'Evolved', 'Preset for a stabilized, learned, refined baseline.'),
+    ]
+    for mode_key, label, description in modes:
+        cur.execute(
+            """
+            INSERT INTO component_influence_modes(mode_key, label, description)
+            VALUES(?,?,?)
+            ON CONFLICT(mode_key) DO UPDATE SET
+                label=excluded.label,
+                description=excluded.description
+            """,
+            (mode_key, label, description),
+        )
+
+
+def seed_error_recovery_influence_preset(cur):
+    rows = [
+        ('concept', 'thinking_engine_recovery_component', 0.50, 0.95, 'error_recovery: restore stable operation or safe fallback.'),
+        ('concept', 'correction', 0.50, 0.93, 'error_recovery: fix mistakes explicitly.'),
+        ('concept', 'thinking_engine_uncertainty_component', 0.50, 0.90, 'error_recovery: increase uncertainty handling and calibration.'),
+        ('concept', 'thinking_engine_logging_component', 0.50, 0.88, 'error_recovery: preserve diagnostics and traces.'),
+        ('concept', 'thinking_engine_retrieval_component', 0.50, 0.86, 'error_recovery: re-check sources and retrieve relevant context.'),
+        ('concept', 'schema_catalog', 0.50, 0.82, 'error_recovery: find structure and canonical surfaces quickly.'),
+        ('concept', 'discovery', 0.50, 0.80, 'error_recovery: locate useful paths and missing structure.'),
+        ('concept', 'entrypoint', 0.50, 0.78, 'error_recovery: start from a canonical place.'),
+        ('concept', 'canonical_home_enforcement', 0.50, 0.76, 'error_recovery: route to one primary home to avoid duplication.'),
+        ('concept', 'overlap_reduction', 0.50, 0.74, 'error_recovery: collapse duplicate or conflicting paths.'),
+    ]
+    for component_type, component_key, default_score, current_score, reason in rows:
+        cur.execute(
+            """
+            INSERT INTO component_influence(component_type, component_key, mode_key, default_score, current_score, override_reason)
+            VALUES(?,?,?,?,?,?)
+            ON CONFLICT(component_type, component_key) DO UPDATE SET
+                mode_key=excluded.mode_key,
+                default_score=excluded.default_score,
+                current_score=excluded.current_score,
+                override_reason=excluded.override_reason,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (component_type, component_key, 'error_recovery', default_score, current_score, reason),
+        )
+
+
+def seed_influence_preset_rows(cur, mode_key, rows):
+    for component_type, component_key, score, reason in rows:
+        cur.execute(
+            """
+            INSERT INTO component_influence_presets(mode_key, component_type, component_key, preset_score, reason)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(mode_key, component_type, component_key) DO UPDATE SET
+                preset_score=excluded.preset_score,
+                reason=excluded.reason
+            """,
+            (mode_key, component_type, component_key, score, reason),
+        )
+
+
+def seed_component_influence_current_from_preset(cur, mode_key):
+    rows = cur.execute(
+        "select component_type, component_key, preset_score, reason from component_influence_presets where mode_key=? order by component_type, component_key",
+        (mode_key,),
+    ).fetchall()
+    for component_type, component_key, score, reason in rows:
+        cur.execute(
+            """
+            INSERT INTO component_influence(component_type, component_key, mode_key, default_score, current_score, override_reason)
+            VALUES(?,?,?,?,?,?)
+            ON CONFLICT(component_type, component_key) DO UPDATE SET
+                mode_key=excluded.mode_key,
+                default_score=excluded.default_score,
+                current_score=excluded.current_score,
+                override_reason=excluded.override_reason,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (component_type, component_key, mode_key, score, score, reason),
+        )
+
+
+def seed_error_recovery_influence_work_plan(cur):
+    cur.execute(
+        """
+        INSERT INTO work_plans(plan_key, title, objective, status, created_by, prompt)
+        VALUES(?,?,?,?,?,?)
+        ON CONFLICT(plan_key) DO UPDATE SET
+            title=excluded.title,
+            objective=excluded.objective,
+            status=excluded.status,
+            created_by=excluded.created_by,
+            prompt=excluded.prompt,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (
+            'error_recovery_influence_flow',
+            'Error recovery influence flow',
+            'Define how the engine should raise, lower, and restore component influence during error recovery, then return to baseline safely.',
+            'active',
+            'system',
+            'Use this plan when the engine enters error_recovery mode and needs a safe influence preset and recovery loop.',
+        ),
+    )
+    plan_id = cur.execute("select id from work_plans where plan_key='error_recovery_influence_flow'").fetchone()[0]
+    cur.execute("delete from work_plan_steps where plan_id=?", (plan_id,))
+    steps = [
+        (1, 'detect', 'Detect error, drift, or stall and confirm recovery mode is needed.'),
+        (2, 'stabilize', 'Raise recovery, correction, uncertainty, logging, and retrieval influence; lower speculative expansion.'),
+        (3, 'inspect', 'Inspect schema catalog, discovery paths, entrypoints, and canonical homes to locate the right surface.'),
+        (4, 'correct', 'Apply the smallest correction needed and record why the influence changed.'),
+        (5, 'resume', 'Validate stability, restore baseline influence, and continue normal operation.'),
+    ]
+    cur.executemany(
+        """
+        INSERT INTO work_plan_steps(plan_id, step_order, step_key, description, status, evidence)
+        VALUES(?,?,?,?,?,?)
+        """,
+        [(plan_id, order, key, desc, 'pending', 'error_recovery preset') for order, key, desc in steps],
+    )
+    links = [
+        ('influence', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Describes how to apply and restore influence settings in recovery mode.'),
+        ('system', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Defines a system-level recovery policy for the engine.'),
+        ('thinking_engine_recovery_component', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Recovery component is the primary driver of the mode.'),
+        ('thinking_engine_uncertainty_component', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Uncertainty handling should rise during recovery.'),
+        ('thinking_engine_logging_component', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Logging should capture recovery context and decisions.'),
+        ('thinking_engine_retrieval_component', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Retrieval should be emphasized to re-check context.'),
+        ('correction', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Correction is the core action after detection.'),
+        ('schema_catalog', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Schema catalog helps locate canonical surfaces quickly.'),
+        ('discovery', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Discovery helps find the useful path and missing structure.'),
+        ('entrypoint', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Entrypoints help restart from a canonical place.'),
+        ('canonical_home_enforcement', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Canonical homes reduce duplication during repair.'),
+        ('overlap_reduction', 'work_plan', 'error_recovery_influence_flow', 'supports', 'Overlap reduction prevents duplicate or conflicting paths.'),
+    ]
+    for concept_key, object_type, object_key, relation, note in links:
+        cur.execute(
+            """
+            INSERT INTO concept_links(concept_key, object_type, object_key, relation, note)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(concept_key, object_type, object_key, relation) DO UPDATE SET
+                note=excluded.note
+            """,
+            (concept_key, object_type, object_key, relation, note),
+        )
+
+
+def seed_evolved_baseline_demo_work_plan(cur):
+    cur.execute(
+        """
+        INSERT INTO work_plans(plan_key, title, objective, status, created_by, prompt)
+        VALUES(?,?,?,?,?,?)
+        ON CONFLICT(plan_key) DO UPDATE SET
+            title=excluded.title,
+            objective=excluded.objective,
+            status=excluded.status,
+            created_by=excluded.created_by,
+            prompt=excluded.prompt,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (
+            'evolved_baseline_demo',
+            'Evolved baseline demo',
+            'Demonstrate that default influence is seeded from evolved, then update evolved after a recovery improvement and sync default again.',
+            'active',
+            'system',
+            'Use this plan when you want to show that the baseline starts evolved and only changes after the system learns something new.',
+        ),
+    )
+    plan_id = cur.execute("select id from work_plans where plan_key='evolved_baseline_demo'").fetchone()[0]
+    cur.execute("delete from work_plan_steps where plan_id=?", (plan_id,))
+    steps = [
+        (1, 'compare', 'Compare evolved and default presets and verify they match at startup.'),
+        (2, 'confirm', 'Confirm default is just the current baseline copied from evolved.'),
+        (3, 'recover', 'Use error_recovery mode and capture the useful adjustment that stabilizes the engine.'),
+        (4, 'learn', 'Fold the useful adjustment back into evolved so the system has learned.'),
+        (5, 'resync', 'Re-seed default from evolved and verify both states remain aligned.'),
+    ]
+    cur.executemany(
+        """
+        INSERT INTO work_plan_steps(plan_id, step_order, step_key, description, status, evidence)
+        VALUES(?,?,?,?,?,?)
+        """,
+        [(plan_id, order, key, desc, 'pending', 'evolved baseline demo') for order, key, desc in steps],
+    )
+    links = [
+        ('influence', 'work_plan', 'evolved_baseline_demo', 'supports', 'Shows the evolving influence model and preset synchronization.'),
+        ('system', 'work_plan', 'evolved_baseline_demo', 'supports', 'Demonstrates the system-level baseline lifecycle.'),
+        ('correction', 'work_plan', 'evolved_baseline_demo', 'supports', 'Learning requires visible correction after a recovery run.'),
+        ('thinking_engine_learning_component', 'work_plan', 'evolved_baseline_demo', 'supports', 'Learning component should absorb the useful recovery adjustment.'),
+        ('thinking_engine_recovery_component', 'work_plan', 'evolved_baseline_demo', 'supports', 'Recovery component discovers the needed adjustment.'),
+        ('thinking_engine_workflow_component', 'work_plan', 'evolved_baseline_demo', 'supports', 'Workflow component coordinates compare->recover->learn->resync.'),
+        ('thinking_engine_governance_component', 'work_plan', 'evolved_baseline_demo', 'supports', 'Governance ensures the baseline is updated safely.'),
+        ('schema_catalog', 'work_plan', 'evolved_baseline_demo', 'supports', 'Schema catalog helps verify state surfaces during the demo.'),
+        ('discovery', 'work_plan', 'evolved_baseline_demo', 'supports', 'Discovery helps locate the useful changed path.'),
+        ('entrypoint', 'work_plan', 'evolved_baseline_demo', 'supports', 'Entry points help show the current baseline quickly.'),
+    ]
+    for concept_key, object_type, object_key, relation, note in links:
+        cur.execute(
+            """
+            INSERT INTO concept_links(concept_key, object_type, object_key, relation, note)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(concept_key, object_type, object_key, relation) DO UPDATE SET
+                note=excluded.note
+            """,
+            (concept_key, object_type, object_key, relation, note),
+        )
 
 
 def create_reasoning_episode_tables(cur):
@@ -788,6 +1005,11 @@ def create_storage_map_view(cur):
     cur.execute(STORAGE_MAP_VIEW_SQL)
 
 
+def create_core_model_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_core_model")
+    cur.execute(CORE_MODEL_VIEW_SQL)
+
+
 def create_ethics_map_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_ethics_principles_map")
     cur.execute(ETHICS_MAP_VIEW_SQL)
@@ -826,6 +1048,24 @@ def create_glossary_terms_view(cur):
 def create_provenance_summary_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_provenance_summary")
     cur.execute(PROVENANCE_SUMMARY_VIEW_SQL)
+
+
+def create_schema_catalog_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_schema_catalog")
+    cur.execute(SCHEMA_CATALOG_VIEW_SQL)
+
+
+def create_tag_search_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_tag_search")
+    cur.execute(TAG_SEARCH_VIEW_SQL)
+
+
+def create_component_influence_views(cur):
+    cur.execute("DROP VIEW IF EXISTS v_component_influence_history")
+    cur.execute("DROP VIEW IF EXISTS v_component_influence_presets")
+    cur.execute("DROP VIEW IF EXISTS v_component_influence")
+    cur.execute("DROP VIEW IF EXISTS v_component_influence_modes")
+    cur.executescript(COMPONENT_INFLUENCE_VIEWS_SQL)
 
 
 def create_convictions_view(cur):
@@ -877,6 +1117,215 @@ def seed_scientist_mode(cur):
             VALUES('active_role_mode', 'roles', 'general', 1.0, 'system', 1)
             """
         )
+
+
+def seed_discovery_concept(cur):
+    cur.execute(
+        """
+        INSERT INTO concepts(concept_key, name, description, status, confidence)
+        VALUES(?,?,?,?,?)
+        ON CONFLICT(concept_key) DO UPDATE SET
+            name=excluded.name,
+            description=excluded.description,
+            status=excluded.status,
+            confidence=excluded.confidence,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (
+            'discovery',
+            'Discovery',
+            'Finding useful structure, answers, or paths in data, code, or problems.',
+            'active',
+            0.86,
+        ),
+    )
+
+
+def seed_discovery_plan_links(cur):
+    links = [
+        ('formal_analysis_workflow', 'supports', 'Discovery helps structure problem analysis and evidence review.'),
+        ('db_improvement_control_flow', 'supports', 'Discovery helps surface better retrieval paths and relationships in the DB.'),
+        ('canonical_home_enforcement', 'supports', 'Discovery helps find the primary home for repeated ideas and routes.'),
+        ('dependency_first_planning', 'supports', 'Discovery helps uncover hidden dependencies before execution.'),
+        ('learn_topic_fast', 'supports', 'Discovery helps find the useful structure of a new topic quickly.'),
+        ('mindmap_term_loop', 'supports', 'Discovery helps expand a term into connected structure.'),
+        ('out_of_the_box_thinking', 'supports', 'Discovery helps explore unusual paths and alternative frames.'),
+        ('reasoning_pattern_reuse_plan', 'supports', 'Discovery helps find reusable patterns across similar problems.'),
+        ('core_thinking_patterns', 'supports', 'Discovery helps identify patterns worth operationalizing.'),
+    ]
+    for plan_key, relation, note in links:
+        cur.execute(
+            """
+            INSERT INTO concept_links(concept_key, object_type, object_key, relation, note)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(concept_key, object_type, object_key, relation) DO UPDATE SET
+                note=excluded.note
+            """,
+            ('discovery', 'work_plan', plan_key, relation, note),
+        )
+
+
+def seed_db_optimization_concepts(cur):
+    concepts = [
+        ('system', 'System', 'A bounded whole made of parts, relations, inputs, outputs, feedback, and purpose.', 0.92),
+        ('influence', 'Influence', 'How internal engine elements or external forces change thinking, state, or outcomes.', 0.89),
+        ('overlap_reduction', 'Overlap Reduction', 'Finding duplicated or near-duplicated ideas and collapsing them into one canonical home.', 0.87),
+        ('schema_catalog', 'Schema Catalog', 'A searchable index of tables, views, and entry points for navigating the database.', 0.90),
+    ]
+    for concept_key, name, description, confidence in concepts:
+        cur.execute(
+            """
+            INSERT INTO concepts(concept_key, name, description, status, confidence)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(concept_key) DO UPDATE SET
+                name=excluded.name,
+                description=excluded.description,
+                status=excluded.status,
+                confidence=excluded.confidence,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (concept_key, name, description, 'active', confidence),
+        )
+        if concept_key == 'system':
+            cur.execute(
+                """
+                INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+                VALUES(?,?,?,?)
+                ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
+                    note=excluded.note
+                """,
+                ('concept', 'system', 'system', 'System concept tagged as system.'),
+            )
+        if concept_key == 'influence':
+            for tag_key, note in [
+                ('epistemic:reasoning', 'Influence changes how the engine weighs or chooses.'),
+                ('epistemic:state', 'Influence can describe a current operating condition or pressure.'),
+                ('epistemic:constraint', 'Influence can act as an external force or limiting condition.'),
+            ]:
+                cur.execute(
+                    """
+                    INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+                    VALUES(?,?,?,?)
+                    ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
+                        note=excluded.note
+                    """,
+                    ('concept', 'influence', tag_key, note),
+                )
+
+
+def seed_db_optimization_links(cur):
+    links = [
+        ('system', 'concept', 'system_recognition_heuristic', 'supports', 'The system concept is clarified by heuristics for recognizing systems.'),
+        ('system', 'concept', 'system_nesting_heuristic', 'supports', 'The system concept is clarified by heuristics for finding nested systems.'),
+        ('system', 'concept', 'thinking_engine_system_elements', 'supports', 'The system concept is clarified by named system elements.'),
+        ('influence', 'concept', 'system', 'supports', 'Influence is easiest to interpret within a bounded system.'),
+        ('influence', 'concept', 'thinking_engine_system_elements', 'supports', 'Influence can act on the engine through attention, memory, reasoning, and policy.'),
+        ('canonical_home_enforcement', 'concept', 'overlap_reduction', 'supports', 'Canonical-home routing depends on reducing overlap first.'),
+        ('canonical_home_enforcement', 'concept', 'schema_catalog', 'supports', 'Canonical-home routing is easier with a searchable schema catalog.'),
+        ('canonical_home_enforcement', 'concept', 'discovery', 'supports', 'Discovery helps find the right home and route.'),
+        ('overlap_reduction', 'concept', 'canonical_home_enforcement', 'supports', 'Overlap reduction is implemented through canonical homes.'),
+        ('overlap_reduction', 'concept', 'correction', 'supports', 'Overlap reduction improves when mistakes are corrected explicitly.'),
+        ('schema_catalog', 'concept', 'entrypoint', 'supports', 'A schema catalog should surface canonical entrypoints quickly.'),
+        ('schema_catalog', 'concept', 'discovery', 'supports', 'A schema catalog powers discovery of useful structures.'),
+        ('schema_catalog', 'concept', 'canonical_home_enforcement', 'supports', 'A schema catalog makes canonical-home routing easier to apply.'),
+        ('entrypoint', 'concept', 'discovery', 'supports', 'An entrypoint should help discovery start from a canonical place.'),
+        ('entrypoint', 'concept', 'schema_catalog', 'supports', 'An entrypoint should be visible in the schema catalog.'),
+        ('correction', 'concept', 'overlap_reduction', 'supports', 'Correction helps reduce overlap by fixing missed or duplicate ideas.'),
+    ]
+    for concept_key, object_type, object_key, relation, note in links:
+        cur.execute(
+            """
+            INSERT INTO concept_links(concept_key, object_type, object_key, relation, note)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(concept_key, object_type, object_key, relation) DO UPDATE SET
+                note=excluded.note
+            """,
+            (concept_key, object_type, object_key, relation, note),
+        )
+
+
+def seed_quality_plan_links(cur):
+    links = [
+        ('quality', 'work_plan', 'core_thinking_patterns', 'supports', 'Core thinking patterns should improve output quality by making analysis more reliable.'),
+        ('quality', 'work_plan', 'elegant_requirements_glossary', 'supports', 'Clear requirements language improves quality of the resulting glossary.'),
+        ('quality', 'work_plan', 'high_quality_code_plan', 'supports', 'The plan directly targets high-quality code habits and outputs.'),
+        ('quality', 'work_plan', 'personal_ai_survival_plan', 'supports', 'Survival planning depends on quality judgments under disruption.'),
+        ('quality', 'work_plan', 'seven_basic_tools_quality_integration', 'supports', 'This plan is explicitly about integrating quality tools.'),
+        ('quality', 'work_plan', 'super_sharp_thinking_engine', 'supports', 'Sharper thinking should improve quality, clarity, and usefulness.'),
+    ]
+    for concept_key, object_type, object_key, relation, note in links:
+        cur.execute(
+            """
+            INSERT INTO concept_links(concept_key, object_type, object_key, relation, note)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(concept_key, object_type, object_key, relation) DO UPDATE SET
+                note=excluded.note
+            """,
+            (concept_key, object_type, object_key, relation, note),
+        )
+
+def seed_persona_tag(cur):
+    cur.execute(
+        """
+        INSERT INTO epistemic_tags(tag_key, label, description)
+        VALUES(?,?,?)
+        ON CONFLICT(tag_key) DO UPDATE SET
+            label=excluded.label,
+            description=excluded.description
+        """,
+        ('persona', 'Persona', 'Marks persona-mode metacognitive state entries.'),
+    )
+    cur.execute(
+        """
+        INSERT INTO epistemic_tags(tag_key, label, description)
+        VALUES(?,?,?)
+        ON CONFLICT(tag_key) DO UPDATE SET
+            label=excluded.label,
+            description=excluded.description
+        """,
+        ('system', 'System', 'Marks system-level metacognitive state entries, including derived persona-to-system classification.'),
+    )
+    cur.execute(
+        """
+        INSERT INTO epistemic_tags(tag_key, label, description)
+        VALUES(?,?,?)
+        ON CONFLICT(tag_key) DO UPDATE SET
+            label=excluded.label,
+            description=excluded.description
+        """,
+        ('trait', 'Trait', 'Marks reusable persona traits such as curiosity, caution, structure, and patience.'),
+    )
+    personas = ['persona_alien','persona_builder','persona_child','persona_explorer','persona_insect','persona_moderator','persona_scholar','persona_skeptic','persona_super_ai','persona_synthesizer','persona_system_analyst']
+    for state_key in personas:
+        row = cur.execute("select 1 from metacognitive_state where state_key=?", (state_key,)).fetchone()
+        if row:
+            for tag_key, note in [('persona', 'Persona-mode state entry.'), ('system', 'Derived system-level classification for persona-mode state entry.'), ('trait', 'Derived trait classification from persona-mode text.')]:
+                cur.execute(
+                    """
+                    INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+                    VALUES(?,?,?,?)
+                    ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
+                        note=excluded.note
+                    """,
+                    ('metacognitive_state', state_key, tag_key, note),
+                )
+
+
+def seed_mistake_recording_policy(cur):
+    cur.execute(
+        """
+        INSERT INTO recording_policy(trigger, enabled, description)
+        VALUES(?,?,?)
+        ON CONFLICT(trigger) DO UPDATE SET
+            enabled=excluded.enabled,
+            description=excluded.description
+        """,
+        (
+            'mistake_discovered',
+            1,
+            'Record when a mistake, omission, or missed link is discovered.',
+        ),
+    )
 
 
 def seed_memory_mvp_requirements(cur):
@@ -1255,6 +1704,7 @@ def validate(conn):
 
     for view_name in [
         "v_storage_map",
+        "v_core_model",
         "v_ethics_principles_map",
         "v_ethics_principle_checks",
         "v_scientist_mode_state",
@@ -1273,6 +1723,11 @@ def validate(conn):
         "v_meta",
         "v_entry_points",
         "v_memory_index",
+        "v_schema_catalog",
+        "v_tag_search",
+        "v_component_influence_modes",
+        "v_component_influence",
+        "v_component_influence_history",
         "v_decision_versions",
         "v_decision_options",
         "v_open_question_flow",
@@ -1303,6 +1758,112 @@ def validate(conn):
     scientist_role = cur.execute("select value from metacognitive_state where state_key='active_role_mode'").fetchone()
     if not scientist_role:
         issues.append(("scientist_mode_role_state", scientist_role, ('general', 'scientist')))
+
+    mistake_policy = cur.execute("select enabled, description from recording_policy where trigger='mistake_discovered'").fetchone()
+    if mistake_policy != (1, 'Record when a mistake, omission, or missed link is discovered.'):
+        issues.append(("mistake_recording_policy", mistake_policy, (1, 'Record when a mistake, omission, or missed link is discovered.')))
+
+    discovery_concept = cur.execute("select name, description from concepts where concept_key='discovery'").fetchone()
+    if not discovery_concept:
+        issues.append(("discovery_concept", discovery_concept, ('Discovery', 'Finding useful structure, answers, or paths in data, code, or problems.')))
+    elif discovery_concept[0] != 'Discovery' or 'external' in discovery_concept[1].lower():
+        issues.append(("discovery_concept_text", discovery_concept, ('Discovery', 'no external')))
+
+    overlap_concept = cur.execute("select name, description from concepts where concept_key='overlap_reduction'").fetchone()
+    if not overlap_concept:
+        issues.append(("overlap_reduction_concept", overlap_concept, ('Overlap Reduction', 'Finding duplicated or near-duplicated ideas and collapsing them into one canonical home.')))
+    schema_concept = cur.execute("select name, description from concepts where concept_key='schema_catalog'").fetchone()
+    if not schema_concept:
+        issues.append(("schema_catalog_concept", schema_concept, ('Schema Catalog', 'A searchable index of tables, views, and entry points for navigating the database.')))
+    entrypoint_concept = cur.execute("select name, description from concepts where concept_key='entrypoint'").fetchone()
+    if not entrypoint_concept:
+        issues.append(("entrypoint_concept", entrypoint_concept, ('Entrypoint', 'Canonical starting point for querying and navigating continuity.db; aligns with v_entry_points.')))
+    persona_tag = cur.execute("select label, description from epistemic_tags where tag_key='persona'").fetchone()
+    if not persona_tag:
+        issues.append(("persona_tag", persona_tag, ('Persona', 'Marks persona-mode metacognitive state entries.')))
+    system_tag = cur.execute("select label, description from epistemic_tags where tag_key='system'").fetchone()
+    if not system_tag:
+        issues.append(("system_tag", system_tag, ('System', 'Marks system-level metacognitive state entries, including derived persona-to-system classification.')))
+    trait_tag = cur.execute("select label, description from epistemic_tags where tag_key='trait'").fetchone()
+    if not trait_tag:
+        issues.append(("trait_tag", trait_tag, ('Trait', 'Marks reusable persona traits such as curiosity, caution, structure, and patience.')))
+    system_concept = cur.execute("select name, description from concepts where concept_key='system'").fetchone()
+    if not system_concept:
+        issues.append(("system_concept", system_concept, ('System', 'A bounded whole made of parts, relations, inputs, outputs, feedback, and purpose.')))
+    influence_concept = cur.execute("select name, description from concepts where concept_key='influence'").fetchone()
+    if not influence_concept:
+        issues.append(("influence_concept", influence_concept, ('Influence', 'How internal engine elements or external forces change thinking, state, or outcomes.')))
+    system_concept_tagged = cur.execute("select count(*) from object_epistemic_tags where tag_key='system' and object_type='concept' and object_key='system'").fetchone()[0]
+    if system_concept_tagged != 1:
+        issues.append(("system_concept_tagged", system_concept_tagged, 1))
+    influence_tagged = cur.execute("select count(*) from object_epistemic_tags where object_type='concept' and object_key='influence' and tag_key in ('epistemic:reasoning','epistemic:state','epistemic:constraint')").fetchone()[0]
+    if influence_tagged != 3:
+        issues.append(("influence_tagged", influence_tagged, 3))
+    quality_plan_count = cur.execute("select count(*) from concept_links where concept_key='quality' and object_type='work_plan'").fetchone()[0]
+    if quality_plan_count < 6:
+        issues.append(("quality_work_plan_links", quality_plan_count, '>=6'))
+    if cur.execute("select 1 from sqlite_master where type='table' and name='component_influence_modes'").fetchone() is None:
+        issues.append(("component_influence_modes_missing", ["component_influence_modes missing"], []))
+    else:
+        mode_count = cur.execute("select count(*) from component_influence_modes").fetchone()[0]
+        if mode_count < 5:
+            issues.append(("component_influence_modes_count", mode_count, '>=5'))
+    if cur.execute("select 1 from sqlite_master where type='table' and name='component_influence'").fetchone() is None:
+        issues.append(("component_influence_missing", ["component_influence missing"], []))
+    else:
+        influence_count = cur.execute("select count(*) from component_influence").fetchone()[0]
+        if influence_count < 10:
+            issues.append(("component_influence_count", influence_count, '>=10'))
+    if cur.execute("select 1 from sqlite_master where type='table' and name='component_influence_presets'").fetchone() is None:
+        issues.append(("component_influence_presets_missing", ["component_influence_presets missing"], []))
+    else:
+        preset_count = cur.execute("select count(*) from component_influence_presets").fetchone()[0]
+        if preset_count < 20:
+            issues.append(("component_influence_presets_count", preset_count, '>=20'))
+        default_preset_count = cur.execute("select count(*) from component_influence_presets where mode_key='default'").fetchone()[0]
+        if default_preset_count < 10:
+            issues.append(("component_influence_default_preset_count", default_preset_count, '>=10'))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_component_influence'").fetchone() is None:
+        issues.append(("component_influence_view_missing", ["v_component_influence missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_component_influence_presets'").fetchone() is None:
+        issues.append(("component_influence_presets_view_missing", ["v_component_influence_presets missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_component_influence_history'").fetchone() is None:
+        issues.append(("component_influence_history_view_missing", ["v_component_influence_history missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_component_influence_modes'").fetchone() is None:
+        issues.append(("component_influence_modes_view_missing", ["v_component_influence_modes missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='table' and name='component_influence_history'").fetchone() is None:
+        issues.append(("component_influence_history_missing", ["component_influence_history missing"], []))
+    influence_mode_keys = {row[0] for row in cur.execute("select mode_key from component_influence_modes")}
+    if not {'default','high_attention','low_attention','startup','error_recovery','evolved'}.issubset(influence_mode_keys):
+        issues.append(("component_influence_modes_seeded", sorted(influence_mode_keys), ['default','high_attention','low_attention','startup','error_recovery','evolved']))
+    error_plan = cur.execute("select id from work_plans where plan_key='error_recovery_influence_flow'").fetchone()
+    if not error_plan:
+        issues.append(("error_recovery_influence_flow_missing", ["error_recovery_influence_flow missing"], []))
+    else:
+        step_count = cur.execute("select count(*) from work_plan_steps where plan_id=?", (error_plan[0],)).fetchone()[0]
+        if step_count < 5:
+            issues.append(("error_recovery_influence_flow_steps", step_count, '>=5'))
+        link_count = cur.execute("select count(*) from concept_links where object_type='work_plan' and object_key='error_recovery_influence_flow'").fetchone()[0]
+        if link_count < 10:
+            issues.append(("error_recovery_influence_flow_links", link_count, '>=10'))
+    demo_plan = cur.execute("select id from work_plans where plan_key='evolved_baseline_demo'").fetchone()
+    if not demo_plan:
+        issues.append(("evolved_baseline_demo_missing", ["evolved_baseline_demo missing"], []))
+    else:
+        demo_steps = cur.execute("select count(*) from work_plan_steps where plan_id=?", (demo_plan[0],)).fetchone()[0]
+        if demo_steps < 5:
+            issues.append(("evolved_baseline_demo_steps", demo_steps, '>=5'))
+        demo_links = cur.execute("select count(*) from concept_links where object_type='work_plan' and object_key='evolved_baseline_demo'").fetchone()[0]
+        if demo_links < 8:
+            issues.append(("evolved_baseline_demo_links", demo_links, '>=8'))
+
+    system_tagged = cur.execute("select count(*) from object_epistemic_tags where tag_key='system' and object_type='metacognitive_state' and object_key like 'persona_%'").fetchone()[0]
+    persona_system_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='system' and object_type='metacognitive_state' and object_key like 'persona_%'").fetchone()[0]
+    if persona_system_count < 1:
+        issues.append(("persona_system_tag_links", persona_system_count, '>=1'))
+    persona_trait_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='trait' and object_type='metacognitive_state' and object_key like 'persona_%'").fetchone()[0]
+    if persona_trait_count < 1:
+        issues.append(("persona_trait_tag_links", persona_trait_count, '>=1'))
 
     map_row = cur.execute("select principle_key, check_key from v_ethics_principles_map where principle_key='fairness' and check_key='fairness'").fetchone()
     if map_row != ('fairness', 'fairness'):
@@ -1451,10 +2012,60 @@ def apply_migration():
     add_open_question_flow_columns(cur)
     create_interpretive_layer_tables(cur)
     create_memory_conditions_table(cur)
+    create_component_influence_tables(cur)
     create_argument_claims_table(cur)
     create_contract_map(cur)
     seed_fairness_action_check(cur)
     seed_scientist_mode(cur)
+    seed_discovery_concept(cur)
+    seed_discovery_plan_links(cur)
+    seed_db_optimization_concepts(cur)
+    seed_db_optimization_links(cur)
+    seed_quality_plan_links(cur)
+    seed_persona_tag(cur)
+    seed_component_influence_modes(cur)
+    seed_influence_preset_rows(cur, 'error_recovery', [
+        ('concept', 'thinking_engine_recovery_component', 0.95, 'restore stable operation or safe fallback.'),
+        ('concept', 'correction', 0.93, 'fix mistakes explicitly.'),
+        ('concept', 'thinking_engine_uncertainty_component', 0.90, 'increase uncertainty handling and calibration.'),
+        ('concept', 'thinking_engine_logging_component', 0.88, 'preserve diagnostics and traces.'),
+        ('concept', 'thinking_engine_retrieval_component', 0.86, 're-check sources and retrieve relevant context.'),
+        ('concept', 'schema_catalog', 0.82, 'find structure and canonical surfaces quickly.'),
+        ('concept', 'discovery', 0.80, 'locate useful paths and missing structure.'),
+        ('concept', 'entrypoint', 0.78, 'start from a canonical place.'),
+        ('concept', 'canonical_home_enforcement', 0.76, 'route to one primary home to avoid duplication.'),
+        ('concept', 'overlap_reduction', 0.74, 'collapse duplicate or conflicting paths.'),
+    ])
+    seed_influence_preset_rows(cur, 'evolved', [
+        ('concept', 'thinking_engine_learning_component', 0.92, 'learn from repeated use and refine behavior.'),
+        ('concept', 'thinking_engine_representation_component', 0.88, 'use clearer internal representations.'),
+        ('concept', 'thinking_engine_retrieval_component', 0.86, 'retrieve relevant context efficiently.'),
+        ('concept', 'thinking_engine_workflow_component', 0.84, 'coordinate the core process smoothly.'),
+        ('concept', 'thinking_engine_governance_component', 0.82, 'apply consistent policy and control.'),
+        ('concept', 'system', 0.80, 'operate as a stable bounded whole.'),
+        ('concept', 'influence', 0.78, 'apply balanced internal and external influence.'),
+        ('concept', 'discovery', 0.76, 'locate useful structure and paths.'),
+        ('concept', 'schema_catalog', 0.74, 'find canonical surfaces quickly.'),
+        ('concept', 'entrypoint', 0.72, 'start from a canonical place.'),
+        ('concept', 'canonical_home_enforcement', 0.70, 'keep repeated ideas on one home.'),
+    ])
+    seed_influence_preset_rows(cur, 'default', [
+        ('concept', 'thinking_engine_learning_component', 0.92, 'default baseline copied from evolved preset.'),
+        ('concept', 'thinking_engine_representation_component', 0.88, 'default baseline copied from evolved preset.'),
+        ('concept', 'thinking_engine_retrieval_component', 0.86, 'default baseline copied from evolved preset.'),
+        ('concept', 'thinking_engine_workflow_component', 0.84, 'default baseline copied from evolved preset.'),
+        ('concept', 'thinking_engine_governance_component', 0.82, 'default baseline copied from evolved preset.'),
+        ('concept', 'system', 0.80, 'default baseline copied from evolved preset.'),
+        ('concept', 'influence', 0.78, 'default baseline copied from evolved preset.'),
+        ('concept', 'discovery', 0.76, 'default baseline copied from evolved preset.'),
+        ('concept', 'schema_catalog', 0.74, 'default baseline copied from evolved preset.'),
+        ('concept', 'entrypoint', 0.72, 'default baseline copied from evolved preset.'),
+        ('concept', 'canonical_home_enforcement', 0.70, 'default baseline copied from evolved preset.'),
+    ])
+    seed_component_influence_current_from_preset(cur, 'default')
+    seed_error_recovery_influence_work_plan(cur)
+    seed_evolved_baseline_demo_work_plan(cur)
+    seed_mistake_recording_policy(cur)
     seed_morphology_concept_provenance(cur)
     seed_memory_mvp_requirements(cur)
     seed_reasoning_episodes(cur)
@@ -1466,6 +2077,7 @@ def apply_migration():
     seed_interpretive_layer(cur)
     seed_scientist_mode_routes(cur)
     create_storage_map_view(cur)
+    create_core_model_view(cur)
     create_frame_views(cur)
     create_problem_solving_patterns_view(cur)
     create_problem_understanding_patterns_view(cur)
@@ -1476,6 +2088,9 @@ def apply_migration():
     create_scientist_mode_view(cur)
     create_glossary_terms_view(cur)
     create_provenance_summary_view(cur)
+    create_schema_catalog_view(cur)
+    create_tag_search_view(cur)
+    create_component_influence_views(cur)
     create_convictions_view(cur)
     create_interpretive_layer_views(cur)
     create_argument_claims_view(cur)

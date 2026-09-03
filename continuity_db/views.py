@@ -29,6 +29,121 @@ FROM epistemic_receipts
 ORDER BY recorded_at DESC, receipt_id DESC
 """
 
+TAG_SEARCH_VIEW_SQL = """
+CREATE VIEW v_tag_search AS
+SELECT
+    t.tag_key,
+    t.label AS tag_label,
+    t.description AS tag_description,
+    o.object_type,
+    o.object_key,
+    CASE
+        WHEN o.object_type='metacognitive_state' THEN m.state_key
+        WHEN o.object_type='concept' THEN c.name
+        ELSE o.object_key
+    END AS object_title,
+    CASE
+        WHEN o.object_type='metacognitive_state' THEN m.value
+        WHEN o.object_type='concept' THEN c.description
+        ELSE o.note
+    END AS object_body,
+    o.note,
+    COALESCE(m.category, '') AS object_category,
+    COALESCE(m.provenance, '') AS object_provenance,
+    COALESCE(m.updated_at, c.updated_at, o.created_at) AS recorded_at,
+    lower(
+        COALESCE(t.tag_key, '') || ' ' ||
+        COALESCE(t.label, '') || ' ' ||
+        COALESCE(t.description, '') || ' ' ||
+        COALESCE(o.object_type, '') || ' ' ||
+        COALESCE(o.object_key, '') || ' ' ||
+        COALESCE(o.note, '') || ' ' ||
+        COALESCE(m.state_key, '') || ' ' ||
+        COALESCE(m.category, '') || ' ' ||
+        COALESCE(m.value, '') || ' ' ||
+        COALESCE(c.concept_key, '') || ' ' ||
+        COALESCE(c.name, '') || ' ' ||
+        COALESCE(c.description, '')
+    ) AS searchable_text
+FROM object_epistemic_tags o
+JOIN epistemic_tags t ON t.tag_key = o.tag_key
+LEFT JOIN metacognitive_state m ON o.object_type='metacognitive_state' AND m.state_key = o.object_key
+LEFT JOIN concepts c ON o.object_type='concept' AND c.concept_key = o.object_key
+ORDER BY recorded_at DESC, t.tag_key, o.object_type, o.object_key
+"""
+
+COMPONENT_INFLUENCE_VIEWS_SQL = """
+CREATE VIEW v_component_influence_modes AS
+SELECT mode_key, label, description, created_at
+FROM component_influence_modes
+ORDER BY mode_key;
+
+CREATE VIEW v_component_influence AS
+SELECT
+    ci.component_type,
+    ci.component_key,
+    ci.mode_key,
+    m.label AS mode_label,
+    m.description AS mode_description,
+    ci.default_score,
+    ci.current_score,
+    ci.override_reason,
+    ci.updated_at,
+    CASE
+        WHEN ci.current_score > ci.default_score THEN 'raised'
+        WHEN ci.current_score < ci.default_score THEN 'lowered'
+        ELSE 'baseline'
+    END AS influence_state
+FROM component_influence ci
+JOIN component_influence_modes m ON m.mode_key = ci.mode_key
+ORDER BY ci.component_type, ci.component_key;
+
+CREATE VIEW v_component_influence_presets AS
+SELECT
+    p.mode_key,
+    m.label AS mode_label,
+    m.description AS mode_description,
+    p.component_type,
+    p.component_key,
+    p.preset_score,
+    p.reason,
+    p.created_at
+FROM component_influence_presets p
+JOIN component_influence_modes m ON m.mode_key = p.mode_key
+ORDER BY p.mode_key, p.component_type, p.component_key;
+
+CREATE VIEW v_component_influence_history AS
+SELECT
+    h.id,
+    h.component_type,
+    h.component_key,
+    h.mode_key,
+    m.label AS mode_label,
+    h.default_score,
+    h.previous_score,
+    h.current_score,
+    h.delta,
+    h.reason,
+    h.changed_at
+FROM component_influence_history h
+JOIN component_influence_modes m ON m.mode_key = h.mode_key
+ORDER BY h.changed_at DESC, h.id DESC;
+"""
+
+SCHEMA_CATALOG_VIEW_SQL = """
+CREATE VIEW v_schema_catalog AS
+SELECT
+    name AS object_name,
+    type AS object_type,
+    tbl_name AS table_name,
+    COALESCE(sql, '') AS definition,
+    lower(name || ' ' || type || ' ' || tbl_name || ' ' || COALESCE(sql, '')) AS searchable_text
+FROM sqlite_master
+WHERE type IN ('table', 'view')
+  AND name NOT LIKE 'sqlite_%'
+ORDER BY type, name
+"""
+
 FRAME_VIEWS_SQL = """
 CREATE VIEW v_visions AS
 SELECT
@@ -84,6 +199,15 @@ SELECT
     prompt
 FROM work_plans
 ORDER BY updated_at DESC, plan_key;
+"""
+
+CORE_MODEL_VIEW_SQL = """
+CREATE VIEW v_core_model AS
+SELECT 1 AS sort_order, 'state' AS layer_key, 'What is true, uncertain, or decided.' AS purpose, 'observations, beliefs, convictions, open_questions, decisions' AS current_tables, 'beliefs, convictions' AS collapsed_concepts, 'Keep the smallest useful semantic state surface.' AS notes
+UNION ALL SELECT 2, 'action', 'What should happen next.', 'continuity_requirements, work_plans, work_plan_steps, projects', 'missions, strategies, plans, commitments', 'Treat plans as execution scaffolding, not a separate universe.'
+UNION ALL SELECT 3, 'audit', 'How we know, what changed, and why.', 'epistemic_receipts, reasoning_episodes, reasoning_episode_inputs, decision_versions, belief_versions, conviction_versions, continuity_requirement_versions, object_provenance, journal, synthesis_conflicts, feature_flag_events, component_influence_history', 'episodes, receipts, provenance, history', 'Preserve traceability, but keep it out of the core reasoning vocabulary.'
+UNION ALL SELECT 4, 'policy', 'How the engine should behave.', 'metacognitive_state, component_influence, component_influence_modes, component_influence_presets, feature_flags, epistemic_tags', 'personas, trust, quality, modes', 'Treat tuning and persona-like state as policy metadata, not core facts.'
+ORDER BY sort_order
 """
 
 PROBLEM_SOLVING_PATTERNS_VIEW_SQL = """
