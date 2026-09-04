@@ -52,6 +52,10 @@ GLOSSARY_ROWS = [
     ("priority", "The ranking weight that orders candidate paths.", "Higher priority wins unless criteria say otherwise."),
     ("feedback", "Observed results that change the next suggestion.", "Feeds the learning loop."),
     ("review", "A check of whether a path worked.", "Use after a path or plan."),
+    ("requirement", "A defined condition that must be true.", "Requirements should be testable and explicit."),
+    ("core requirement", "The small set of requirements that defines a phase.", "Every phase should have its own core requirements."),
+    ("challenge", "A critical review that tries to break weak definitions.", "Use it to improve requirements before relying on them."),
+    ("challenge prompt", "A question set given to AI for critique.", "Should ask for gaps, contradictions, and missing tests."),
     ("modularize", "Split a large file into smaller files or sections.", "Use when a file grows beyond the line budget."),
     ("line budget", "The maximum allowed line count for a file.", "Currently 700 lines."),
     ("oversized file", "A file that exceeds the line budget.", "Should trigger modularization before checkpointing."),
@@ -72,6 +76,7 @@ NEXT_PATH_ROWS = [
 MAX_FILE_LINES = 700
 
 PHASE1_PLAN_KEY = "4_plan.md"
+PHASE_REQUIREMENTS_PLAN_KEY = "5_plan.md"
 PHASE1_PLAN_TITLE = "AI-first self-learn path"
 PHASE1_PLAN_BODY = "Use the glossary and project state to suggest the first self-learn path, then verify and record the result."
 
@@ -128,6 +133,61 @@ def sync(root: Path = PROJECT_ROOT) -> SyncReport:
     created_dirs = ensure_canonical_dirs(root)
     moved_plans = move_completed_plans(root)
     return SyncReport(created_dirs=created_dirs, moved_plans=moved_plans)
+
+
+def _parse_phase_doc(path: Path) -> dict[str, object]:
+    data: dict[str, object] = {"path": str(path)}
+    core_requirements: list[str] = []
+    in_core = False
+    for raw_line in _read_text(path).splitlines():
+        line = raw_line.rstrip()
+        if not line:
+            if in_core:
+                continue
+            continue
+        if line == "core_requirements:":
+            in_core = True
+            data["core_requirements"] = core_requirements
+            continue
+        if in_core and line.startswith("- "):
+            core_requirements.append(line[2:].strip())
+            continue
+        if in_core and not line.startswith("-") and ":" in line and not line.startswith(" "):
+            in_core = False
+        if not in_core and ": " in line and not line.startswith(" "):
+            key, value = line.split(": ", 1)
+            data[key.strip()] = value.strip()
+    data.setdefault("core_requirements", core_requirements)
+    return data
+
+
+def phase_requirement_report(root: Path = PROJECT_ROOT) -> list[dict[str, object]]:
+    report: list[dict[str, object]] = []
+    for path in sorted(root.glob("phase_*.md")):
+        data = _parse_phase_doc(path)
+        requirements = list(data.get("core_requirements", []))
+        missing = [field for field in ("purpose", "goal", "outcome", "status") if field not in data]
+        if len(requirements) < 3:
+            missing.append("core_requirements")
+        report.append({
+            "phase": path.name,
+            "purpose": data.get("purpose"),
+            "goal": data.get("goal"),
+            "outcome": data.get("outcome"),
+            "status": data.get("status"),
+            "core_requirements": requirements,
+            "missing": missing,
+        })
+    return report
+
+
+def enforce_phase_requirements(root: Path = PROJECT_ROOT) -> list[dict[str, object]]:
+    report = phase_requirement_report(root)
+    issues = [item for item in report if item["missing"]]
+    if issues:
+        summary = "; ".join(f"{item['phase']}: {', '.join(item['missing'])}" for item in issues)
+        raise RuntimeError(f"Phase requirements must be defined and challenged before checkpointing: {summary}")
+    return report
 
 
 def _count_text_lines(path: Path) -> int:
@@ -226,6 +286,76 @@ def write_next_path_doc(root: Path = PROJECT_ROOT) -> Path:
     return path
 
 
+def write_phase_requirements_doc(root: Path = PROJECT_ROOT) -> Path:
+    docs_dir = root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    report = phase_requirement_report(root)
+    content = [
+        "# Phase core requirements",
+        "",
+        "Each phase defines its own core requirements.",
+        "AI should challenge them before the phase is treated as stable.",
+    ]
+    for item in report:
+        content.extend([
+            "",
+            f"## {item['phase']}",
+            f"- purpose: {item['purpose']}",
+            f"- goal: {item['goal']}",
+            f"- outcome: {item['outcome']}",
+            f"- status: {item['status']}",
+            "",
+            "### core requirements",
+        ])
+        if item["core_requirements"]:
+            content.extend(f"- {req}" for req in item["core_requirements"])
+        else:
+            content.append("- none")
+    path = docs_dir / "phase-requirements.md"
+    path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    return path
+
+
+def write_phase_challenge_doc(root: Path = PROJECT_ROOT) -> Path:
+    docs_dir = root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    report = phase_requirement_report(root)
+    content = [
+        "# Phase challenge prompts",
+        "",
+        "Ask AI to challenge every phase before it is treated as ready.",
+        "",
+        "## challenge rules",
+        "",
+        "1. Check that purpose, goal, outcome, and status are all explicit.",
+        "2. Check that core requirements are small, testable, and non-overlapping.",
+        "3. Ask what would break the phase definition as the project grows.",
+        "4. Capture fixes as doc changes, not hidden assumptions.",
+    ]
+    for item in report:
+        requirements = item["core_requirements"] or ["none"]
+        content.extend([
+            "",
+            f"## {item['phase']}",
+            "### AI challenge prompt",
+            f"Challenge the requirements for {item['phase']}.",
+            f"Purpose: {item['purpose']}",
+            f"Goal: {item['goal']}",
+            f"Outcome: {item['outcome']}",
+            f"Status: {item['status']}",
+            "Questions:",
+            "- Are the core requirements specific enough to test?",
+            "- Are any requirements duplicated, vague, or missing?",
+            "- What future growth would break this phase definition?",
+            "- What should be added to make the phase future-proof?",
+            "Current core requirements:",
+        ])
+        content.extend(f"- {req}" for req in requirements)
+    path = docs_dir / "phase-challenge.md"
+    path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    return path
+
+
 def write_modularity_doc(root: Path = PROJECT_ROOT) -> Path:
     docs_dir = root / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
@@ -260,6 +390,12 @@ purpose: entry point for the self_learn project documentation.
 goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 outcome: a simple navigation page for the self_learn project.
 
+core_requirements:
+- define the canonical project entry point.
+- keep the glossary and automation links visible.
+- preserve the phase boundary into phase 1.
+- stay small enough to review quickly.
+
 tags:
 - thinking_workspace
 - self_learning
@@ -268,6 +404,8 @@ navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Phase requirements](docs/phase-requirements.md)
+- [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
 - [Learning loop notes](docs/learning-loop.md)
 - [Filesystem autonomy notes](docs/filesystem-autonomy.md)
@@ -302,14 +440,22 @@ purpose: AI chooses the first useful self-learn path from the glossary and curre
 goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
 outcome: a ranked first path that can be verified and turned into the next plan.
 
+core_requirements:
+- define the first usable path candidates.
+- challenge each candidate with explicit criteria.
+- keep a review loop and feedback path.
+- preserve the modularity budget.
+
 navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Phase requirements](docs/phase-requirements.md)
+- [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Automation notes](docs/automation.md)
-- [Next path plan](plans/4_plan.md)
+- [Next path plan](plans/5_plan.md)
 
 status: active
 """
@@ -326,6 +472,8 @@ Project entry point.
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Phase requirements](docs/phase-requirements.md)
+- [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Phase 1](phase_1.md)
@@ -339,19 +487,19 @@ Project entry point.
 def write_next_phase_plan(root: Path = PROJECT_ROOT) -> Path:
     plans_dir = root / "plans"
     plans_dir.mkdir(parents=True, exist_ok=True)
-    path = plans_dir / PHASE1_PLAN_KEY
-    content = f"""# Self-learn AI next-path phase plan
+    path = plans_dir / PHASE_REQUIREMENTS_PLAN_KEY
+    content = f"""# Self-learn phase requirements plan
 
 status: active
 
 ## objective
-Have AI suggest the first self-learn path using the future-proof glossary and current project state.
+Automate per-phase core requirements and AI challenge prompts so each phase stays explicit and future-proof.
 
 ## steps
-1. Compare candidate paths against explicit criteria.
-2. Rank suggestions by priority and reviewability.
-3. Capture feedback from the chosen path.
-4. Turn the best path into the next concrete plan.
+1. Define a core requirement block for every phase.
+2. Generate phase requirement and challenge docs from the phase files.
+3. Challenge the phase definitions with AI before checkpointing.
+4. Keep the phase requirements small, testable, and reviewable.
 """
     path.write_text(content, encoding="utf-8")
     return path
@@ -400,6 +548,7 @@ def status(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "docs": sorted(p.name for p in (root / "docs").glob("*.md")) if (root / "docs").exists() else [],
         "docs_index": str(root / "docs" / "index.md") if (root / "docs" / "index.md").exists() else None,
         "modularity_budget": modularity_budget(root),
+        "phase_requirements_report": phase_requirement_report(root),
     }
 
 
@@ -407,21 +556,20 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     report = sync(root)
     glossary_path = write_glossary(root)
     next_path_doc = write_next_path_doc(root)
+    requirements_doc = write_phase_requirements_doc(root)
+    challenge_doc = write_phase_challenge_doc(root)
     modularity_doc = write_modularity_doc(root)
     index_path = docs_index(root)
-    return {**report.as_dict(), "glossary": str(glossary_path), "next_path": str(next_path_doc), "modularity": str(modularity_doc), "docs_index": str(index_path), "modularity_budget": modularity_budget(root)}
+    return {**report.as_dict(), "glossary": str(glossary_path), "next_path": str(next_path_doc), "phase_requirements": str(requirements_doc), "phase_challenge": str(challenge_doc), "modularity": str(modularity_doc), "docs_index": str(index_path), "modularity_budget": modularity_budget(root), "phase_requirements_report": phase_requirement_report(root)}
 
 
 def advance(root: Path = PROJECT_ROOT) -> dict[str, object]:
-    report = refresh(root)
     phase_0 = write_phase_0(root)
     phase_1 = write_phase_1(root)
     readme = write_readme(root)
     next_plan = write_next_phase_plan(root)
     phase3 = root / "plans" / "3_plan.md"
     if phase3.exists():
-        target = root / "plans" / "done" / phase3.name
-        target.parent.mkdir(parents=True, exist_ok=True)
         text = _read_text(phase3)
         if "status: completed" not in text.lower():
             if "status: active" in text:
@@ -429,7 +577,7 @@ def advance(root: Path = PROJECT_ROOT) -> dict[str, object]:
             else:
                 text = text.replace("## objective", "status: completed\n\n## objective", 1)
             phase3.write_text(text, encoding="utf-8")
-        shutil.move(str(phase3), str(target))
+    report = refresh(root)
     docs_index(root)
     update_project_goal(root)
     git_report = git_checkpoint(root, message="self_learn: advance to phase 1")
@@ -461,16 +609,17 @@ def update_project_goal(root: Path = PROJECT_ROOT) -> None:
 
 
 def git_checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem checkpoint") -> dict[str, object]:
+    phase_report = enforce_phase_requirements(root)
     issues = enforce_modularity_budget(root)
     repo_root = _repo_root(root)
     rel_root = str(root.resolve().relative_to(repo_root))
     subprocess.run(["git", "-C", str(repo_root), "add", rel_root, "continuity.db"], check=True)
     diff = subprocess.run(["git", "-C", str(repo_root), "diff", "--cached", "--quiet"])
     if diff.returncode == 0:
-        return {"repo_root": str(repo_root), "staged": [], "committed": False, "message": message, "modularity_budget": issues}
+        return {"repo_root": str(repo_root), "staged": [], "committed": False, "message": message, "modularity_budget": issues, "phase_requirements_report": phase_report}
     subprocess.run(["git", "-C", str(repo_root), "commit", "-m", message], check=True)
     rev = subprocess.run(["git", "-C", str(repo_root), "rev-parse", "--short", "HEAD"], check=True, capture_output=True, text=True)
-    return {"repo_root": str(repo_root), "staged": [rel_root, "continuity.db"], "committed": True, "message": message, "commit": rev.stdout.strip(), "modularity_budget": issues}
+    return {"repo_root": str(repo_root), "staged": [rel_root, "continuity.db"], "committed": True, "message": message, "commit": rev.stdout.strip(), "modularity_budget": issues, "phase_requirements_report": phase_report}
 
 
 def checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem checkpoint") -> dict[str, object]:
@@ -480,7 +629,7 @@ def checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Self-learn filesystem automation helper")
-    parser.add_argument("action", choices=["sync", "refresh", "advance", "checkpoint", "status", "budget"])
+    parser.add_argument("action", choices=["sync", "refresh", "advance", "checkpoint", "status", "budget", "challenge"])
     parser.add_argument("--root", default=str(PROJECT_ROOT), help="Project root directory")
     args = parser.parse_args(list(argv) if argv is not None else None)
     root = Path(args.root)
@@ -502,6 +651,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 0
     if args.action == "budget":
         print({"limit": MAX_FILE_LINES, "modularity_budget": modularity_budget(root)})
+        return 0
+    if args.action == "challenge":
+        print({"phase_requirements_report": phase_requirement_report(root), "phase_challenge": str(write_phase_challenge_doc(root))})
         return 0
     return 1
 

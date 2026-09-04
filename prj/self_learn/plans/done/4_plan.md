@@ -1,6 +1,6 @@
 # Self-learn AI next-path phase plan
 
-status: active
+status: completed
 
 ## objective
 Have AI suggest the first self-learn path using the future-proof glossary and current project state.

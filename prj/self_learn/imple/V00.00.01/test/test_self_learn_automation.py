@@ -38,21 +38,28 @@ class SelfLearnAutomationTests(unittest.TestCase):
             (root / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
             (root / "plans" / "2_plan.md").write_text("status: active\n", encoding="utf-8")
             (root / "plans" / "1_plan.md").write_text("status: completed\n", encoding="utf-8")
+            (root / "phase_0.md").write_text("""PROJECT PHASE 0\npurpose: entry point\ngoal: keep navigation clear\noutcome: docs index stays useful\ncore_requirements:\n- define the canonical project entry point.\n- keep the glossary and automation links visible.\n- preserve the phase boundary into phase 1.\nstatus: completed\n""", encoding="utf-8")
+            (root / "phase_1.md").write_text("""PROJECT PHASE 1\npurpose: choose a next path\ngoal: suggest the next path\noutcome: ranked path\ncore_requirements:\n- define the first usable path candidates.\n- challenge each candidate with explicit criteria.\n- keep a review loop and feedback path.\nstatus: active\n""", encoding="utf-8")
 
             report = sla.refresh(root)
 
             self.assertTrue((root / "docs" / "index.md").exists())
             self.assertTrue((root / "docs" / "glossary.md").exists())
             self.assertTrue((root / "docs" / "next-path.md").exists())
+            self.assertTrue((root / "docs" / "phase-requirements.md").exists())
+            self.assertTrue((root / "docs" / "phase-challenge.md").exists())
             self.assertTrue((root / "docs" / "modularity.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("learning-loop.md", index)
             self.assertIn("glossary.md", index)
             self.assertIn("next-path.md", index)
+            self.assertIn("phase-requirements.md", index)
+            self.assertIn("phase-challenge.md", index)
             self.assertIn("modularity.md", index)
             self.assertIn("2_plan.md", index)
             self.assertIn("1_plan.md", index)
             self.assertIn("docs_index", report)
+            self.assertIn("phase_requirements_report", report)
             self.assertEqual(report["modularity_budget"], [])
 
     def test_main_advance_creates_next_phase(self):
@@ -80,9 +87,11 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((project / "phase_1.md").exists())
             self.assertTrue((project / "docs" / "glossary.md").exists())
             self.assertTrue((project / "docs" / "next-path.md").exists())
+            self.assertTrue((project / "docs" / "phase-requirements.md").exists())
+            self.assertTrue((project / "docs" / "phase-challenge.md").exists())
             self.assertTrue((project / "docs" / "modularity.md").exists())
             self.assertTrue((project / "plans" / "done" / "3_plan.md").exists())
-            self.assertTrue((project / "plans" / "4_plan.md").exists())
+            self.assertTrue((project / "plans" / "5_plan.md").exists())
             self.assertTrue((project / "docs" / "index.md").exists())
 
     def test_main_checkpoint_creates_git_commit(self):
@@ -110,6 +119,8 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((project / "plans" / "done" / "3_plan.md").exists())
             self.assertTrue((project / "phase_1.md").exists())
             self.assertTrue((project / "docs" / "index.md").exists())
+            self.assertTrue((project / "docs" / "phase-requirements.md").exists())
+            self.assertTrue((project / "docs" / "phase-challenge.md").exists())
             self.assertTrue((project / "docs" / "modularity.md").exists())
 
     def test_main_refresh_creates_index(self):
@@ -119,6 +130,8 @@ class SelfLearnAutomationTests(unittest.TestCase):
             (root / "docs").mkdir(parents=True)
             (root / "plans" / "2_plan.md").write_text("status: active\n", encoding="utf-8")
             (root / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
+            (root / "phase_0.md").write_text("""PROJECT PHASE 0\npurpose: entry point\ngoal: keep navigation clear\noutcome: docs index stays useful\ncore_requirements:\n- define the canonical project entry point.\n- keep the glossary and automation links visible.\n- preserve the phase boundary into phase 1.\nstatus: completed\n""", encoding="utf-8")
+            (root / "phase_1.md").write_text("""PROJECT PHASE 1\npurpose: choose a next path\ngoal: suggest the next path\noutcome: ranked path\ncore_requirements:\n- define the first usable path candidates.\n- challenge each candidate with explicit criteria.\n- keep a review loop and feedback path.\nstatus: active\n""", encoding="utf-8")
 
             rc = sla.main(["refresh", "--root", str(root)])
 
@@ -126,12 +139,16 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "index.md").exists())
             self.assertTrue((root / "docs" / "glossary.md").exists())
             self.assertTrue((root / "docs" / "next-path.md").exists())
+            self.assertTrue((root / "docs" / "phase-requirements.md").exists())
+            self.assertTrue((root / "docs" / "phase-challenge.md").exists())
             self.assertTrue((root / "docs" / "modularity.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("2_plan.md", index)
             self.assertIn("learning-loop.md", index)
             self.assertIn("glossary.md", index)
             self.assertIn("next-path.md", index)
+            self.assertIn("phase-requirements.md", index)
+            self.assertIn("phase-challenge.md", index)
             self.assertIn("modularity.md", index)
 
     def test_status_reports_plans_and_docs(self):
@@ -172,6 +189,21 @@ class SelfLearnAutomationTests(unittest.TestCase):
 
             with self.assertRaises(RuntimeError):
                 sla.git_checkpoint(root)
+
+    def test_challenge_action_writes_phase_challenge(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "docs").mkdir(parents=True)
+            (root / "phase_0.md").write_text("""PROJECT PHASE 0\npurpose: entry point\ngoal: keep navigation clear\noutcome: docs index stays useful\ncore_requirements:\n- define the canonical project entry point.\n- keep the glossary and automation links visible.\n- preserve the phase boundary into phase 1.\nstatus: completed\n""", encoding="utf-8")
+            (root / "phase_1.md").write_text("""PROJECT PHASE 1\npurpose: choose a next path\ngoal: suggest the next path\noutcome: ranked path\ncore_requirements:\n- define the first usable path candidates.\n- challenge each candidate with explicit criteria.\n- keep a review loop and feedback path.\nstatus: active\n""", encoding="utf-8")
+
+            rc = sla.main(["challenge", "--root", str(root)])
+
+            self.assertEqual(rc, 0)
+            self.assertTrue((root / "docs" / "phase-challenge.md").exists())
+            challenge = (root / "docs" / "phase-challenge.md").read_text(encoding="utf-8")
+            self.assertIn("Challenge the requirements for phase_0.md", challenge)
+            self.assertIn("Challenge the requirements for phase_1.md", challenge)
 
 
 if __name__ == "__main__":

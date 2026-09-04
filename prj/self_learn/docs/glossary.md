@@ -35,6 +35,10 @@ It is meant to stay small, clear, and extensible.
 | priority | The ranking weight that orders candidate paths. | Higher priority wins unless criteria say otherwise. |
 | feedback | Observed results that change the next suggestion. | Feeds the learning loop. |
 | review | A check of whether a path worked. | Use after a path or plan. |
+| requirement | A defined condition that must be true. | Requirements should be testable and explicit. |
+| core requirement | The small set of requirements that defines a phase. | Every phase should have its own core requirements. |
+| challenge | A critical review that tries to break weak definitions. | Use it to improve requirements before relying on them. |
+| challenge prompt | A question set given to AI for critique. | Should ask for gaps, contradictions, and missing tests. |
 | modularize | Split a large file into smaller files or sections. | Use when a file grows beyond the line budget. |
 | line budget | The maximum allowed line count for a file. | Currently 700 lines. |
 | oversized file | A file that exceeds the line budget. | Should trigger modularization before checkpointing. |
