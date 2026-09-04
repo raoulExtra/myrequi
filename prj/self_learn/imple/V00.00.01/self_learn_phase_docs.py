@@ -11,6 +11,12 @@ def write_phase_requirements_doc(root: Path, phase_report: list[dict[str, object
         "",
         "Each phase defines its own core requirements.",
         "AI should challenge them before the phase is treated as stable.",
+        "",
+        "## requirement types",
+        "",
+        "- `manual`: human checked, exception only.",
+        "- `code`: code-first checked.",
+        "- `auto_ai`: automation takes care of the AI-supported work.",
     ]
     for item in phase_report:
         content.extend([
@@ -44,7 +50,7 @@ def write_phase_challenge_doc(root: Path, phase_report: list[dict[str, object]])
         "## challenge rules",
         "",
         "1. Check that purpose, goal, outcome, and status are all explicit.",
-        "2. Check that core requirements are small, testable, and non-overlapping.",
+        "2. Check that core requirements are small, testable, non-overlapping, and typed.",
         "3. Ask what would break the phase definition as the project grows.",
         "4. Capture fixes as doc changes, not hidden assumptions.",
     ]
@@ -61,7 +67,7 @@ def write_phase_challenge_doc(root: Path, phase_report: list[dict[str, object]])
             f"Status: {item['status']}",
             "Questions:",
             "- Are the core requirements specific enough to test?",
-            "- Are any requirements duplicated, vague, or missing?",
+            "- Are any requirements duplicated, vague, missing, or the wrong type?",
             "- What future growth would break this phase definition?",
             "- What should be added to make the phase future-proof?",
             "Current core requirements:",

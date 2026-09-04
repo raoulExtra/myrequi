@@ -59,6 +59,8 @@ PHASE_1_REVIEW_QUESTIONS = [
     "Can the result be reused by the next plan without rewriting history?",
 ]
 
+ALLOWED_CORE_REQUIREMENT_TYPES = ("manual", "code", "auto_ai")
+
 
 def _phase_code(phase_number: int) -> str:
     return f"PH{phase_number:03d}"
@@ -72,8 +74,13 @@ def _acceptance_code(phase_number: int, requirement_number: int, criterion_numbe
     return f"{_requirement_code(phase_number, requirement_number)}-AC{criterion_number:03d}"
 
 
+def _core_requirement_type(phase_number: int) -> str:
+    return "code" if phase_number == 0 else "auto_ai"
+
+
 def _render_core_requirements(phase_number: int, requirements: list[str]) -> list[str]:
-    return [f"- {_requirement_code(phase_number, index)}: {text}" for index, text in enumerate(requirements, start=1)]
+    requirement_type = _core_requirement_type(phase_number)
+    return [f"- [{requirement_type}] {_requirement_code(phase_number, index)}: {text}" for index, text in enumerate(requirements, start=1)]
 
 
 def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict[int, list[str]]) -> list[str]:
@@ -86,6 +93,22 @@ def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict
     if lines and lines[-1] == "":
         lines.pop()
     return lines
+
+
+def _render_core_requirements_summary(phase_number: int, title: str, requirements: list[str]) -> list[str]:
+    lines = [title, ""]
+    lines.extend(_render_core_requirements(phase_number, requirements))
+    return lines
+
+
+def _type_legend() -> list[str]:
+    return [
+        "## type legend",
+        "",
+        "- `manual`: human checked, exception only.",
+        "- `code`: mostly code checked.",
+        "- `auto_ai`: automation drives the AI-supported work.",
+    ]
 
 
 def write_named_phase_0_doc(root: Path) -> Path:
@@ -159,6 +182,8 @@ def write_phase_0_core_review_doc(root: Path) -> Path:
         "",
         "## current view",
         "These core requirements are specific enough to test and future-proof because they keep the phase clean, visible, and bounded.",
+        "",
+        *_type_legend(),
         "",
         "## core requirements",
     ]
@@ -238,6 +263,8 @@ def write_phase_1_core_review_doc(root: Path) -> Path:
         "",
         "## current view",
         "These core requirements are specific enough to test and future-proof because they produce paths, rank them, review them, and record feedback.",
+        "",
+        *_type_legend(),
         "",
         "## core requirements",
     ])

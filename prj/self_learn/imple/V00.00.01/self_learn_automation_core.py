@@ -291,19 +291,31 @@ def write_next_path_doc(root: Path = PROJECT_ROOT) -> Path:
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
+
+def _core_requirement_type(phase_number: int) -> str:
+    return "code" if phase_number == 0 else "auto_ai"
+
+
+def _render_typed_core_requirements(phase_number: int, requirements: list[str]) -> str:
+    requirement_type = _core_requirement_type(phase_number)
+    return "\n".join(f"- [{requirement_type}] PH{phase_number:03d}-RC{index:03d}: {text}" for index, text in enumerate(requirements, start=1))
+
+
 def write_phase_0(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_0.md"
-    content = """PROJECT PHASE 0
+    content = f"""PROJECT PHASE 0
 inherits_from: base
 purpose: entry point for the self_learn project documentation.
 goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 outcome: a simple navigation page for the self_learn project.
 
 core_requirements:
-- define the canonical project entry point.
-- keep the glossary and automation links visible.
-- preserve the phase boundary into phase 1.
-- stay small enough to review quickly.
+{_render_typed_core_requirements(0, [
+    "define the canonical project entry point.",
+    "keep the glossary and automation links visible.",
+    "preserve the phase boundary into phase 1.",
+    "stay small enough to review quickly.",
+])}
 
 tags:
 - thinking_workspace
@@ -346,17 +358,19 @@ status: completed
 
 def write_phase_1(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_1.md"
-    content = """PROJECT PHASE 1
+    content = f"""PROJECT PHASE 1
 inherits_from: phase_0
 purpose: AI chooses the first useful self-learn path from the glossary and current project state.
 goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
 outcome: a ranked first path that can be verified and turned into the next plan.
 
 core_requirements:
-- derive at least one candidate self-learn path from the current project state.
-- rank candidates with explicit criteria and a short rationale.
-- review the selected path against the phase goal, outcome, and modularity budget.
-- record feedback in docs and the meta trace so later phases can reuse it.
+{_render_typed_core_requirements(1, [
+    "derive at least one candidate self-learn path from the current project state.",
+    "rank candidates with explicit criteria and a short rationale.",
+    "review the selected path against the phase goal, outcome, and modularity budget.",
+    "record feedback in docs and the meta trace so later phases can reuse it.",
+])}
 
 navigation:
 - [Project index](docs/index.md)
@@ -506,6 +520,12 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     named_phase_2_doc = write_named_phase_2_doc(root, base_phase_report)
     phase_2_core_requi_doc = write_phase_2_core_requi_doc(root, base_phase_report)
     phase_2_core_review_doc = write_phase_2_core_review_doc(root, base_phase_report)
+    phase_report = phase_requirement_report(root)
+    modularity = modularity_budget(root)
+    snapshot = status(root)
+    meta_trace = meta.build_meta_trace(root, phase_report, modularity, snapshot)
+    meta_files = meta.write_meta_trace_files(root, meta_trace)
+    meta_state = meta.update_meta_trace_state(root, meta_trace)
     requirements_doc = write_phase_requirements_doc(root, phase_report)
     challenge_doc = write_phase_challenge_doc(root, phase_report)
     modularity_doc = write_modularity_doc(root, MAX_FILE_LINES)

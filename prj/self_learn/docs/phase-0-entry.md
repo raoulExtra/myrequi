@@ -4,10 +4,10 @@ This is the named, human-friendly companion to `phase_0.md`.
 It keeps the entry phase easy to browse like the named files in `prj/demo`.
 
 ## core requirements
-- PH000-RC001: define the canonical project entry point.
-- PH000-RC002: keep the glossary and automation links visible.
-- PH000-RC003: preserve the phase boundary into phase 1.
-- PH000-RC004: stay small enough to review quickly.
+- [code] PH000-RC001: define the canonical project entry point.
+- [code] PH000-RC002: keep the glossary and automation links visible.
+- [code] PH000-RC003: preserve the phase boundary into phase 1.
+- [code] PH000-RC004: stay small enough to review quickly.
 
 ## acceptance criteria
 ### PH000-RC001

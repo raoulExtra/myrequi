@@ -4,10 +4,10 @@ This is the named, human-friendly companion to `phase_2.md`.
 It uses phase 0 and phase 1 history to define the current automation mission.
 
 ## core requirements
-- PH002-RC001: derive the first concrete automation learning path from phase 0 and phase 1 evidence.
-- PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
-- PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
-- PH002-RC004: keep the result reusable for later phases without rewriting history.
+- [auto_ai] PH002-RC001: derive the first concrete automation learning path from phase 0 and phase 1 evidence.
+- [auto_ai] PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
+- [auto_ai] PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
+- [auto_ai] PH002-RC004: keep the result reusable for later phases without rewriting history.
 
 ## acceptance criteria
 ### PH002-RC001

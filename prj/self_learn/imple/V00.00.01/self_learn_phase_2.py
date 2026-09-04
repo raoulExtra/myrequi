@@ -42,7 +42,8 @@ def _acceptance_code(phase_number: int, requirement_number: int, criterion_numbe
 
 
 def _render_core_requirements(phase_number: int, requirements: list[str]) -> list[str]:
-    return [f"- {_requirement_code(phase_number, index)}: {text}" for index, text in enumerate(requirements, start=1)]
+    requirement_type = "code" if phase_number == 0 else "auto_ai"
+    return [f"- [{requirement_type}] {_requirement_code(phase_number, index)}: {text}" for index, text in enumerate(requirements, start=1)]
 
 
 def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict[int, list[str]]) -> list[str]:

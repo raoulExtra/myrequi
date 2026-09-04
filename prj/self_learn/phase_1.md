@@ -5,10 +5,10 @@ goal: have AI suggest the first self-learn path with explicit criteria and a rev
 outcome: a ranked first path that can be verified and turned into the next plan.
 
 core_requirements:
-- derive at least one candidate self-learn path from the current project state.
-- rank candidates with explicit criteria and a short rationale.
-- review the selected path against the phase goal, outcome, and modularity budget.
-- record feedback in docs and the meta trace so later phases can reuse it.
+- [auto_ai] PH001-RC001: derive at least one candidate self-learn path from the current project state.
+- [auto_ai] PH001-RC002: rank candidates with explicit criteria and a short rationale.
+- [auto_ai] PH001-RC003: review the selected path against the phase goal, outcome, and modularity budget.
+- [auto_ai] PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
 
 navigation:
 - [Project index](docs/index.md)

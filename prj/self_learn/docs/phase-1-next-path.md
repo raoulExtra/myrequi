@@ -4,10 +4,10 @@ This is the named, human-friendly companion to `phase_1.md`.
 It keeps the phase easy to browse like the named files in `prj/demo`.
 
 ## core requirements
-- PH001-RC001: derive at least one candidate self-learn path from the current project state.
-- PH001-RC002: rank candidates with explicit criteria and a short rationale.
-- PH001-RC003: review the selected path against the phase goal, outcome, and modularity budget.
-- PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
+- [auto_ai] PH001-RC001: derive at least one candidate self-learn path from the current project state.
+- [auto_ai] PH001-RC002: rank candidates with explicit criteria and a short rationale.
+- [auto_ai] PH001-RC003: review the selected path against the phase goal, outcome, and modularity budget.
+- [auto_ai] PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
 
 ## acceptance criteria
 ### PH001-RC001

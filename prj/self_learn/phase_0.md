@@ -5,10 +5,10 @@ goal: use the project to learn from interactions, improve tools, keep the filesp
 outcome: a simple navigation page for the self_learn project.
 
 core_requirements:
-- define the canonical project entry point.
-- keep the glossary and automation links visible.
-- preserve the phase boundary into phase 1.
-- stay small enough to review quickly.
+- [code] PH000-RC001: define the canonical project entry point.
+- [code] PH000-RC002: keep the glossary and automation links visible.
+- [code] PH000-RC003: preserve the phase boundary into phase 1.
+- [code] PH000-RC004: stay small enough to review quickly.
 
 tags:
 - thinking_workspace
