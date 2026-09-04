@@ -10,10 +10,13 @@ AI should challenge them before the phase is treated as stable.
 - `auto_ai`: automation takes care of the AI-supported work.
 
 ## phase_0.md
-- purpose: entry point for the self_learn project documentation.
+- purpose: self learning how to think sharp & structured
+- goals:
+  - use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 - goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 - outcome: a simple navigation page for the self_learn project.
 - status: completed
+- outcome_doc: docs/phase-0-outcome.md
 
 ### core requirements
 - [code] PH000-RC001: define the canonical project entry point.
@@ -22,22 +25,26 @@ AI should challenge them before the phase is treated as stable.
 - [code] PH000-RC004: stay small enough to review quickly.
 
 ## phase_1.md
-- purpose: AI chooses the first useful self-learn path from the glossary and current project state.
+- goals:
+  - have AI suggest the first self-learn path with explicit criteria and a review loop.
 - goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
 - outcome: a ranked first path that can be verified and turned into the next plan.
 - status: active
+- outcome_doc: docs/phase-1-outcome.md
 
 ### core requirements
 - [auto_ai] PH001-RC001: derive at least one candidate self-learn path from the current project state.
 - [auto_ai] PH001-RC002: rank candidates with explicit criteria and a short rationale.
-- [auto_ai] PH001-RC003: review the selected path against the phase goal, outcome, and modularity budget.
+- [auto_ai] PH001-RC003: review the selected path against the phase goals, outcome, and modularity budget.
 - [auto_ai] PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
 
 ## phase_2.md
-- purpose: use phase 0 and phase 1 history to define the current automation mission.
+- goals:
+  - have AI suggest the first concrete automation learning path from prior phase evidence.
 - goal: have AI suggest the first concrete automation learning path from prior phase evidence.
 - outcome: derive the next automation mission from phase 0 and phase 1 evidence.
 - status: active
+- outcome_doc: docs/phase-2-outcome.md
 
 ### core requirements
 - [auto_ai] PH002-RC001: derive the first concrete automation learning path from phase 0 and phase 1 evidence.

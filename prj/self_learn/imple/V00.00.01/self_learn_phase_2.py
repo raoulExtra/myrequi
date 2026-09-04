@@ -58,17 +58,45 @@ def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict
     return lines
 
 
+def _write_phase_outcome_doc(root: Path, phase_number: int, title: str, summary: str, details: list[str]) -> Path:
+    docs_dir = root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    path = docs_dir / f"phase-{phase_number}-outcome.md"
+    content = [
+        f"# {title}",
+        "",
+        "## summary",
+        summary,
+        "",
+        "## details",
+    ]
+    content.extend(details or ["- none recorded"])
+    path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    return path
+
+
 def smallest_useful_fileset_for_phase(phase_number: int) -> list[str]:
     files = ["docs/index.md", "docs/glossary.md", "docs/next-path.md", "docs/automation.md", "docs/phase-requirements.md", "docs/phase-challenge.md"]
     files.extend([f"phase_{n}.md" for n in range(phase_number + 1)])
+    files.extend([f"docs/phase-{n}-outcome.md" for n in range(phase_number + 1)])
     return files
+
+
+def _phase_goal_summary(item: dict[str, object] | None) -> str:
+    if not item:
+        return ""
+    goals = item.get("goals") or []
+    if isinstance(goals, list) and goals:
+        return "; ".join(str(goal) for goal in goals)
+    goal = item.get("goal")
+    return str(goal) if goal else ""
 
 
 def derive_phase_2_candidates(phase_report: list[dict[str, object]]) -> list[dict[str, object]]:
     phase_0 = next((item for item in phase_report if item["phase"] == "phase_0.md"), None)
     phase_1 = next((item for item in phase_report if item["phase"] == "phase_1.md"), None)
-    phase_0_goal = str(phase_0["goal"]) if phase_0 else ""
-    phase_1_goal = str(phase_1["goal"]) if phase_1 else ""
+    phase_0_goal = _phase_goal_summary(phase_0)
+    phase_1_goal = _phase_goal_summary(phase_1)
     return [
         {
             "key": "P2-C1",
@@ -131,9 +159,17 @@ def select_phase_2_mission(phase_report: list[dict[str, object]]) -> dict[str, o
 def _phase_history_lines(phase_report: list[dict[str, object]]) -> list[str]:
     lines = ["## phase history", ""]
     for item in phase_report:
+        goals = item.get("goals") or ([] if not item.get("goal") else [item.get("goal")])
+        lines.append(f"### {item['phase']}")
+        if item['phase'] == 'phase_0.md':
+            lines.append(f"- purpose: {item['purpose']}")
+        else:
+            previous_phase = f"phase_{int(item['phase'].split('_')[1].split('.')[0]) - 1}.md" if item['phase'].startswith('phase_') and item['phase'].split('_')[1].split('.')[0].isdigit() and int(item['phase'].split('_')[1].split('.')[0]) > 0 else 'phase_0.md'
+            lines.append(f"- inherited from {previous_phase}")
+            if goals:
+                lines.append("- goals:")
+                lines.extend(f"  - {goal}" for goal in goals)
         lines.extend([
-            f"### {item['phase']}",
-            f"- purpose: {item['purpose']}",
             f"- goal: {item['goal']}",
             f"- outcome: {item['outcome']}",
             f"- status: {item['status']}",
@@ -198,6 +234,7 @@ def write_named_phase_2_doc(root: Path, phase_report: list[dict[str, object]]) -
         "",
         "## navigation",
         "- [Phase 2](../phase_2.md)",
+        "- [Phase 2 outcome](./phase-2-outcome.md)",
         "- [Project index](./index.md)",
         "- [Phase 2 core requirements](./phase-2-core-requi.md)",
         "- [Phase 2 core review](./phase-2-core-review.md)",
@@ -240,7 +277,13 @@ def write_phase_2_core_requi_doc(root: Path, phase_report: list[dict[str, object
         "## phase history",
     ])
     for item in phase_report:
-        content.extend([f"- {item['phase']}: {item['purpose']}"])
+        goals = item.get('goals') or ([] if not item.get('goal') else [item.get('goal')])
+        goal_text = ' | '.join(str(goal) for goal in goals if goal)
+        if item['phase'] == 'phase_0.md':
+            content.extend([f"- {item['phase']}: {item['purpose']} | {item['goal']} | {item['outcome']}"])
+        else:
+            inherited_from = 'phase_1' if item['phase'] == 'phase_2.md' else 'phase_0'
+            content.extend([f"- {item['phase']}: inherited from {inherited_from} | {goal_text} | {item['outcome']}"])
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
@@ -258,6 +301,7 @@ def write_phase_2_core_review_doc(root: Path, phase_report: list[dict[str, objec
         "- Are candidate missions ranked with explicit criteria and costs?",
         "- Does the result stay small, visible, and reusable?",
         "- Can the next phase build on this without losing history?",
+        "- Does the phase carry the right number of goals without slimming the work too much?",
         "",
         "## current view",
         f"Phase 2 should turn history into a ranked mission so the automation can learn from its own previous phases. The selected outcome is: {packet['outcome']}.",
@@ -276,7 +320,9 @@ def write_phase_2_core_review_doc(root: Path, phase_report: list[dict[str, objec
         "## phase history",
     ])
     for item in phase_report:
-        content.extend([f"- {item['phase']}: {item['goal']}"])
+        goals = item.get('goals') or ([] if not item.get('goal') else [item.get('goal')])
+        goal_text = ' | '.join(str(goal) for goal in goals if goal)
+        content.extend([f"- {item['phase']}: {goal_text}"])
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
@@ -287,9 +333,11 @@ def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
     content = [
         "PROJECT PHASE 2",
         "inherits_from: phase_1",
-        "purpose: use phase 0 and phase 1 history to define the current automation mission.",
         "goal: have AI suggest the first concrete automation learning path from prior phase evidence.",
+        "goals:",
+        "- have AI suggest the first concrete automation learning path from prior phase evidence.",
         f"outcome: {packet['outcome']}.",
+        "outcome_doc: docs/phase-2-outcome.md",
         "",
         "core_requirements:",
     ]
@@ -315,6 +363,7 @@ def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
         "- [Phase 0](phase_0.md)",
         "- [Phase 1](phase_1.md)",
         "- [Named phase 2 file](docs/phase-2-mission.md)",
+        "- [Phase 2 outcome](docs/phase-2-outcome.md)",
         "- [Phase 2 core requi file](docs/phase-2-core-requi.md)",
         "- [Phase 2 core review](docs/phase-2-core-review.md)",
         "- [Phase requirements](docs/phase-requirements.md)",
@@ -326,12 +375,28 @@ def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
         "phase_history:",
     ])
     for item in phase_report:
-        content.extend([
-            f"- {item['phase']}: {item['purpose']} | {item['goal']} | {item['outcome']}",
-        ])
+        goals = item.get('goals') or ([] if not item.get('goal') else [item.get('goal')])
+        goal_text = ' | '.join(str(goal) for goal in goals if goal)
+        if item['phase'] == 'phase_0.md':
+            content.extend([f"- {item['phase']}: {item['purpose']} | {goal_text} | {item['outcome']}"])
+        else:
+            inherited_from = 'phase_1' if item['phase'] == 'phase_2.md' else 'phase_0'
+            content.extend([f"- {item['phase']}: inherited from {inherited_from} | {goal_text} | {item['outcome']}"])
     content.extend([
         "",
         "status: active",
     ])
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    _write_phase_outcome_doc(
+        root,
+        2,
+        "Phase 2 outcome",
+        packet['outcome'],
+        [
+            f"Selected: {packet['selected']['key']} ({packet['selected']['score']})",
+            f"Rationale: {packet['rationale']}",
+            f"Files: {', '.join(packet['selected'].get('files', []))}",
+            "Ranking is preserved in phase_2.md and the linked mission doc.",
+        ],
+    )
     return path

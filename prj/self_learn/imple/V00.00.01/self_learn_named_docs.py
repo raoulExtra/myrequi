@@ -29,7 +29,7 @@ PHASE_0_ACCEPTANCE_CRITERIA = {
 PHASE_1_CORE_REQUIREMENTS = [
     "derive at least one candidate self-learn path from the current project state.",
     "rank candidates with explicit criteria and a short rationale.",
-    "review the selected path against the phase goal, outcome, and modularity budget.",
+    "review the selected path against the phase goals, outcome, and modularity budget.",
     "record feedback in docs and the meta trace so later phases can reuse it.",
 ]
 
@@ -133,6 +133,7 @@ def write_named_phase_0_doc(root: Path) -> Path:
         "",
         "## navigation",
         "- [Phase 0](../phase_0.md)",
+        "- [Phase 0 outcome](./phase-0-outcome.md)",
         "- [Project index](./index.md)",
         "- [Phase 0 core requirements](./phase-0-core-requi.md)",
         "- [Phase 0 core review](./phase-0-core-review.md)",
@@ -214,6 +215,7 @@ def write_named_phase_1_doc(root: Path) -> Path:
         "",
         "## navigation",
         "- [Phase 1](../phase_1.md)",
+        "- [Phase 1 outcome](./phase-1-outcome.md)",
         "- [Project index](./index.md)",
         "- [Phase 1 core requirements](./phase-1-core-requi.md)",
         "- [Phase 1 core review](./phase-1-core-review.md)",

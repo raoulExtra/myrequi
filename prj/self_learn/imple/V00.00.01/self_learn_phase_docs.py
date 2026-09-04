@@ -22,10 +22,22 @@ def write_phase_requirements_doc(root: Path, phase_report: list[dict[str, object
         content.extend([
             "",
             f"## {item['phase']}",
-            f"- purpose: {item['purpose']}",
+        ])
+        if item['phase'] == 'phase_0.md':
+            content.extend([f"- purpose: {item['purpose']}"])
+        goals = item.get('goals') or ([] if not item.get('goal') else [item.get('goal')])
+        if goals:
+            content.append("- goals:")
+            content.extend(f"  - {goal}" for goal in goals)
+        content.extend([
             f"- goal: {item['goal']}",
             f"- outcome: {item['outcome']}",
             f"- status: {item['status']}",
+        ])
+        outcome_doc = item.get('outcome_doc')
+        if outcome_doc:
+            content.append(f"- outcome_doc: {outcome_doc}")
+        content.extend([
             "",
             "### core requirements",
         ])
@@ -49,26 +61,34 @@ def write_phase_challenge_doc(root: Path, phase_report: list[dict[str, object]])
         "",
         "## challenge rules",
         "",
-        "1. Check that purpose, goal, outcome, and status are all explicit.",
+        "1. Check that the phase has the right balance of purpose, goals, outcome, and status for its level.",
         "2. Check that core requirements are small, testable, non-overlapping, and typed.",
-        "3. Ask what would break the phase definition as the project grows.",
+        "3. Ask whether the phase has too few or too many goals for the work it must carry.",
         "4. Capture fixes as doc changes, not hidden assumptions.",
     ]
     for item in phase_report:
         requirements = item.get("core_requirements", []) or ["none"]
+        goals = item.get('goals') or ([] if not item.get('goal') else [item.get('goal')])
         content.extend([
             "",
             f"## {item['phase']}",
             "### AI challenge prompt",
             f"Challenge the requirements for {item['phase']}.",
-            f"Purpose: {item['purpose']}",
-            f"Goal: {item['goal']}",
+        ])
+        if item['phase'] == 'phase_0.md':
+            content.append(f"Purpose: {item['purpose']}")
+        else:
+            content.append("Purpose: inherited from phase_0 and shaped by phase goals.")
+            content.append("Goals:")
+            content.extend(f"- {goal}" for goal in goals)
+        content.extend([
             f"Outcome: {item['outcome']}",
             f"Status: {item['status']}",
             "Questions:",
             "- Are the core requirements specific enough to test?",
             "- Are any requirements duplicated, vague, missing, or the wrong type?",
             "- What future growth would break this phase definition?",
+            "- Does the phase need more or fewer goals?",
             "- What should be added to make the phase future-proof?",
             "Current core requirements:",
         ])

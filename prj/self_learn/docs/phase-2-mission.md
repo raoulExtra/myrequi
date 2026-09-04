@@ -33,17 +33,17 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 
 - P2-C1: derive the next automation mission from phase 0 and phase 1 evidence
   - evidence: phase 0 + phase 1 state
-  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
+  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md, docs/phase-0-outcome.md, docs/phase-1-outcome.md, docs/phase-2-outcome.md
   - why: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is have AI suggest the first self-learn path with explicit criteria and a review loop., so the mission should join evidence into one automated choice.
   - score: impact 5 + reuse 5 + testability 5 - cost 2 - risk 1 = 12
 - P2-C2: verify requirement coverage and acceptance criteria for the phase docs
   - evidence: phase 0 + phase 1 state
-  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
+  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md, docs/phase-0-outcome.md, docs/phase-1-outcome.md, docs/phase-2-outcome.md
   - why: phase 0 and phase 1 now use RC/AC codes, so the automation can prove coverage before selecting a deeper mission.
   - score: impact 4 + reuse 4 + testability 5 - cost 2 - risk 1 = 10
 - P2-C3: stabilize refresh, checkpoint, and plan movement for future phases
   - evidence: phase 0 + phase 1 state
-  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
+  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md, docs/phase-0-outcome.md, docs/phase-1-outcome.md, docs/phase-2-outcome.md
   - why: the project already regenerates many docs and commits phase state, so this path keeps the learning loop durable.
   - score: impact 3 + reuse 4 + testability 4 - cost 3 - risk 2 = 6
 
@@ -62,6 +62,7 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 
 ## navigation
 - [Phase 2](../phase_2.md)
+- [Phase 2 outcome](./phase-2-outcome.md)
 - [Project index](./index.md)
 - [Phase 2 core requirements](./phase-2-core-requi.md)
 - [Phase 2 core review](./phase-2-core-review.md)
@@ -72,19 +73,23 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 ## phase history
 
 ### phase_0.md
-- purpose: entry point for the self_learn project documentation.
+- purpose: self learning how to think sharp & structured
 - goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 - outcome: a simple navigation page for the self_learn project.
 - status: completed
 
 ### phase_1.md
-- purpose: AI chooses the first useful self-learn path from the glossary and current project state.
+- inherited from phase_0.md
+- goals:
+  - have AI suggest the first self-learn path with explicit criteria and a review loop.
 - goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
 - outcome: a ranked first path that can be verified and turned into the next plan.
 - status: active
 
 ### phase_2.md
-- purpose: use phase 0 and phase 1 history to define the current automation mission.
+- inherited from phase_1.md
+- goals:
+  - have AI suggest the first concrete automation learning path from prior phase evidence.
 - goal: have AI suggest the first concrete automation learning path from prior phase evidence.
 - outcome: derive the next automation mission from phase 0 and phase 1 evidence.
 - status: active

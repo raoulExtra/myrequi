@@ -1,8 +1,9 @@
 PROJECT PHASE 0
 inherits_from: base
-purpose: entry point for the self_learn project documentation.
+purpose: self learning how to think sharp & structured
 goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 outcome: a simple navigation page for the self_learn project.
+outcome_doc: docs/phase-0-outcome.md
 
 core_requirements:
 - [code] PH000-RC001: define the canonical project entry point.
@@ -21,6 +22,7 @@ navigation:
 - [Named phase 0 file](docs/phase-0-entry.md)
 - [Phase 0 core requi file](docs/phase-0-core-requi.md)
 - [Phase 0 core review](docs/phase-0-core-review.md)
+- [Phase 0 outcome](docs/phase-0-outcome.md)
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
@@ -32,16 +34,5 @@ navigation:
 - [Base project file organization standard](../base/002-requi-prj-file-organization-standard.md)
 - [Base phase 0](../base/phase_0.md)
 - [Phase 1](phase_1.md)
-
-glossary:
-- learning loop
-- self improvement
-- filespace
-- canonical
-- project
-- plan
-- path
-- suggestion
-- review
 
 status: completed

@@ -138,43 +138,58 @@ def sync(root: Path = PROJECT_ROOT) -> SyncReport:
     return SyncReport(created_dirs=created_dirs, moved_plans=moved_plans)
 
 def _parse_phase_doc(path: Path) -> dict[str, object]:
-    data: dict[str, object] = {"path": str(path)}
-    core_requirements: list[str] = []
-    in_core = False
+    data: dict[str, object] = {"path": str(path), "goals": [], "core_requirements": []}
+    section: str | None = None
     for raw_line in _read_text(path).splitlines():
         line = raw_line.rstrip()
-        if not line:
-            if in_core:
-                continue
+        stripped = line.strip()
+        if not stripped:
             continue
-        if line == "core_requirements:":
-            in_core = True
-            data["core_requirements"] = core_requirements
+        if stripped == "core_requirements:":
+            section = "core_requirements"
             continue
-        if in_core and line.startswith("- "):
-            core_requirements.append(line[2:].strip())
+        if stripped == "goals:":
+            section = "goals"
             continue
-        if in_core and not line.startswith("-") and ":" in line and not line.startswith(" "):
-            in_core = False
-        if not in_core and ": " in line and not line.startswith(" "):
-            key, value = line.split(": ", 1)
+        if section in {"core_requirements", "goals"} and stripped.startswith("- "):
+            key = "core_requirements" if section == "core_requirements" else "goals"
+            data[key].append(stripped[2:].strip())
+            continue
+        if section in {"core_requirements", "goals"} and not stripped.startswith("-") and ":" in stripped:
+            section = None
+        if ": " in stripped and not line.startswith(" "):
+            key, value = stripped.split(": ", 1)
             data[key.strip()] = value.strip()
-    data.setdefault("core_requirements", core_requirements)
+    data.setdefault("core_requirements", [])
+    data.setdefault("goals", [])
+    if not data.get("goal") and data.get("goals"):
+        data["goal"] = data["goals"][0]
     return data
+
 
 def phase_requirement_report(root: Path = PROJECT_ROOT) -> list[dict[str, object]]:
     report: list[dict[str, object]] = []
     for path in sorted(root.glob("phase_*.md")):
         data = _parse_phase_doc(path)
         requirements = list(data.get("core_requirements", []))
-        missing = [field for field in ("purpose", "goal", "outcome", "status") if field not in data]
+        phase_number = int(path.stem.split("_")[1]) if path.stem.startswith("phase_") and path.stem.split("_")[1].isdigit() else -1
+        has_goals = bool(data.get("goals"))
+        missing = []
+        if phase_number == 0:
+            missing.extend(field for field in ("purpose", "goal", "outcome", "status") if field not in data)
+        else:
+            if not has_goals:
+                missing.append("goals")
+            missing.extend(field for field in ("goal", "outcome", "status") if field not in data)
         if len(requirements) < PHASE_REQUIREMENTS_MIN:
             missing.append("core_requirements")
         report.append({
             "phase": path.name,
             "purpose": data.get("purpose"),
             "goal": data.get("goal"),
+            "goals": data.get("goals", []),
             "outcome": data.get("outcome"),
+            "outcome_doc": data.get("outcome_doc"),
             "status": data.get("status"),
             "core_requirements": requirements,
             "missing": missing,
@@ -301,13 +316,39 @@ def _render_typed_core_requirements(phase_number: int, requirements: list[str]) 
     return "\n".join(f"- [{requirement_type}] PH{phase_number:03d}-RC{index:03d}: {text}" for index, text in enumerate(requirements, start=1))
 
 
+def _phase_outcome_doc_path(root: Path, phase_number: int) -> Path:
+    return root / "docs" / f"phase-{phase_number}-outcome.md"
+
+
+def _render_goals_section(goals: list[str]) -> str:
+    return "\n".join(f"- {goal}" for goal in goals)
+
+
+def write_phase_outcome_doc(root: Path, phase_number: int, title: str, summary: str, details: list[str]) -> Path:
+    docs_dir = root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    path = _phase_outcome_doc_path(root, phase_number)
+    content = [
+        f"# {title}",
+        "",
+        "## summary",
+        summary,
+        "",
+        "## details",
+    ]
+    content.extend(details or ["- none recorded"])
+    path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    return path
+
+
 def write_phase_0(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_0.md"
     content = f"""PROJECT PHASE 0
 inherits_from: base
-purpose: entry point for the self_learn project documentation.
+purpose: self learning how to think sharp & structured
 goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 outcome: a simple navigation page for the self_learn project.
+outcome_doc: docs/phase-0-outcome.md
 
 core_requirements:
 {_render_typed_core_requirements(0, [
@@ -328,6 +369,7 @@ navigation:
 - [Named phase 0 file](docs/phase-0-entry.md)
 - [Phase 0 core requi file](docs/phase-0-core-requi.md)
 - [Phase 0 core review](docs/phase-0-core-review.md)
+- [Phase 0 outcome](docs/phase-0-outcome.md)
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
@@ -340,57 +382,75 @@ navigation:
 - [Base phase 0](../base/phase_0.md)
 - [Phase 1](phase_1.md)
 
-glossary:
-- learning loop
-- self improvement
-- filespace
-- canonical
-- project
-- plan
-- path
-- suggestion
-- review
-
 status: completed
 """
     path.write_text(content, encoding="utf-8")
+    write_phase_outcome_doc(
+        root,
+        0,
+        "Phase 0 outcome",
+        "a simple navigation page for the self_learn project",
+        [
+            "Purpose: self learning how to think sharp & structured.",
+            "Goal: use the project to learn from interactions and keep the filespace coherent.",
+            "Links: glossary, next path, phase 1, and supporting docs stay visible.",
+        ],
+    )
     return path
 
 def write_phase_1(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_1.md"
-    content = f"""PROJECT PHASE 1
-inherits_from: phase_0
-purpose: AI chooses the first useful self-learn path from the glossary and current project state.
-goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
-outcome: a ranked first path that can be verified and turned into the next plan.
-
-core_requirements:
-{_render_typed_core_requirements(1, [
-    "derive at least one candidate self-learn path from the current project state.",
-    "rank candidates with explicit criteria and a short rationale.",
-    "review the selected path against the phase goal, outcome, and modularity budget.",
-    "record feedback in docs and the meta trace so later phases can reuse it.",
-])}
-
-navigation:
-- [Project index](docs/index.md)
-- [Glossary](docs/glossary.md)
-- [Next path](docs/next-path.md)
-- [Named phase 1 file](docs/phase-1-next-path.md)
-- [Phase 1 core requi file](docs/phase-1-core-requi.md)
-- [Phase 1 core review](docs/phase-1-core-review.md)
-- [Phase requirements](docs/phase-requirements.md)
-- [Phase challenge](docs/phase-challenge.md)
-- [Modularity budget](docs/modularity.md)
-- [Phase 0](phase_0.md)
-- [Phase 2](phase_2.md)
-- [Automation notes](docs/automation.md)
-- [Meta optimization plan](plans/7_plan.md)
-
-status: active
-"""
-    path.write_text(content, encoding="utf-8")
+    content = [
+        "PROJECT PHASE 1",
+        "inherits_from: phase_0",
+        "goal: have AI suggest the first self-learn path with explicit criteria and a review loop.",
+        "goals:",
+        "- have AI suggest the first self-learn path with explicit criteria and a review loop.",
+        "outcome: a ranked first path that can be verified and turned into the next plan.",
+        "outcome_doc: docs/phase-1-outcome.md",
+        "",
+        "core_requirements:",
+    ]
+    content.extend(_render_typed_core_requirements(1, [
+        "derive at least one candidate self-learn path from the current project state.",
+        "rank candidates with explicit criteria and a short rationale.",
+        "review the selected path against the phase goals, outcome, and modularity budget.",
+        "record feedback in docs and the meta trace so later phases can reuse it.",
+    ]).splitlines())
+    content.extend([
+        "",
+        "navigation:",
+        "- [Project index](docs/index.md)",
+        "- [Glossary](docs/glossary.md)",
+        "- [Next path](docs/next-path.md)",
+        "- [Named phase 1 file](docs/phase-1-next-path.md)",
+        "- [Phase 1 core requi file](docs/phase-1-core-requi.md)",
+        "- [Phase 1 core review](docs/phase-1-core-review.md)",
+        "- [Phase 1 outcome](docs/phase-1-outcome.md)",
+        "- [Phase requirements](docs/phase-requirements.md)",
+        "- [Phase challenge](docs/phase-challenge.md)",
+        "- [Modularity budget](docs/modularity.md)",
+        "- [Phase 0](phase_0.md)",
+        "- [Phase 2](phase_2.md)",
+        "- [Automation notes](docs/automation.md)",
+        "- [Meta optimization plan](plans/7_plan.md)",
+        "",
+        "status: active",
+    ])
+    path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    write_phase_outcome_doc(
+        root,
+        1,
+        "Phase 1 outcome",
+        "a ranked first path that can be verified and turned into the next plan",
+        [
+            "Goal: have AI suggest the first self-learn path with explicit criteria and a review loop.",
+            "Outcome remains a ranked path, not a hidden assumption.",
+            "The linked outcome file holds the selected path and review context.",
+        ],
+    )
     return path
+
 
 
 def write_readme(root: Path = PROJECT_ROOT) -> Path:

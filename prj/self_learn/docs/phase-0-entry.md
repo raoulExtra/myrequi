@@ -26,6 +26,7 @@ It keeps the entry phase easy to browse like the named files in `prj/demo`.
 
 ## navigation
 - [Phase 0](../phase_0.md)
+- [Phase 0 outcome](./phase-0-outcome.md)
 - [Project index](./index.md)
 - [Phase 0 core requirements](./phase-0-core-requi.md)
 - [Phase 0 core review](./phase-0-core-review.md)
