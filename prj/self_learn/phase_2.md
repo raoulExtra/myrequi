@@ -37,9 +37,28 @@ navigation:
 - [Working rules](docs/working-rules.md)
 - [Automation notes](docs/automation.md)
 
-phase_history:
-- phase_0.md: self learning how to think sharp & structured | use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. | a simple navigation page for the self_learn project.
-- phase_1.md: inherited from phase_0 | have AI suggest the first self-learn path with explicit criteria and a review loop. | a ranked first path that can be verified and turned into the next plan.
-- phase_2.md: inherited from phase_1 | have AI suggest the first concrete automation learning path from prior phase evidence. | derive the next automation mission from phase 0 and phase 1 evidence.
+## phase history
+
+### phase_0.md
+- purpose: self learning how to think sharp & structured
+- goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
+- outcome: a simple navigation page for the self_learn project.
+- status: completed
+
+### phase_1.md
+- inherited from phase_0.md
+- goals:
+  - have AI suggest the first self-learn path with explicit criteria and a review loop.
+- goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
+- outcome: a ranked first path that can be verified and turned into the next plan.
+- status: active
+
+### phase_2.md
+- inherited from phase_1.md
+- goals:
+  - have AI suggest the first concrete automation learning path from prior phase evidence.
+- goal: have AI suggest the first concrete automation learning path from prior phase evidence.
+- outcome: derive the next automation mission from phase 0 and phase 1 evidence.
+- status: active
 
 status: active

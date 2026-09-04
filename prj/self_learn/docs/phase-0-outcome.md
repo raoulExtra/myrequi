@@ -1,7 +1,7 @@
 # Phase 0 outcome
 
 ## summary
-a simple navigation page for the self_learn project
+a simple navigation page for the self_learn project.
 
 ## details
 Purpose: self learning how to think sharp & structured.

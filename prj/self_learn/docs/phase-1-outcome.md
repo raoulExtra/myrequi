@@ -1,7 +1,7 @@
 # Phase 1 outcome
 
 ## summary
-a ranked first path that can be verified and turned into the next plan
+a ranked first path that can be verified and turned into the next plan.
 
 ## details
 Goal: have AI suggest the first self-learn path with explicit criteria and a review loop.

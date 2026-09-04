@@ -35,4 +35,15 @@ navigation:
 - [Base phase 0](../base/phase_0.md)
 - [Phase 1](phase_1.md)
 
+glossary:
+- learning loop
+- self improvement
+- filespace
+- canonical
+- project
+- plan
+- path
+- suggestion
+- review
+
 status: completed

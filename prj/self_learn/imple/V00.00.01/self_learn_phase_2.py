@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from self_learn_phase_output import write_phase_2 as write_phase_2_doc
+
 PHASE_2_CORE_REQUIREMENTS = [
     "derive the first concrete automation learning path from phase 0 and phase 1 evidence.",
     "rank the candidate paths with explicit criteria, costs, and risks.",
@@ -56,23 +58,6 @@ def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict
     if lines and lines[-1] == "":
         lines.pop()
     return lines
-
-
-def _write_phase_outcome_doc(root: Path, phase_number: int, title: str, summary: str, details: list[str]) -> Path:
-    docs_dir = root / "docs"
-    docs_dir.mkdir(parents=True, exist_ok=True)
-    path = docs_dir / f"phase-{phase_number}-outcome.md"
-    content = [
-        f"# {title}",
-        "",
-        "## summary",
-        summary,
-        "",
-        "## details",
-    ]
-    content.extend(details or ["- none recorded"])
-    path.write_text("\n".join(content) + "\n", encoding="utf-8")
-    return path
 
 
 def smallest_useful_fileset_for_phase(phase_number: int) -> list[str]:
@@ -328,75 +313,5 @@ def write_phase_2_core_review_doc(root: Path, phase_report: list[dict[str, objec
 
 
 def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
-    path = root / "phase_2.md"
     packet = select_phase_2_mission(phase_report)
-    content = [
-        "PROJECT PHASE 2",
-        "inherits_from: phase_1",
-        "goal: have AI suggest the first concrete automation learning path from prior phase evidence.",
-        "goals:",
-        "- have AI suggest the first concrete automation learning path from prior phase evidence.",
-        f"outcome: {packet['outcome']}.",
-        "outcome_doc: docs/phase-2-outcome.md",
-        "",
-        "core_requirements:",
-    ]
-    content.extend(_render_core_requirements(2, PHASE_2_CORE_REQUIREMENTS))
-    content.extend([
-        "",
-        "derived_learning_path:",
-        f"- summary: {packet['summary']}",
-        f"- selected: {packet['selected']['key']} ({packet['selected']['score']})",
-        f"- files: {', '.join(packet['selected'].get('files', []))}",
-        f"- rationale: {packet['rationale']}",
-        "",
-        "ranking:",
-    ])
-    for index, candidate in enumerate(packet["ranked_candidates"], start=1):
-        content.extend([
-            f"- {index}. {candidate['key']} ({candidate['score']}): {candidate['path']}",
-        ])
-    content.extend([
-        "",
-        "navigation:",
-        "- [Project index](docs/index.md)",
-        "- [Phase 0](phase_0.md)",
-        "- [Phase 1](phase_1.md)",
-        "- [Named phase 2 file](docs/phase-2-mission.md)",
-        "- [Phase 2 outcome](docs/phase-2-outcome.md)",
-        "- [Phase 2 core requi file](docs/phase-2-core-requi.md)",
-        "- [Phase 2 core review](docs/phase-2-core-review.md)",
-        "- [Phase requirements](docs/phase-requirements.md)",
-        "- [Phase challenge](docs/phase-challenge.md)",
-        "- [Modularity budget](docs/modularity.md)",
-        "- [Working rules](docs/working-rules.md)",
-        "- [Automation notes](docs/automation.md)",
-        "",
-        "phase_history:",
-    ])
-    for item in phase_report:
-        goals = item.get('goals') or ([] if not item.get('goal') else [item.get('goal')])
-        goal_text = ' | '.join(str(goal) for goal in goals if goal)
-        if item['phase'] == 'phase_0.md':
-            content.extend([f"- {item['phase']}: {item['purpose']} | {goal_text} | {item['outcome']}"])
-        else:
-            inherited_from = 'phase_1' if item['phase'] == 'phase_2.md' else 'phase_0'
-            content.extend([f"- {item['phase']}: inherited from {inherited_from} | {goal_text} | {item['outcome']}"])
-    content.extend([
-        "",
-        "status: active",
-    ])
-    path.write_text("\n".join(content) + "\n", encoding="utf-8")
-    _write_phase_outcome_doc(
-        root,
-        2,
-        "Phase 2 outcome",
-        packet['outcome'],
-        [
-            f"Selected: {packet['selected']['key']} ({packet['selected']['score']})",
-            f"Rationale: {packet['rationale']}",
-            f"Files: {', '.join(packet['selected'].get('files', []))}",
-            "Ranking is preserved in phase_2.md and the linked mission doc.",
-        ],
-    )
-    return path
+    return write_phase_2_doc(root, phase_report, packet)

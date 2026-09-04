@@ -1,7 +1,7 @@
 # Phase 2 outcome
 
 ## summary
-derive the next automation mission from phase 0 and phase 1 evidence
+derive the next automation mission from phase 0 and phase 1 evidence.
 
 ## details
 Selected: P2-C1 (12)
