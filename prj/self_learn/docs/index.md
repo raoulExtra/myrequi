@@ -15,13 +15,14 @@
 - [phase-requirements.md](./phase-requirements.md)
 
 ## active plans
-- [5_plan.md](../plans/5_plan.md)
+- [6_plan.md](../plans/6_plan.md)
 
 ## done plans
 - [1_plan.md](../plans/done/1_plan.md)
 - [2_plan.md](../plans/done/2_plan.md)
 - [3_plan.md](../plans/done/3_plan.md)
 - [4_plan.md](../plans/done/4_plan.md)
+- [5_plan.md](../plans/done/5_plan.md)
 
 ## canonical dirs
 - archive/

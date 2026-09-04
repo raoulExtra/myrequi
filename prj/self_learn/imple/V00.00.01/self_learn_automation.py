@@ -74,9 +74,11 @@ NEXT_PATH_ROWS = [
 ]
 
 MAX_FILE_LINES = 700
+PHASE_REQUIREMENTS_MIN = 3
 
 PHASE1_PLAN_KEY = "4_plan.md"
 PHASE_REQUIREMENTS_PLAN_KEY = "5_plan.md"
+PHASE_REVIEW_PLAN_KEY = "6_plan.md"
 PHASE1_PLAN_TITLE = "AI-first self-learn path"
 PHASE1_PLAN_BODY = "Use the glossary and project state to suggest the first self-learn path, then verify and record the result."
 
@@ -167,7 +169,7 @@ def phase_requirement_report(root: Path = PROJECT_ROOT) -> list[dict[str, object
         data = _parse_phase_doc(path)
         requirements = list(data.get("core_requirements", []))
         missing = [field for field in ("purpose", "goal", "outcome", "status") if field not in data]
-        if len(requirements) < 3:
+        if len(requirements) < PHASE_REQUIREMENTS_MIN:
             missing.append("core_requirements")
         report.append({
             "phase": path.name,
@@ -188,6 +190,20 @@ def enforce_phase_requirements(root: Path = PROJECT_ROOT) -> list[dict[str, obje
         summary = "; ".join(f"{item['phase']}: {', '.join(item['missing'])}" for item in issues)
         raise RuntimeError(f"Phase requirements must be defined and challenged before checkpointing: {summary}")
     return report
+
+
+def phase_manifest(root: Path = PROJECT_ROOT) -> dict[str, object]:
+    report = phase_requirement_report(root)
+    return {
+        "ready": all(not item["missing"] for item in report),
+        "phase_count": len(report),
+        "phases": report,
+        "line_budget": MAX_FILE_LINES,
+    }
+
+
+def phase_challenge_bundle(root: Path = PROJECT_ROOT) -> dict[str, object]:
+    return {"manifest": phase_manifest(root), "report": phase_requirement_report(root)}
 
 
 def _count_text_lines(path: Path) -> int:
@@ -455,7 +471,7 @@ navigation:
 - [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Automation notes](docs/automation.md)
-- [Next path plan](plans/5_plan.md)
+- [Next path review plan](plans/6_plan.md)
 
 status: active
 """
@@ -487,19 +503,19 @@ Project entry point.
 def write_next_phase_plan(root: Path = PROJECT_ROOT) -> Path:
     plans_dir = root / "plans"
     plans_dir.mkdir(parents=True, exist_ok=True)
-    path = plans_dir / PHASE_REQUIREMENTS_PLAN_KEY
-    content = f"""# Self-learn phase requirements plan
+    path = plans_dir / PHASE_REVIEW_PLAN_KEY
+    content = f"""# Self-learn phase review plan
 
 status: active
 
 ## objective
-Automate per-phase core requirements and AI challenge prompts so each phase stays explicit and future-proof.
+Wire phase review prompts into the automation so AI can challenge phase definitions and future-proof the process.
 
 ## steps
-1. Define a core requirement block for every phase.
-2. Generate phase requirement and challenge docs from the phase files.
-3. Challenge the phase definitions with AI before checkpointing.
-4. Keep the phase requirements small, testable, and reviewable.
+1. Generate a machine-readable phase manifest.
+2. Feed every phase through a challenge prompt.
+3. Capture AI review output as docs or notes.
+4. Keep the review path stable for future phases.
 """
     path.write_text(content, encoding="utf-8")
     return path
@@ -560,7 +576,7 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     challenge_doc = write_phase_challenge_doc(root)
     modularity_doc = write_modularity_doc(root)
     index_path = docs_index(root)
-    return {**report.as_dict(), "glossary": str(glossary_path), "next_path": str(next_path_doc), "phase_requirements": str(requirements_doc), "phase_challenge": str(challenge_doc), "modularity": str(modularity_doc), "docs_index": str(index_path), "modularity_budget": modularity_budget(root), "phase_requirements_report": phase_requirement_report(root)}
+    return {**report.as_dict(), "glossary": str(glossary_path), "next_path": str(next_path_doc), "phase_requirements": str(requirements_doc), "phase_challenge": str(challenge_doc), "modularity": str(modularity_doc), "docs_index": str(index_path), "modularity_budget": modularity_budget(root), "phase_requirements_report": phase_requirement_report(root), "phase_manifest": phase_manifest(root), "phase_challenge_bundle": phase_challenge_bundle(root)}
 
 
 def advance(root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -629,7 +645,7 @@ def checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Self-learn filesystem automation helper")
-    parser.add_argument("action", choices=["sync", "refresh", "advance", "checkpoint", "status", "budget", "challenge"])
+    parser.add_argument("action", choices=["sync", "refresh", "advance", "checkpoint", "status", "budget", "challenge", "review"])
     parser.add_argument("--root", default=str(PROJECT_ROOT), help="Project root directory")
     args = parser.parse_args(list(argv) if argv is not None else None)
     root = Path(args.root)
@@ -653,7 +669,10 @@ def main(argv: Iterable[str] | None = None) -> int:
         print({"limit": MAX_FILE_LINES, "modularity_budget": modularity_budget(root)})
         return 0
     if args.action == "challenge":
-        print({"phase_requirements_report": phase_requirement_report(root), "phase_challenge": str(write_phase_challenge_doc(root))})
+        print({"phase_manifest": phase_manifest(root), "phase_challenge_bundle": phase_challenge_bundle(root), "phase_challenge": str(write_phase_challenge_doc(root))})
+        return 0
+    if args.action == "review":
+        print({"phase_manifest": phase_manifest(root), "phase_challenge_bundle": phase_challenge_bundle(root), "phase_review": phase_challenge_bundle(root)})
         return 0
     return 1
 

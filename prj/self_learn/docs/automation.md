@@ -10,7 +10,8 @@ The self_learn project is meant to keep its own filesystem organized.
   - `checkpoint`: advance, then stage `prj/self_learn` plus `continuity.db`, and commit only when phase requirements and modularity budgets are clean
   - `status`: report the current filesystem shape, phase requirement coverage, and any over-budget files
   - `budget`: print the modularity budget report on demand
-  - `challenge`: regenerate the phase challenge prompt and print the current phase requirement report
+  - `challenge`: regenerate the phase challenge prompt and print the manifest plus phase challenge bundle
+  - `review`: print the manifest and review bundle for AI phase critique
 
 ## future-proofing
 - Keep the glossary small, canonical, and easy to extend.

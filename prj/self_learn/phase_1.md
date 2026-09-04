@@ -19,6 +19,6 @@ navigation:
 - [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Automation notes](docs/automation.md)
-- [Next path plan](plans/5_plan.md)
+- [Next path review plan](plans/6_plan.md)
 
 status: active
