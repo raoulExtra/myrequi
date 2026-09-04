@@ -1,7 +1,7 @@
 # Phase 2 core requirements
 
 ## core requirements
-- PH002-RC001: derive candidate automation learning paths from phase 0 and phase 1 evidence.
+- PH002-RC001: derive the first concrete automation learning path from phase 0 and phase 1 evidence.
 - PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
 - PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
 - PH002-RC004: keep the result reusable for later phases without rewriting history.
@@ -25,9 +25,9 @@
 
 ## use
 This file is the named, file-based summary of the phase 2 core requirements.
-It exists so the AI mission can be carried forward from phase 0 and phase 1 evidence.
+It exists so the current automation mission can be carried forward from phase 0 and phase 1 evidence.
 
 ## phase history
 - phase_0.md: entry point for the self_learn project documentation.
 - phase_1.md: AI chooses the first useful self-learn path from the glossary and current project state.
-- phase_2.md: use phase 0 and phase 1 history to define the next AI mission for automation.
+- phase_2.md: use phase 0 and phase 1 history to define the current automation mission.

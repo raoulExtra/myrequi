@@ -1,10 +1,10 @@
 # Phase 2: mission
 
 This is the named, human-friendly companion to `phase_2.md`.
-It uses phase 0 and phase 1 history to define the next AI mission.
+It uses phase 0 and phase 1 history to define the current automation mission.
 
 ## core requirements
-- PH002-RC001: derive candidate automation learning paths from phase 0 and phase 1 evidence.
+- PH002-RC001: derive the first concrete automation learning path from phase 0 and phase 1 evidence.
 - PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
 - PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
 - PH002-RC004: keep the result reusable for later phases without rewriting history.
@@ -50,7 +50,7 @@ It uses phase 0 and phase 1 history to define the next AI mission.
 - status: active
 
 ### phase_2.md
-- purpose: use phase 0 and phase 1 history to define the next AI mission for automation.
-- goal: have AI suggest a concrete automation learning path from prior phase evidence.
-- outcome: a ranked automation mission that can become the next durable plan.
-- status: planned
+- purpose: use phase 0 and phase 1 history to define the current automation mission.
+- goal: have AI suggest the first concrete automation learning path from prior phase evidence.
+- outcome: a ranked automation mission that becomes the current durable plan.
+- status: active

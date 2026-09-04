@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 PHASE_2_CORE_REQUIREMENTS = [
-    "derive candidate automation learning paths from phase 0 and phase 1 evidence.",
+    "derive the first concrete automation learning path from phase 0 and phase 1 evidence.",
     "rank the candidate paths with explicit criteria, costs, and risks.",
     "write the selected phase 2 mission into the filesystem and meta trace.",
     "keep the result reusable for later phases without rewriting history.",
@@ -81,7 +81,7 @@ def write_named_phase_2_doc(root: Path, phase_report: list[dict[str, object]]) -
         "# Phase 2: mission",
         "",
         "This is the named, human-friendly companion to `phase_2.md`.",
-        "It uses phase 0 and phase 1 history to define the next AI mission.",
+        "It uses phase 0 and phase 1 history to define the current automation mission.",
         "",
         "## core requirements",
     ]
@@ -126,7 +126,7 @@ def write_phase_2_core_requi_doc(root: Path, phase_report: list[dict[str, object
         "",
         "## use",
         "This file is the named, file-based summary of the phase 2 core requirements.",
-        "It exists so the AI mission can be carried forward from phase 0 and phase 1 evidence.",
+        "It exists so the current automation mission can be carried forward from phase 0 and phase 1 evidence.",
         "",
         "## phase history",
     ])
@@ -174,9 +174,9 @@ def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
     content = [
         "PROJECT PHASE 2",
         "inherits_from: phase_1",
-        "purpose: use phase 0 and phase 1 history to define the next AI mission for automation.",
-        "goal: have AI suggest a concrete automation learning path from prior phase evidence.",
-        "outcome: a ranked automation mission that can become the next durable plan.",
+        "purpose: use phase 0 and phase 1 history to define the current automation mission.",
+        "goal: have AI suggest the first concrete automation learning path from prior phase evidence.",
+        "outcome: a ranked automation mission that becomes the current durable plan.",
         "",
         "core_requirements:",
     ]
@@ -204,7 +204,7 @@ def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
         ])
     content.extend([
         "",
-        "status: planned",
+        "status: active",
     ])
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path

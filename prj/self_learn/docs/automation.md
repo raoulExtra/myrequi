@@ -21,7 +21,7 @@ The self_learn project is meant to keep its own filesystem organized.
   - `working-rules.md`: the current automation/testing rule of thumb
   - `phase-1-core-requi.md`: named phase 1 core requirements file
   - `phase-1-core-review.md`: named phase 1 review file
-  - `phase-2-mission.md`: named phase 2 mission file
+  - `phase-2-mission.md`: named phase 2 mission file (current automation mission)
   - `phase-2-core-requi.md`: named phase 2 core requirements file
   - `phase-2-core-review.md`: named phase 2 review file
 
