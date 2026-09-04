@@ -5,6 +5,7 @@ import shutil
 import sqlite3
 import subprocess
 import self_learn_meta as meta
+from self_learn_named_docs import write_named_phase_1_doc
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -447,6 +448,7 @@ navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Named phase 1 file](docs/phase-1-next-path.md)
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
@@ -458,6 +460,7 @@ status: active
 """
     path.write_text(content, encoding="utf-8")
     return path
+
 
 def write_readme(root: Path = PROJECT_ROOT) -> Path:
     path = root / "README.md"
@@ -560,6 +563,7 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     meta_state = meta.update_meta_trace_state(root, meta_trace)
     glossary_path = write_glossary(root)
     next_path_doc = write_next_path_doc(root)
+    named_phase_1_doc = write_named_phase_1_doc(root)
     requirements_doc = write_phase_requirements_doc(root)
     challenge_doc = write_phase_challenge_doc(root)
     modularity_doc = write_modularity_doc(root)
@@ -568,6 +572,7 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
         **report.as_dict(),
         "glossary": str(glossary_path),
         "next_path": str(next_path_doc),
+        "named_phase_1": str(named_phase_1_doc),
         "phase_requirements": str(requirements_doc),
         "phase_challenge": str(challenge_doc),
         "modularity": str(modularity_doc),

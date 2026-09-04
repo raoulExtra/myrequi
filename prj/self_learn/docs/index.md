@@ -13,6 +13,7 @@
 - [meta-optimization.md](./meta-optimization.md)
 - [modularity.md](./modularity.md)
 - [next-path.md](./next-path.md)
+- [phase-1-next-path.md](./phase-1-next-path.md)
 - [phase-challenge.md](./phase-challenge.md)
 - [phase-requirements.md](./phase-requirements.md)
 
