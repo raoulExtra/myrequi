@@ -4,6 +4,8 @@ The self_learn project is meant to keep its own filesystem organized.
 
 ## current automation
 - `imple/V00.00.01/self_learn_automation.py`
+  - wrapper entry point for the implementation split
+- `imple/V00.00.01/self_learn_automation_core.py`
   - `sync`: create canonical dirs and move completed plans into `plans/done/`
   - `refresh`: sync and regenerate `docs/index.md`, `docs/glossary.md`, `docs/next-path.md`, `docs/phase-requirements.md`, `docs/phase-challenge.md`, and `docs/modularity.md`
   - `advance`: rewrite phase docs, roll the project forward, create the next automation plan, and refresh the docs
