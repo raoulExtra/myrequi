@@ -5,7 +5,7 @@ import shutil
 import sqlite3
 import subprocess
 import self_learn_meta as meta
-from self_learn_named_docs import write_named_phase_1_doc
+from self_learn_named_docs import write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -439,16 +439,18 @@ goal: have AI suggest the first self-learn path with explicit criteria and a rev
 outcome: a ranked first path that can be verified and turned into the next plan.
 
 core_requirements:
-- define the first usable path candidates.
-- challenge each candidate with explicit criteria.
-- keep a review loop and feedback path.
-- preserve the modularity budget.
+- derive at least one candidate self-learn path from the current project state.
+- rank candidates with explicit criteria and a short rationale.
+- review the selected path against the phase goal, outcome, and modularity budget.
+- record feedback in docs and the meta trace so later phases can reuse it.
 
 navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
 - [Named phase 1 file](docs/phase-1-next-path.md)
+- [Phase 1 core requi file](docs/phase-1-core-requi.md)
+- [Phase 1 core review](docs/phase-1-core-review.md)
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
@@ -564,6 +566,8 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     glossary_path = write_glossary(root)
     next_path_doc = write_next_path_doc(root)
     named_phase_1_doc = write_named_phase_1_doc(root)
+    phase_1_core_requi_doc = write_phase_1_core_requi_doc(root)
+    phase_1_core_review_doc = write_phase_1_core_review_doc(root)
     requirements_doc = write_phase_requirements_doc(root)
     challenge_doc = write_phase_challenge_doc(root)
     modularity_doc = write_modularity_doc(root)
@@ -573,6 +577,8 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "glossary": str(glossary_path),
         "next_path": str(next_path_doc),
         "named_phase_1": str(named_phase_1_doc),
+        "phase_1_core_requi": str(phase_1_core_requi_doc),
+        "phase_1_core_review": str(phase_1_core_review_doc),
         "phase_requirements": str(requirements_doc),
         "phase_challenge": str(challenge_doc),
         "modularity": str(modularity_doc),

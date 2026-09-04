@@ -22,7 +22,7 @@ AI should challenge them before the phase is treated as stable.
 - status: active
 
 ### core requirements
-- define the first usable path candidates.
-- challenge each candidate with explicit criteria.
-- keep a review loop and feedback path.
-- preserve the modularity budget.
+- derive at least one candidate self-learn path from the current project state.
+- rank candidates with explicit criteria and a short rationale.
+- review the selected path against the phase goal, outcome, and modularity budget.
+- record feedback in docs and the meta trace so later phases can reuse it.
