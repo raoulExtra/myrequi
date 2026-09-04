@@ -9,12 +9,48 @@ PHASE_0_CORE_REQUIREMENTS = [
     "stay small enough to review quickly.",
 ]
 
+PHASE_0_ACCEPTANCE_CRITERIA = {
+    1: [
+        "the entry point is obvious from the project root.",
+        "the entry point stays named as the phase 0 home.",
+    ],
+    2: [
+        "the glossary link is present in the visible navigation.",
+        "the automation link is present in the visible navigation.",
+    ],
+    3: [
+        "the phase 1 link remains visible and explicit.",
+    ],
+    4: [
+        "the file stays short enough to scan quickly.",
+    ],
+}
+
 PHASE_1_CORE_REQUIREMENTS = [
     "derive at least one candidate self-learn path from the current project state.",
     "rank candidates with explicit criteria and a short rationale.",
     "review the selected path against the phase goal, outcome, and modularity budget.",
     "record feedback in docs and the meta trace so later phases can reuse it.",
 ]
+
+PHASE_1_ACCEPTANCE_CRITERIA = {
+    1: [
+        "a candidate path is written down from the current project state.",
+        "the candidate path is derived from files, not from memory alone.",
+    ],
+    2: [
+        "the ranking criteria are explicit and visible.",
+        "the rationale explains why the chosen path wins.",
+    ],
+    3: [
+        "the review checks the goal, outcome, and modularity budget.",
+        "the review can say what should change if the path fails.",
+    ],
+    4: [
+        "feedback is written back into docs or the meta trace.",
+        "later phases can reuse the feedback without re-deriving it.",
+    ],
+}
 
 PHASE_1_REVIEW_QUESTIONS = [
     "Does the phase produce candidate paths from current state, not from wishful thinking?",
@@ -32,8 +68,24 @@ def _requirement_code(phase_number: int, requirement_number: int) -> str:
     return f"{_phase_code(phase_number)}-RC{requirement_number:03d}"
 
 
+def _acceptance_code(phase_number: int, requirement_number: int, criterion_number: int) -> str:
+    return f"{_requirement_code(phase_number, requirement_number)}-AC{criterion_number:03d}"
+
+
 def _render_core_requirements(phase_number: int, requirements: list[str]) -> list[str]:
     return [f"- {_requirement_code(phase_number, index)}: {text}" for index, text in enumerate(requirements, start=1)]
+
+
+def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict[int, list[str]]) -> list[str]:
+    lines: list[str] = []
+    for requirement_number in sorted(criteria_by_requirement):
+        lines.append(f"### {_requirement_code(phase_number, requirement_number)}")
+        for criterion_number, text in enumerate(criteria_by_requirement[requirement_number], start=1):
+            lines.append(f"- {_acceptance_code(phase_number, requirement_number, criterion_number)}: {text}")
+        lines.append("")
+    if lines and lines[-1] == "":
+        lines.pop()
+    return lines
 
 
 def write_named_phase_0_doc(root: Path) -> Path:
@@ -49,6 +101,11 @@ def write_named_phase_0_doc(root: Path) -> Path:
         "## core requirements",
     ]
     content.extend(_render_core_requirements(0, PHASE_0_CORE_REQUIREMENTS))
+    content.extend([
+        "",
+        "## acceptance criteria",
+    ])
+    content.extend(_render_acceptance_criteria(0, PHASE_0_ACCEPTANCE_CRITERIA))
     content.extend([
         "",
         "## navigation",
@@ -72,6 +129,11 @@ def write_phase_0_core_requi_doc(root: Path) -> Path:
         "## core requirements",
     ]
     content.extend(_render_core_requirements(0, PHASE_0_CORE_REQUIREMENTS))
+    content.extend([
+        "",
+        "## acceptance criteria",
+    ])
+    content.extend(_render_acceptance_criteria(0, PHASE_0_ACCEPTANCE_CRITERIA))
     content.extend([
         "",
         "## use",
@@ -120,6 +182,11 @@ def write_named_phase_1_doc(root: Path) -> Path:
     content.extend(_render_core_requirements(1, PHASE_1_CORE_REQUIREMENTS))
     content.extend([
         "",
+        "## acceptance criteria",
+    ])
+    content.extend(_render_acceptance_criteria(1, PHASE_1_ACCEPTANCE_CRITERIA))
+    content.extend([
+        "",
         "## navigation",
         "- [Phase 1](../phase_1.md)",
         "- [Project index](./index.md)",
@@ -142,6 +209,11 @@ def write_phase_1_core_requi_doc(root: Path) -> Path:
         "## core requirements",
     ]
     content.extend(_render_core_requirements(1, PHASE_1_CORE_REQUIREMENTS))
+    content.extend([
+        "",
+        "## acceptance criteria",
+    ])
+    content.extend(_render_acceptance_criteria(1, PHASE_1_ACCEPTANCE_CRITERIA))
     content.extend([
         "",
         "## use",

@@ -13,7 +13,6 @@ sys.path.insert(0, str(ROOT))
 
 import self_learn_automation as sla
 
-
 class SelfLearnAutomationTests(unittest.TestCase):
     def test_sync_creates_dirs_and_moves_completed_plan(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -81,7 +80,6 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("phase-1-core-requi.md", index)
             self.assertIn("phase-1-core-review.md", index)
             self.assertIn("modularity.md", index)
-            self.assertIn("working-rules.md", index)
             self.assertIn("working-rules.md", index)
             self.assertIn("meta-actions.md", index)
             self.assertIn("meta-optimization.md", index)
@@ -210,7 +208,9 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "phase-1-core-requi.md").exists())
             self.assertTrue((root / "docs" / "phase-1-core-review.md").exists())
             self.assertIn("PH000-RC001", (root / "docs" / "phase-0-core-requi.md").read_text(encoding="utf-8"))
+            self.assertIn("PH000-RC001-AC001", (root / "docs" / "phase-0-core-requi.md").read_text(encoding="utf-8"))
             self.assertIn("PH001-RC001", (root / "docs" / "phase-1-core-requi.md").read_text(encoding="utf-8"))
+            self.assertIn("PH001-RC001-AC001", (root / "docs" / "phase-1-core-requi.md").read_text(encoding="utf-8"))
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("2_plan.md", index)
             self.assertIn("learning-loop.md", index)
@@ -222,6 +222,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("phase-1-core-requi.md", index)
             self.assertIn("phase-1-core-review.md", index)
             self.assertIn("modularity.md", index)
+            self.assertIn("working-rules.md", index)
 
     def test_status_reports_plans_and_docs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -330,7 +331,6 @@ status: active
             rc = sla.main(["review", "--root", str(root)])
 
             self.assertEqual(rc, 0)
-
 
 if __name__ == "__main__":
     unittest.main()
