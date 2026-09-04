@@ -20,8 +20,8 @@ navigation:
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
-- [Working rules](docs/working-rules.md)
 - [Phase 0](phase_0.md)
+- [Phase 2](phase_2.md)
 - [Automation notes](docs/automation.md)
 - [Meta optimization plan](plans/7_plan.md)
 

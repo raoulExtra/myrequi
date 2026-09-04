@@ -1,0 +1,56 @@
+# Phase 2: mission
+
+This is the named, human-friendly companion to `phase_2.md`.
+It uses phase 0 and phase 1 history to define the next AI mission.
+
+## core requirements
+- PH002-RC001: derive candidate automation learning paths from phase 0 and phase 1 evidence.
+- PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
+- PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
+- PH002-RC004: keep the result reusable for later phases without rewriting history.
+
+## acceptance criteria
+### PH002-RC001
+- PH002-RC001-AC001: the phase 0 and phase 1 history is summarized before choosing a path.
+- PH002-RC001-AC002: the candidate paths come from current files and state, not from memory alone.
+
+### PH002-RC002
+- PH002-RC002-AC001: the ranking criteria are explicit, visible, and repeatable.
+- PH002-RC002-AC002: the chosen path explains why it wins over the alternatives.
+
+### PH002-RC003
+- PH002-RC003-AC001: the selected mission is written into phase 2 docs and the meta trace.
+- PH002-RC003-AC002: the mission can be revisited without changing the historical record.
+
+### PH002-RC004
+- PH002-RC004-AC001: the phase preserves a feedback loop for later learning phases.
+- PH002-RC004-AC002: the docs remain small enough to review and regenerate quickly.
+
+## navigation
+- [Phase 2](../phase_2.md)
+- [Project index](./index.md)
+- [Phase 2 core requirements](./phase-2-core-requi.md)
+- [Phase 2 core review](./phase-2-core-review.md)
+- [Phase 1](../phase_1.md)
+- [Phase requirements](./phase-requirements.md)
+- [Phase challenge](./phase-challenge.md)
+
+## phase history
+
+### phase_0.md
+- purpose: entry point for the self_learn project documentation.
+- goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
+- outcome: a simple navigation page for the self_learn project.
+- status: completed
+
+### phase_1.md
+- purpose: AI chooses the first useful self-learn path from the glossary and current project state.
+- goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
+- outcome: a ranked first path that can be verified and turned into the next plan.
+- status: active
+
+### phase_2.md
+- purpose: use phase 0 and phase 1 history to define the next AI mission for automation.
+- goal: have AI suggest a concrete automation learning path from prior phase evidence.
+- outcome: a ranked automation mission that can become the next durable plan.
+- status: planned

@@ -3,7 +3,7 @@
 Meta optimization is ready.
 
 - ready: True
-- phase count: 2
+- phase count: 3
 - active plan count: 1
 - done plan count: 6
 - modularity issue count: 0
@@ -47,7 +47,7 @@ Meta optimization is ready.
   "done_plan_count": 6,
   "missing_phases": [],
   "modularity_issue_count": 0,
-  "phase_count": 2,
+  "phase_count": 3,
   "phase_gap_count": 0,
   "ready": true,
   "recommendations": [],

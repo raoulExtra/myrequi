@@ -26,3 +26,15 @@ AI should challenge them before the phase is treated as stable.
 - rank candidates with explicit criteria and a short rationale.
 - review the selected path against the phase goal, outcome, and modularity budget.
 - record feedback in docs and the meta trace so later phases can reuse it.
+
+## phase_2.md
+- purpose: use phase 0 and phase 1 history to define the next AI mission for automation.
+- goal: have AI suggest a concrete automation learning path from prior phase evidence.
+- outcome: a ranked automation mission that can become the next durable plan.
+- status: planned
+
+### core requirements
+- PH002-RC001: derive candidate automation learning paths from phase 0 and phase 1 evidence.
+- PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
+- PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
+- PH002-RC004: keep the result reusable for later phases without rewriting history.

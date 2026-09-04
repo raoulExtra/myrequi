@@ -6,6 +6,7 @@ import sqlite3
 import subprocess
 import self_learn_meta as meta
 from self_learn_named_docs import write_named_phase_0_doc, write_phase_0_core_requi_doc, write_phase_0_core_review_doc, write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
+from self_learn_phase_2 import write_named_phase_2_doc, write_phase_2_core_requi_doc, write_phase_2_core_review_doc, write_phase_2
 from self_learn_phase_docs import write_phase_requirements_doc, write_phase_challenge_doc, write_modularity_doc
 from self_learn_working_rules import write_working_rules_doc
 from dataclasses import dataclass
@@ -368,6 +369,7 @@ navigation:
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
+- [Phase 2](phase_2.md)
 - [Automation notes](docs/automation.md)
 - [Meta optimization plan](plans/7_plan.md)
 
@@ -398,6 +400,7 @@ Project entry point.
 - [Working rules](docs/working-rules.md)
 - [Phase 0](phase_0.md)
 - [Phase 1](phase_1.md)
+- [Phase 2](phase_2.md)
 - [Filesystem autonomy](docs/filesystem-autonomy.md)
 - [Automation](docs/automation.md)
 """
@@ -477,6 +480,8 @@ def status(root: Path = PROJECT_ROOT) -> dict[str, object]:
 
 def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     report = sync(root)
+    base_phase_report = phase_requirement_report(root)
+    phase_2_doc = write_phase_2(root, base_phase_report)
     phase_report = phase_requirement_report(root)
     modularity = modularity_budget(root)
     snapshot = status(root)
@@ -485,12 +490,19 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     meta_state = meta.update_meta_trace_state(root, meta_trace)
     glossary_path = write_glossary(root)
     next_path_doc = write_next_path_doc(root)
+    phase_0_doc = write_phase_0(root)
+    phase_1_doc = write_phase_1(root)
+    phase_2_doc = write_phase_2(root, base_phase_report)
+    readme = write_readme(root)
     named_phase_0_doc = write_named_phase_0_doc(root)
     phase_0_core_requi_doc = write_phase_0_core_requi_doc(root)
     phase_0_core_review_doc = write_phase_0_core_review_doc(root)
     named_phase_1_doc = write_named_phase_1_doc(root)
     phase_1_core_requi_doc = write_phase_1_core_requi_doc(root)
     phase_1_core_review_doc = write_phase_1_core_review_doc(root)
+    named_phase_2_doc = write_named_phase_2_doc(root, base_phase_report)
+    phase_2_core_requi_doc = write_phase_2_core_requi_doc(root, base_phase_report)
+    phase_2_core_review_doc = write_phase_2_core_review_doc(root, base_phase_report)
     requirements_doc = write_phase_requirements_doc(root, phase_report)
     challenge_doc = write_phase_challenge_doc(root, phase_report)
     modularity_doc = write_modularity_doc(root, MAX_FILE_LINES)
@@ -503,9 +515,16 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "named_phase_0": str(named_phase_0_doc),
         "phase_0_core_requi": str(phase_0_core_requi_doc),
         "phase_0_core_review": str(phase_0_core_review_doc),
+        "phase_0": str(phase_0_doc),
+        "phase_1": str(phase_1_doc),
+        "phase_2": str(phase_2_doc),
+        "readme": str(readme),
         "named_phase_1": str(named_phase_1_doc),
         "phase_1_core_requi": str(phase_1_core_requi_doc),
         "phase_1_core_review": str(phase_1_core_review_doc),
+        "named_phase_2": str(named_phase_2_doc),
+        "phase_2_core_requi": str(phase_2_core_requi_doc),
+        "phase_2_core_review": str(phase_2_core_review_doc),
         "phase_requirements": str(requirements_doc),
         "phase_challenge": str(challenge_doc),
         "modularity": str(modularity_doc),

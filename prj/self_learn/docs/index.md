@@ -3,6 +3,7 @@
 ## phases
 - [phase_0.md](../phase_0.md)
 - [phase_1.md](../phase_1.md)
+- [phase_2.md](../phase_2.md)
 
 ## docs
 - [automation.md](./automation.md)
@@ -19,6 +20,9 @@
 - [phase-1-core-requi.md](./phase-1-core-requi.md)
 - [phase-1-core-review.md](./phase-1-core-review.md)
 - [phase-1-next-path.md](./phase-1-next-path.md)
+- [phase-2-core-requi.md](./phase-2-core-requi.md)
+- [phase-2-core-review.md](./phase-2-core-review.md)
+- [phase-2-mission.md](./phase-2-mission.md)
 - [phase-challenge.md](./phase-challenge.md)
 - [phase-requirements.md](./phase-requirements.md)
 - [working-rules.md](./working-rules.md)

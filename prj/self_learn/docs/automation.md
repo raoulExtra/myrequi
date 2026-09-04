@@ -7,7 +7,7 @@ The self_learn project is meant to keep its own filesystem organized.
   - wrapper entry point for the implementation split
 - `imple/V00.00.01/self_learn_automation_core.py`
   - `sync`: create canonical dirs and move completed plans into `plans/done/`
-  - `refresh`: sync, regenerate the docs, write `docs/meta-trace.json`, `docs/meta-optimization.md`, `docs/meta-actions.json`, `docs/meta-actions.md`, `docs/working-rules.md`, `docs/phase-0-entry.md`, `docs/phase-0-core-requi.md`, `docs/phase-0-core-review.md`, `docs/phase-1-next-path.md`, `docs/phase-1-core-requi.md`, `docs/phase-1-core-review.md`, and update `continuity.db`
+  - `refresh`: sync, regenerate the docs, write `docs/meta-trace.json`, `docs/meta-optimization.md`, `docs/meta-actions.json`, `docs/meta-actions.md`, `docs/working-rules.md`, `docs/phase-0-entry.md`, `docs/phase-0-core-requi.md`, `docs/phase-0-core-review.md`, `docs/phase-1-next-path.md`, `docs/phase-1-core-requi.md`, `docs/phase-1-core-review.md`, `docs/phase-2-mission.md`, `docs/phase-2-core-requi.md`, `docs/phase-2-core-review.md`, and update `continuity.db`
   - `advance`: rewrite phase docs, roll the project forward, create the next automation plan, and refresh the docs
   - `checkpoint`: advance, then stage `prj/self_learn` plus `continuity.db`, and commit only when phase requirements and modularity budgets are clean
   - `status`: report the current filesystem shape, phase requirement coverage, meta trace, and any over-budget files
@@ -21,6 +21,9 @@ The self_learn project is meant to keep its own filesystem organized.
   - `working-rules.md`: the current automation/testing rule of thumb
   - `phase-1-core-requi.md`: named phase 1 core requirements file
   - `phase-1-core-review.md`: named phase 1 review file
+  - `phase-2-mission.md`: named phase 2 mission file
+  - `phase-2-core-requi.md`: named phase 2 core requirements file
+  - `phase-2-core-review.md`: named phase 2 review file
 
 ## future-proofing
 - Keep the glossary small, canonical, and easy to extend.
