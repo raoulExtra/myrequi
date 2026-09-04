@@ -7,13 +7,15 @@ The self_learn project is meant to keep its own filesystem organized.
   - wrapper entry point for the implementation split
 - `imple/V00.00.01/self_learn_automation_core.py`
   - `sync`: create canonical dirs and move completed plans into `plans/done/`
-  - `refresh`: sync and regenerate `docs/index.md`, `docs/glossary.md`, `docs/next-path.md`, `docs/phase-requirements.md`, `docs/phase-challenge.md`, and `docs/modularity.md`
+  - `refresh`: sync, regenerate the docs, write `docs/meta-trace.json`, `docs/meta-optimization.md`, and update `continuity.db`
   - `advance`: rewrite phase docs, roll the project forward, create the next automation plan, and refresh the docs
   - `checkpoint`: advance, then stage `prj/self_learn` plus `continuity.db`, and commit only when phase requirements and modularity budgets are clean
-  - `status`: report the current filesystem shape, phase requirement coverage, and any over-budget files
+  - `status`: report the current filesystem shape, phase requirement coverage, meta trace, and any over-budget files
   - `budget`: print the modularity budget report on demand
   - `challenge`: regenerate the phase challenge prompt and print the manifest plus phase challenge bundle
   - `review`: print the manifest and review bundle for AI phase critique
+  - `meta-trace.json`: machine-readable optimization trace for self-learning itself
+  - `meta-optimization.md`: readable summary of the trace and recommendations
 
 ## future-proofing
 - Keep the glossary small, canonical, and easy to extend.

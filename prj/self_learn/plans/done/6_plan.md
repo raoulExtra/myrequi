@@ -1,6 +1,6 @@
 # Self-learn phase review plan
 
-status: active
+status: completed
 
 ## objective
 Wire phase review prompts into the automation so AI can challenge phase definitions and future-proof the process.

@@ -9,13 +9,14 @@
 - [filesystem-autonomy.md](./filesystem-autonomy.md)
 - [glossary.md](./glossary.md)
 - [learning-loop.md](./learning-loop.md)
+- [meta-optimization.md](./meta-optimization.md)
 - [modularity.md](./modularity.md)
 - [next-path.md](./next-path.md)
 - [phase-challenge.md](./phase-challenge.md)
 - [phase-requirements.md](./phase-requirements.md)
 
 ## active plans
-- [6_plan.md](../plans/6_plan.md)
+- [7_plan.md](../plans/7_plan.md)
 
 ## done plans
 - [1_plan.md](../plans/done/1_plan.md)
@@ -23,6 +24,7 @@
 - [3_plan.md](../plans/done/3_plan.md)
 - [4_plan.md](../plans/done/4_plan.md)
 - [5_plan.md](../plans/done/5_plan.md)
+- [6_plan.md](../plans/done/6_plan.md)
 
 ## canonical dirs
 - archive/

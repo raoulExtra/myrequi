@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sqlite3
 import subprocess
 import tempfile
@@ -49,6 +50,8 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "phase-requirements.md").exists())
             self.assertTrue((root / "docs" / "phase-challenge.md").exists())
             self.assertTrue((root / "docs" / "modularity.md").exists())
+            self.assertTrue((root / "docs" / "meta-trace.json").exists())
+            self.assertTrue((root / "docs" / "meta-optimization.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("learning-loop.md", index)
             self.assertIn("glossary.md", index)
@@ -56,6 +59,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("phase-requirements.md", index)
             self.assertIn("phase-challenge.md", index)
             self.assertIn("modularity.md", index)
+            self.assertIn("meta-optimization.md", index)
             self.assertIn("2_plan.md", index)
             self.assertIn("1_plan.md", index)
             self.assertIn("docs_index", report)
@@ -71,6 +75,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             (project / "plans" / "done").mkdir(parents=True)
             (project / "docs").mkdir(parents=True)
             (project / "plans" / "3_plan.md").write_text("status: active\n", encoding="utf-8")
+            (project / "plans" / "6_plan.md").write_text("status: active\n", encoding="utf-8")
             (project / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
             db = sqlite3.connect(repo / "continuity.db")
             db.execute("create table metacognitive_state(state_key text primary key, value text, version integer, updated_at text default current_timestamp)")
@@ -92,8 +97,11 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((project / "docs" / "phase-requirements.md").exists())
             self.assertTrue((project / "docs" / "phase-challenge.md").exists())
             self.assertTrue((project / "docs" / "modularity.md").exists())
+            self.assertTrue((project / "docs" / "meta-trace.json").exists())
+            self.assertTrue((project / "docs" / "meta-optimization.md").exists())
             self.assertTrue((project / "plans" / "done" / "3_plan.md").exists())
-            self.assertTrue((project / "plans" / "6_plan.md").exists())
+            self.assertTrue((project / "plans" / "done" / "6_plan.md").exists())
+            self.assertTrue((project / "plans" / "7_plan.md").exists())
             self.assertTrue((project / "docs" / "index.md").exists())
 
     def test_main_checkpoint_creates_git_commit(self):
@@ -103,6 +111,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             (project / "plans" / "done").mkdir(parents=True)
             (project / "docs").mkdir(parents=True)
             (project / "plans" / "3_plan.md").write_text("status: active\n", encoding="utf-8")
+            (project / "plans" / "6_plan.md").write_text("status: active\n", encoding="utf-8")
             (project / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
             db = sqlite3.connect(repo / "continuity.db")
             db.execute("create table metacognitive_state(state_key text primary key, value text, version integer, updated_at text default current_timestamp)")
@@ -124,7 +133,10 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((project / "docs" / "phase-requirements.md").exists())
             self.assertTrue((project / "docs" / "phase-challenge.md").exists())
             self.assertTrue((project / "docs" / "modularity.md").exists())
-            self.assertTrue((project / "plans" / "6_plan.md").exists())
+            self.assertTrue((project / "docs" / "meta-trace.json").exists())
+            self.assertTrue((project / "docs" / "meta-optimization.md").exists())
+            self.assertTrue((project / "plans" / "done" / "6_plan.md").exists())
+            self.assertTrue((project / "plans" / "7_plan.md").exists())
 
     def test_main_refresh_creates_index(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -145,6 +157,8 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "phase-requirements.md").exists())
             self.assertTrue((root / "docs" / "phase-challenge.md").exists())
             self.assertTrue((root / "docs" / "modularity.md").exists())
+            self.assertTrue((root / "docs" / "meta-trace.json").exists())
+            self.assertTrue((root / "docs" / "meta-optimization.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("2_plan.md", index)
             self.assertIn("learning-loop.md", index)
@@ -207,6 +221,47 @@ class SelfLearnAutomationTests(unittest.TestCase):
             challenge = (root / "docs" / "phase-challenge.md").read_text(encoding="utf-8")
             self.assertIn("Challenge the requirements for phase_0.md", challenge)
             self.assertIn("Challenge the requirements for phase_1.md", challenge)
+
+    def test_refresh_meta_trace_json_is_machine_readable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            root = repo / "prj" / "self_learn"
+            (root / "plans" / "done").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            (root / "plans" / "2_plan.md").write_text("status: active\n", encoding="utf-8")
+            db = sqlite3.connect(repo / "continuity.db")
+            db.execute("create table metacognitive_state(state_key text primary key, value text, version integer, updated_at text default current_timestamp)")
+            db.commit()
+            db.close()
+            (root / "phase_0.md").write_text("""PROJECT PHASE 0
+purpose: entry point
+goal: keep navigation clear
+outcome: docs index stays useful
+core_requirements:
+- define the canonical project entry point.
+- keep the glossary and automation links visible.
+- preserve the phase boundary into phase 1.
+status: completed
+""", encoding="utf-8")
+            (root / "phase_1.md").write_text("""PROJECT PHASE 1
+purpose: choose a next path
+goal: suggest the next path
+outcome: ranked path
+core_requirements:
+- define the first usable path candidates.
+- challenge each candidate with explicit criteria.
+- keep a review loop and feedback path.
+status: active
+""", encoding="utf-8")
+
+            report = sla.refresh(root)
+            payload = json.loads((root / "docs" / "meta-trace.json").read_text(encoding="utf-8"))
+
+            self.assertTrue(payload["ready"])
+            self.assertEqual(payload["version"], 1)
+            self.assertIn("meta_trace", report)
+            self.assertIn("meta_state", report)
+            self.assertTrue(report["meta_state"]["updated"])
 
     def test_review_action_prints_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:

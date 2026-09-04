@@ -4,6 +4,7 @@ import argparse
 import shutil
 import sqlite3
 import subprocess
+import self_learn_meta as meta
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -79,6 +80,7 @@ PHASE_REQUIREMENTS_MIN = 3
 PHASE1_PLAN_KEY = "4_plan.md"
 PHASE_REQUIREMENTS_PLAN_KEY = "5_plan.md"
 PHASE_REVIEW_PLAN_KEY = "6_plan.md"
+META_TRACE_PLAN_KEY = "7_plan.md"
 PHASE1_PLAN_TITLE = "AI-first self-learn path"
 PHASE1_PLAN_BODY = "Use the glossary and project state to suggest the first self-learn path, then verify and record the result."
 
@@ -91,17 +93,14 @@ class SyncReport:
     def as_dict(self) -> dict[str, list[str]]:
         return {"created_dirs": self.created_dirs, "moved_plans": self.moved_plans}
 
-
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8") if path.exists() else ""
-
 
 def _repo_root(root: Path) -> Path:
     root = root.resolve()
     if len(root.parents) >= 2:
         return root.parents[1]
     return root
-
 
 def ensure_canonical_dirs(root: Path = PROJECT_ROOT) -> list[str]:
     created: list[str] = []
@@ -112,7 +111,6 @@ def ensure_canonical_dirs(root: Path = PROJECT_ROOT) -> list[str]:
             path.mkdir(parents=True, exist_ok=True)
             created.append(str(path.relative_to(root)) + "/")
     return created
-
 
 def move_completed_plans(root: Path = PROJECT_ROOT) -> list[str]:
     plans_dir = root / "plans"
@@ -130,12 +128,10 @@ def move_completed_plans(root: Path = PROJECT_ROOT) -> list[str]:
         moved.append(f"plans/done/{plan.name}")
     return moved
 
-
 def sync(root: Path = PROJECT_ROOT) -> SyncReport:
     created_dirs = ensure_canonical_dirs(root)
     moved_plans = move_completed_plans(root)
     return SyncReport(created_dirs=created_dirs, moved_plans=moved_plans)
-
 
 def _parse_phase_doc(path: Path) -> dict[str, object]:
     data: dict[str, object] = {"path": str(path)}
@@ -162,7 +158,6 @@ def _parse_phase_doc(path: Path) -> dict[str, object]:
     data.setdefault("core_requirements", core_requirements)
     return data
 
-
 def phase_requirement_report(root: Path = PROJECT_ROOT) -> list[dict[str, object]]:
     report: list[dict[str, object]] = []
     for path in sorted(root.glob("phase_*.md")):
@@ -182,7 +177,6 @@ def phase_requirement_report(root: Path = PROJECT_ROOT) -> list[dict[str, object
         })
     return report
 
-
 def enforce_phase_requirements(root: Path = PROJECT_ROOT) -> list[dict[str, object]]:
     report = phase_requirement_report(root)
     issues = [item for item in report if item["missing"]]
@@ -190,7 +184,6 @@ def enforce_phase_requirements(root: Path = PROJECT_ROOT) -> list[dict[str, obje
         summary = "; ".join(f"{item['phase']}: {', '.join(item['missing'])}" for item in issues)
         raise RuntimeError(f"Phase requirements must be defined and challenged before checkpointing: {summary}")
     return report
-
 
 def phase_manifest(root: Path = PROJECT_ROOT) -> dict[str, object]:
     report = phase_requirement_report(root)
@@ -201,15 +194,12 @@ def phase_manifest(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "line_budget": MAX_FILE_LINES,
     }
 
-
 def phase_challenge_bundle(root: Path = PROJECT_ROOT) -> dict[str, object]:
     return {"manifest": phase_manifest(root), "report": phase_requirement_report(root)}
-
 
 def _count_text_lines(path: Path) -> int:
     with path.open("r", encoding="utf-8") as handle:
         return sum(1 for _ in handle)
-
 
 def modularity_budget(root: Path = PROJECT_ROOT, limit: int = MAX_FILE_LINES) -> list[dict[str, object]]:
     issues: list[dict[str, object]] = []
@@ -227,14 +217,12 @@ def modularity_budget(root: Path = PROJECT_ROOT, limit: int = MAX_FILE_LINES) ->
             })
     return issues
 
-
 def enforce_modularity_budget(root: Path = PROJECT_ROOT, limit: int = MAX_FILE_LINES) -> list[dict[str, object]]:
     issues = modularity_budget(root, limit)
     if issues:
         summary = ", ".join(f"{item['path']} ({item['line_count']} lines)" for item in issues)
         raise RuntimeError(f"Files over {limit} lines must be modularized first: {summary}")
     return issues
-
 
 def _render_glossary() -> str:
     lines = [
@@ -264,14 +252,12 @@ def _render_glossary() -> str:
     ])
     return "\n".join(lines) + "\n"
 
-
 def write_glossary(root: Path = PROJECT_ROOT) -> Path:
     docs_dir = root / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
     path = docs_dir / "glossary.md"
     path.write_text(_render_glossary(), encoding="utf-8")
     return path
-
 
 def write_next_path_doc(root: Path = PROJECT_ROOT) -> Path:
     docs_dir = root / "docs"
@@ -301,7 +287,6 @@ def write_next_path_doc(root: Path = PROJECT_ROOT) -> Path:
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
-
 def write_phase_requirements_doc(root: Path = PROJECT_ROOT) -> Path:
     docs_dir = root / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
@@ -330,7 +315,6 @@ def write_phase_requirements_doc(root: Path = PROJECT_ROOT) -> Path:
     path = docs_dir / "phase-requirements.md"
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
-
 
 def write_phase_challenge_doc(root: Path = PROJECT_ROOT) -> Path:
     docs_dir = root / "docs"
@@ -371,7 +355,6 @@ def write_phase_challenge_doc(root: Path = PROJECT_ROOT) -> Path:
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
-
 def write_modularity_doc(root: Path = PROJECT_ROOT) -> Path:
     docs_dir = root / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
@@ -396,7 +379,6 @@ def write_modularity_doc(root: Path = PROJECT_ROOT) -> Path:
     path = docs_dir / "modularity.md"
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
-
 
 def write_phase_0(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_0.md"
@@ -447,7 +429,6 @@ status: completed
     path.write_text(content, encoding="utf-8")
     return path
 
-
 def write_phase_1(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_1.md"
     content = """PROJECT PHASE 1
@@ -471,13 +452,12 @@ navigation:
 - [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Automation notes](docs/automation.md)
-- [Next path review plan](plans/6_plan.md)
+- [Meta optimization plan](plans/7_plan.md)
 
 status: active
 """
     path.write_text(content, encoding="utf-8")
     return path
-
 
 def write_readme(root: Path = PROJECT_ROOT) -> Path:
     path = root / "README.md"
@@ -499,27 +479,25 @@ Project entry point.
     path.write_text(content, encoding="utf-8")
     return path
 
-
 def write_next_phase_plan(root: Path = PROJECT_ROOT) -> Path:
     plans_dir = root / "plans"
     plans_dir.mkdir(parents=True, exist_ok=True)
-    path = plans_dir / PHASE_REVIEW_PLAN_KEY
-    content = f"""# Self-learn phase review plan
+    path = plans_dir / META_TRACE_PLAN_KEY
+    content = f"""# Self-learn meta optimization plan
 
 status: active
 
 ## objective
-Wire phase review prompts into the automation so AI can challenge phase definitions and future-proof the process.
+Automate the trace of self-learning optimization so the project can see its own improvement signals.
 
 ## steps
-1. Generate a machine-readable phase manifest.
-2. Feed every phase through a challenge prompt.
-3. Capture AI review output as docs or notes.
-4. Keep the review path stable for future phases.
+1. Generate a meta optimization trace from phase state and modularity signals.
+2. Persist the trace in docs and continuity.db.
+3. Use the trace to guide the next self-learning review.
+4. Keep the trace format small and durable.
 """
     path.write_text(content, encoding="utf-8")
     return path
-
 
 def docs_index(root: Path = PROJECT_ROOT) -> Path:
     docs_dir = root / "docs"
@@ -549,13 +527,14 @@ def docs_index(root: Path = PROJECT_ROOT) -> Path:
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
-
 def status(root: Path = PROJECT_ROOT) -> dict[str, object]:
     plans_dir = root / "plans"
     done_dir = plans_dir / "done"
     active_plans = sorted(p.name for p in plans_dir.glob("*_plan.md") if p.parent != done_dir)
     done_plans = sorted(p.name for p in done_dir.glob("*_plan.md")) if done_dir.exists() else []
-    return {
+    phase_report = phase_requirement_report(root)
+    modularity = modularity_budget(root)
+    snapshot = {
         "root": str(root),
         "dirs": [str((root / rel).relative_to(root)) + "/" for rel in CANONICAL_DIRS if (root / rel).exists()],
         "phases": sorted(p.name for p in root.glob("phase_*.md")),
@@ -563,36 +542,60 @@ def status(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "done_plans": done_plans,
         "docs": sorted(p.name for p in (root / "docs").glob("*.md")) if (root / "docs").exists() else [],
         "docs_index": str(root / "docs" / "index.md") if (root / "docs" / "index.md").exists() else None,
-        "modularity_budget": modularity_budget(root),
-        "phase_requirements_report": phase_requirement_report(root),
     }
-
+    return {
+        **snapshot,
+        "modularity_budget": modularity,
+        "phase_requirements_report": phase_report,
+        "meta_trace": meta.build_meta_trace(root, phase_report, modularity, snapshot),
+    }
 
 def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     report = sync(root)
+    phase_report = phase_requirement_report(root)
+    modularity = modularity_budget(root)
+    snapshot = status(root)
+    meta_trace = meta.build_meta_trace(root, phase_report, modularity, snapshot)
+    meta_files = meta.write_meta_trace_files(root, meta_trace)
+    meta_state = meta.update_meta_trace_state(root, meta_trace)
     glossary_path = write_glossary(root)
     next_path_doc = write_next_path_doc(root)
     requirements_doc = write_phase_requirements_doc(root)
     challenge_doc = write_phase_challenge_doc(root)
     modularity_doc = write_modularity_doc(root)
     index_path = docs_index(root)
-    return {**report.as_dict(), "glossary": str(glossary_path), "next_path": str(next_path_doc), "phase_requirements": str(requirements_doc), "phase_challenge": str(challenge_doc), "modularity": str(modularity_doc), "docs_index": str(index_path), "modularity_budget": modularity_budget(root), "phase_requirements_report": phase_requirement_report(root), "phase_manifest": phase_manifest(root), "phase_challenge_bundle": phase_challenge_bundle(root)}
-
+    return {
+        **report.as_dict(),
+        "glossary": str(glossary_path),
+        "next_path": str(next_path_doc),
+        "phase_requirements": str(requirements_doc),
+        "phase_challenge": str(challenge_doc),
+        "modularity": str(modularity_doc),
+        "docs_index": str(index_path),
+        "modularity_budget": modularity,
+        "phase_requirements_report": phase_report,
+        "phase_manifest": phase_manifest(root),
+        "phase_challenge_bundle": phase_challenge_bundle(root),
+        "meta_trace": meta_trace,
+        **meta_files,
+        "meta_state": meta_state,
+    }
 
 def advance(root: Path = PROJECT_ROOT) -> dict[str, object]:
+    for plan_name in ("3_plan.md", "6_plan.md"):
+        plan = root / "plans" / plan_name
+        if plan.exists():
+            text_content = _read_text(plan)
+            if "status: completed" not in text_content.lower():
+                if "status: active" in text_content:
+                    text_content = text_content.replace("status: active", "status: completed", 1)
+                else:
+                    text_content = text_content.replace("## objective", "status: completed\n\n## objective", 1)
+                plan.write_text(text_content, encoding="utf-8")
     phase_0 = write_phase_0(root)
     phase_1 = write_phase_1(root)
     readme = write_readme(root)
     next_plan = write_next_phase_plan(root)
-    phase3 = root / "plans" / "3_plan.md"
-    if phase3.exists():
-        text = _read_text(phase3)
-        if "status: completed" not in text.lower():
-            if "status: active" in text:
-                text = text.replace("status: active", "status: completed", 1)
-            else:
-                text = text.replace("## objective", "status: completed\n\n## objective", 1)
-            phase3.write_text(text, encoding="utf-8")
     report = refresh(root)
     docs_index(root)
     update_project_goal(root)
@@ -605,7 +608,6 @@ def advance(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "next_plan": str(next_plan),
         "git": git_report,
     }
-
 
 def update_project_goal(root: Path = PROJECT_ROOT) -> None:
     repo_root = _repo_root(root)
@@ -623,7 +625,6 @@ def update_project_goal(root: Path = PROJECT_ROOT) -> None:
     finally:
         conn.close()
 
-
 def git_checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem checkpoint") -> dict[str, object]:
     phase_report = enforce_phase_requirements(root)
     issues = enforce_modularity_budget(root)
@@ -637,11 +638,9 @@ def git_checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesy
     rev = subprocess.run(["git", "-C", str(repo_root), "rev-parse", "--short", "HEAD"], check=True, capture_output=True, text=True)
     return {"repo_root": str(repo_root), "staged": [rel_root, "continuity.db"], "committed": True, "message": message, "commit": rev.stdout.strip(), "modularity_budget": issues, "phase_requirements_report": phase_report}
 
-
 def checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem checkpoint") -> dict[str, object]:
     report = advance(root)
     return {**report, "git": report["git"], "checkpoint": message}
-
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Self-learn filesystem automation helper")
