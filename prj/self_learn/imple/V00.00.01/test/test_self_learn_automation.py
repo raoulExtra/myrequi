@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import self_learn_automation as sla
+import self_learn_phase_2 as phase2
 
 class SelfLearnAutomationTests(unittest.TestCase):
     def test_sync_creates_dirs_and_moves_completed_plan(self):
@@ -63,6 +64,10 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "phase-2-mission.md").exists())
             self.assertTrue((root / "docs" / "phase-2-core-requi.md").exists())
             self.assertTrue((root / "docs" / "phase-2-core-review.md").exists())
+            self.assertIn("phase_2_learning_path", report)
+            self.assertEqual(report["phase_2_learning_path"]["selected"]["key"], "P2-C1")
+            self.assertIn("ranking:", (root / "phase_2.md").read_text(encoding="utf-8"))
+            self.assertIn("derived_learning_path:", (root / "phase_2.md").read_text(encoding="utf-8"))
             self.assertIn("named_phase_1", report)
             self.assertIn("named_phase_0", report)
             self.assertIn("phase_1_core_requi", report)
@@ -217,6 +222,8 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("PH002-RC001", (root / "docs" / "phase-2-core-requi.md").read_text(encoding="utf-8"))
             self.assertIn("first concrete automation learning path", (root / "docs" / "phase-2-core-requi.md").read_text(encoding="utf-8"))
             self.assertIn("PH002-RC001-AC001", (root / "docs" / "phase-2-core-requi.md").read_text(encoding="utf-8"))
+            self.assertIn("derived candidate paths", (root / "docs" / "phase-2-mission.md").read_text(encoding="utf-8"))
+            self.assertIn("ranking", (root / "docs" / "phase-2-mission.md").read_text(encoding="utf-8"))
             self.assertIn("current automation mission", (root / "docs" / "phase-2-mission.md").read_text(encoding="utf-8"))
             self.assertIn("status: active", (root / "phase_2.md").read_text(encoding="utf-8"))
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
@@ -331,6 +338,17 @@ status: active
             self.assertIn("meta_trace", report)
             self.assertIn("meta_state", report)
             self.assertTrue(report["meta_state"]["updated"])
+
+    def test_phase_2_selection_ranks_candidates(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            phase_report = [
+                {"phase": "phase_0.md", "purpose": "entry", "goal": "goal0", "outcome": "out0", "status": "completed", "core_requirements": ["a", "b", "c"], "missing": []},
+                {"phase": "phase_1.md", "purpose": "select", "goal": "goal1", "outcome": "out1", "status": "active", "core_requirements": ["a", "b", "c"], "missing": []},
+            ]
+            packet = phase2.select_phase_2_mission(phase_report)
+            self.assertEqual(packet["selected"]["key"], "P2-C1")
+            self.assertGreater(packet["selected"]["score"], packet["ranked_candidates"][1]["score"])
+            self.assertIn("derive the next automation mission", packet["outcome"])
 
     def test_review_action_prints_manifest(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -50,7 +50,7 @@ Current core requirements:
 Challenge the requirements for phase_2.md.
 Purpose: use phase 0 and phase 1 history to define the current automation mission.
 Goal: have AI suggest the first concrete automation learning path from prior phase evidence.
-Outcome: a ranked automation mission that becomes the current durable plan.
+Outcome: derive the next automation mission from phase 0 and phase 1 evidence.
 Status: active
 Questions:
 - Are the core requirements specific enough to test?

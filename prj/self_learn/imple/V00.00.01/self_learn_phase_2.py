@@ -57,6 +57,67 @@ def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict
     return lines
 
 
+def derive_phase_2_candidates(phase_report: list[dict[str, object]]) -> list[dict[str, object]]:
+    phase_0 = next((item for item in phase_report if item["phase"] == "phase_0.md"), None)
+    phase_1 = next((item for item in phase_report if item["phase"] == "phase_1.md"), None)
+    phase_0_goal = str(phase_0["goal"]) if phase_0 else ""
+    phase_1_goal = str(phase_1["goal"]) if phase_1 else ""
+    return [
+        {
+            "key": "P2-C1",
+            "path": "derive the next automation mission from phase 0 and phase 1 evidence",
+            "why": f"phase 0 is {phase_0_goal or 'the entry phase'} and phase 1 is {phase_1_goal or 'the path selection phase'}, so the mission should join evidence into one automated choice.",
+            "impact": 5,
+            "reuse": 5,
+            "testability": 5,
+            "cost": 2,
+            "risk": 1,
+        },
+        {
+            "key": "P2-C2",
+            "path": "verify requirement coverage and acceptance criteria for the phase docs",
+            "why": "phase 0 and phase 1 now use RC/AC codes, so the automation can prove coverage before selecting a deeper mission.",
+            "impact": 4,
+            "reuse": 4,
+            "testability": 5,
+            "cost": 2,
+            "risk": 1,
+        },
+        {
+            "key": "P2-C3",
+            "path": "stabilize refresh, checkpoint, and plan movement for future phases",
+            "why": "the project already regenerates many docs and commits phase state, so this path keeps the learning loop durable.",
+            "impact": 3,
+            "reuse": 4,
+            "testability": 4,
+            "cost": 3,
+            "risk": 2,
+        },
+    ]
+
+
+def rank_phase_2_candidates(candidates: list[dict[str, object]]) -> list[dict[str, object]]:
+    ranked = []
+    for candidate in candidates:
+        score = int(candidate["impact"]) + int(candidate["reuse"]) + int(candidate["testability"]) - int(candidate["cost"]) - int(candidate["risk"])
+        ranked.append({**candidate, "score": score})
+    return sorted(ranked, key=lambda item: (-item["score"], -int(item["impact"]), -int(item["testability"]), item["key"]))
+
+
+def select_phase_2_mission(phase_report: list[dict[str, object]]) -> dict[str, object]:
+    candidates = derive_phase_2_candidates(phase_report)
+    ranked = rank_phase_2_candidates(candidates)
+    selected = ranked[0]
+    return {
+        "summary": "derive and rank the next automation mission from phase 0 and phase 1 evidence",
+        "candidates": ranked,
+        "ranked_candidates": ranked,
+        "selected": selected,
+        "outcome": selected["path"],
+        "rationale": selected["why"],
+    }
+
+
 def _phase_history_lines(phase_report: list[dict[str, object]]) -> list[str]:
     lines = ["## phase history", ""]
     for item in phase_report:
@@ -73,10 +134,39 @@ def _phase_history_lines(phase_report: list[dict[str, object]]) -> list[str]:
     return lines
 
 
+def _candidate_lines(packet: dict[str, object]) -> list[str]:
+    lines = ["## derived candidate paths", ""]
+    for candidate in packet["candidates"]:
+        lines.extend([
+            f"- {candidate['key']}: {candidate['path']}",
+            f"  - evidence: phase 0 + phase 1 state",
+            f"  - why: {candidate['why']}",
+            f"  - score: impact {candidate['impact']} + reuse {candidate['reuse']} + testability {candidate['testability']} - cost {candidate['cost']} - risk {candidate['risk']} = {candidate['score']}",
+        ])
+    return lines
+
+
+def _ranking_lines(packet: dict[str, object]) -> list[str]:
+    lines = ["## ranking", ""]
+    for index, candidate in enumerate(packet["ranked_candidates"], start=1):
+        lines.extend([
+            f"{index}. {candidate['key']} ({candidate['score']}) - {candidate['path']}",
+            f"   - why: {candidate['why']}",
+        ])
+    lines.extend([
+        "",
+        "## selected outcome",
+        f"- {packet['selected']['key']}: {packet['outcome']}",
+        f"- rationale: {packet['rationale']}",
+    ])
+    return lines
+
+
 def write_named_phase_2_doc(root: Path, phase_report: list[dict[str, object]]) -> Path:
     docs_dir = root / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
     path = docs_dir / "phase-2-mission.md"
+    packet = select_phase_2_mission(phase_report)
     content = [
         "# Phase 2: mission",
         "",
@@ -91,6 +181,8 @@ def write_named_phase_2_doc(root: Path, phase_report: list[dict[str, object]]) -
         "## acceptance criteria",
     ])
     content.extend(_render_acceptance_criteria(2, PHASE_2_ACCEPTANCE_CRITERIA))
+    content.extend(["", "## mission summary", f"- summary: {packet['summary']}"])
+    content.extend(["", *_candidate_lines(packet), "", *_ranking_lines(packet)])
     content.extend([
         "",
         "## navigation",
@@ -102,7 +194,7 @@ def write_named_phase_2_doc(root: Path, phase_report: list[dict[str, object]]) -
         "- [Phase requirements](./phase-requirements.md)",
         "- [Phase challenge](./phase-challenge.md)",
     ])
-    content.extend([""] + _phase_history_lines(phase_report))
+    content.extend(["", *_phase_history_lines(phase_report)])
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
@@ -111,6 +203,7 @@ def write_phase_2_core_requi_doc(root: Path, phase_report: list[dict[str, object
     docs_dir = root / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
     path = docs_dir / "phase-2-core-requi.md"
+    packet = select_phase_2_mission(phase_report)
     content = [
         "# Phase 2 core requirements",
         "",
@@ -128,12 +221,14 @@ def write_phase_2_core_requi_doc(root: Path, phase_report: list[dict[str, object
         "This file is the named, file-based summary of the phase 2 core requirements.",
         "It exists so the current automation mission can be carried forward from phase 0 and phase 1 evidence.",
         "",
+        "## mission summary",
+        f"- summary: {packet['summary']}",
+        f"- outcome: {packet['outcome']}",
+        "",
         "## phase history",
     ])
     for item in phase_report:
-        content.extend([
-            f"- {item['phase']}: {item['purpose']}",
-        ])
+        content.extend([f"- {item['phase']}: {item['purpose']}"])
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
@@ -142,6 +237,7 @@ def write_phase_2_core_review_doc(root: Path, phase_report: list[dict[str, objec
     docs_dir = root / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
     path = docs_dir / "phase-2-core-review.md"
+    packet = select_phase_2_mission(phase_report)
     content = [
         "# Phase 2 core review",
         "",
@@ -152,35 +248,52 @@ def write_phase_2_core_review_doc(root: Path, phase_report: list[dict[str, objec
         "- Can the next phase build on this without losing history?",
         "",
         "## current view",
-        "Phase 2 should turn history into a ranked mission so the automation can learn from its own previous phases.",
+        f"Phase 2 should turn history into a ranked mission so the automation can learn from its own previous phases. The selected outcome is: {packet['outcome']}.",
         "",
         "## core requirements",
     ]
     content.extend(_render_core_requirements(2, PHASE_2_CORE_REQUIREMENTS))
     content.extend([
         "",
+        "## ranking summary",
+        f"- selected: {packet['selected']['key']}",
+        f"- score: {packet['selected']['score']}",
+        f"- rationale: {packet['rationale']}",
+        "",
         "## phase history",
     ])
     for item in phase_report:
-        content.extend([
-            f"- {item['phase']}: {item['goal']}",
-        ])
+        content.extend([f"- {item['phase']}: {item['goal']}"])
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
 
 def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
     path = root / "phase_2.md"
+    packet = select_phase_2_mission(phase_report)
     content = [
         "PROJECT PHASE 2",
         "inherits_from: phase_1",
         "purpose: use phase 0 and phase 1 history to define the current automation mission.",
         "goal: have AI suggest the first concrete automation learning path from prior phase evidence.",
-        "outcome: a ranked automation mission that becomes the current durable plan.",
+        f"outcome: {packet['outcome']}.",
         "",
         "core_requirements:",
     ]
     content.extend(_render_core_requirements(2, PHASE_2_CORE_REQUIREMENTS))
+    content.extend([
+        "",
+        "derived_learning_path:",
+        f"- summary: {packet['summary']}",
+        f"- selected: {packet['selected']['key']} ({packet['selected']['score']})",
+        f"- rationale: {packet['rationale']}",
+        "",
+        "ranking:",
+    ])
+    for index, candidate in enumerate(packet["ranked_candidates"], start=1):
+        content.extend([
+            f"- {index}. {candidate['key']} ({candidate['score']}): {candidate['path']}",
+        ])
     content.extend([
         "",
         "navigation:",

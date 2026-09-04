@@ -27,6 +27,10 @@
 This file is the named, file-based summary of the phase 2 core requirements.
 It exists so the current automation mission can be carried forward from phase 0 and phase 1 evidence.
 
+## mission summary
+- summary: derive and rank the next automation mission from phase 0 and phase 1 evidence
+- outcome: derive the next automation mission from phase 0 and phase 1 evidence
+
 ## phase history
 - phase_0.md: entry point for the self_learn project documentation.
 - phase_1.md: AI chooses the first useful self-learn path from the glossary and current project state.

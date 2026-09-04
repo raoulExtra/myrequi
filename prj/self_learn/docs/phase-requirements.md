@@ -30,7 +30,7 @@ AI should challenge them before the phase is treated as stable.
 ## phase_2.md
 - purpose: use phase 0 and phase 1 history to define the current automation mission.
 - goal: have AI suggest the first concrete automation learning path from prior phase evidence.
-- outcome: a ranked automation mission that becomes the current durable plan.
+- outcome: derive the next automation mission from phase 0 and phase 1 evidence.
 - status: active
 
 ### core requirements

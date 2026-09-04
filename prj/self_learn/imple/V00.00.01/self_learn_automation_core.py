@@ -6,7 +6,7 @@ import sqlite3
 import subprocess
 import self_learn_meta as meta
 from self_learn_named_docs import write_named_phase_0_doc, write_phase_0_core_requi_doc, write_phase_0_core_review_doc, write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
-from self_learn_phase_2 import write_named_phase_2_doc, write_phase_2_core_requi_doc, write_phase_2_core_review_doc, write_phase_2
+from self_learn_phase_2 import select_phase_2_mission, write_named_phase_2_doc, write_phase_2_core_requi_doc, write_phase_2_core_review_doc, write_phase_2
 from self_learn_phase_docs import write_phase_requirements_doc, write_phase_challenge_doc, write_modularity_doc
 from self_learn_working_rules import write_working_rules_doc
 from dataclasses import dataclass
@@ -502,6 +502,7 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     named_phase_1_doc = write_named_phase_1_doc(root)
     phase_1_core_requi_doc = write_phase_1_core_requi_doc(root)
     phase_1_core_review_doc = write_phase_1_core_review_doc(root)
+    phase_2_packet = select_phase_2_mission(base_phase_report)
     named_phase_2_doc = write_named_phase_2_doc(root, base_phase_report)
     phase_2_core_requi_doc = write_phase_2_core_requi_doc(root, base_phase_report)
     phase_2_core_review_doc = write_phase_2_core_review_doc(root, base_phase_report)
@@ -527,6 +528,7 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "named_phase_2": str(named_phase_2_doc),
         "phase_2_core_requi": str(phase_2_core_requi_doc),
         "phase_2_core_review": str(phase_2_core_review_doc),
+        "phase_2_learning_path": phase_2_packet,
         "phase_requirements": str(requirements_doc),
         "phase_challenge": str(challenge_doc),
         "modularity": str(modularity_doc),
