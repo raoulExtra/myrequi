@@ -3,6 +3,9 @@
 This is the named, human-friendly companion to `phase_0.md`.
 It keeps the entry phase easy to browse like the named files in `prj/demo`.
 
+## purpose
+- self learning how to think sharp & structured.
+
 ## core requirements
 - [code] PH000-RC001: define the canonical project entry point.
 - [code] PH000-RC002: keep the glossary and automation links visible.
@@ -23,6 +26,15 @@ It keeps the entry phase easy to browse like the named files in `prj/demo`.
 
 ### PH000-RC004
 - PH000-RC004-AC001: the file stays short enough to scan quickly.
+
+## related plans
+- [Filesystem autonomy plan](../plans/done/1_plan.md)
+- [Next-step automation plan](../plans/done/2_plan.md)
+- [Glossary phase plan](../plans/done/3_plan.md)
+- [AI next-path phase plan](../plans/4_plan.md)
+- [Phase requirements plan](../plans/done/5_plan.md)
+- [Phase review plan](../plans/done/6_plan.md)
+- [Meta optimization plan](../plans/7_plan.md)
 
 ## navigation
 - [Phase 0](../phase_0.md)

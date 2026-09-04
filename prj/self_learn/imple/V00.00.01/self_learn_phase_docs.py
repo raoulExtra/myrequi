@@ -30,7 +30,6 @@ def write_phase_requirements_doc(root: Path, phase_report: list[dict[str, object
             content.append("- goals:")
             content.extend(f"  - {goal}" for goal in goals)
         content.extend([
-            f"- goal: {item['goal']}",
             f"- outcome: {item['outcome']}",
             f"- status: {item['status']}",
         ])

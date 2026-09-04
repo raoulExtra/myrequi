@@ -20,9 +20,9 @@ Phase 2 should turn history into a ranked mission so the automation can learn fr
 - selected: P2-C1
 - score: 12
 - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md, docs/phase-0-outcome.md, docs/phase-1-outcome.md, docs/phase-2-outcome.md
-- rationale: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is have AI suggest the first self-learn path with explicit criteria and a review loop., so the mission should join evidence into one automated choice.
+- rationale: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is derive candidate self-learn paths from current files, glossary terms, and project state.; rank candidate paths with explicit criteria, scores, and a short rationale.; select one path and write the result into the phase outcome files., so the mission should join evidence into one automated choice.
 
 ## phase history
 - phase_0.md: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
-- phase_1.md: have AI suggest the first self-learn path with explicit criteria and a review loop.
-- phase_2.md: have AI suggest the first concrete automation learning path from prior phase evidence.
+- phase_1.md: derive candidate self-learn paths from current files, glossary terms, and project state. | rank candidate paths with explicit criteria, scores, and a short rationale. | select one path and write the result into the phase outcome files.
+- phase_2.md: derive a phase 2 automation mission from phase 0 and phase 1 evidence. | rank candidate missions with explicit criteria, cost, risk, and reuse. | publish the selected mission as linked docs and durable metadata.

@@ -31,6 +31,19 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "assets").exists())
             self.assertTrue((root / "imple" / "V00.00.01" / "test").exists())
 
+    def test_sync_promotes_prepared_active_plan_when_when_to_run_is_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "plans" / "prep").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            (root / "plans" / "prep" / "7_plan.md").write_text("""# plan\nstatus: active\n\n## objective\nphase related work\n\n## when to run\n- run when a trigger is ready\n\n## steps\n1. do it\n""", encoding="utf-8")
+
+            report = sla.sync(root)
+
+            self.assertIn("plans/7_plan.md", report.moved_plans)
+            self.assertTrue((root / "plans" / "7_plan.md").exists())
+            self.assertFalse((root / "plans" / "prep" / "7_plan.md").exists())
+
     def test_refresh_writes_docs_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "self_learn"
@@ -55,6 +68,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "meta-optimization.md").exists())
             self.assertTrue((root / "docs" / "meta-actions.json").exists())
             self.assertTrue((root / "docs" / "meta-actions.md").exists())
+            self.assertTrue((root / "docs" / "active-plan.md").exists())
             self.assertTrue((root / "docs" / "phase-0-entry.md").exists())
             self.assertTrue((root / "docs" / "phase-0-core-requi.md").exists())
             self.assertTrue((root / "docs" / "phase-0-core-review.md").exists())
@@ -78,6 +92,9 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("named_phase_0", report)
             self.assertIn("phase_1_core_requi", report)
             self.assertIn("phase_1_core_review", report)
+            active_plan_doc = (root / "docs" / "active-plan.md").read_text(encoding="utf-8")
+            self.assertIn("2_plan.md", active_plan_doc)
+            self.assertNotIn("1_plan.md", active_plan_doc)
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("learning-loop.md", index)
             self.assertIn("glossary.md", index)
@@ -96,6 +113,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("modularity.md", index)
             self.assertIn("working-rules.md", index)
             self.assertIn("meta-actions.md", index)
+            self.assertIn("active-plan.md", index)
             self.assertIn("meta-optimization.md", index)
             self.assertIn("2_plan.md", index)
             self.assertIn("1_plan.md", index)
@@ -103,6 +121,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("phase_requirements_report", report)
             self.assertIn("phase_manifest", report)
             self.assertIn("phase_challenge_bundle", report)
+            self.assertIn("active_plan_handoff", report)
             self.assertEqual(report["modularity_budget"], [])
 
     def test_main_advance_creates_next_phase(self):

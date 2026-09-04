@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 def phase_doc_path(root: Path, phase_number: int) -> Path:
     return root / f"phase_{phase_number}.md"
 
@@ -20,6 +21,27 @@ def phase_requirement_type(phase_number: int) -> str:
 def render_typed_core_requirements(phase_number: int, requirements: list[str]) -> list[str]:
     requirement_type = phase_requirement_type(phase_number)
     return [f"- [{requirement_type}] PH{phase_number:03d}-RC{index:03d}: {text}" for index, text in enumerate(requirements, start=1)]
+
+
+def _phase_plan_links(phase_number: int) -> list[str]:
+    if phase_number == 0:
+        return [
+            "- [Filesystem autonomy plan](plans/done/1_plan.md)",
+            "- [Next-step automation plan](plans/done/2_plan.md)",
+            "- [Glossary phase plan](plans/done/3_plan.md)",
+            "- [AI next-path phase plan](plans/4_plan.md)",
+            "- [Phase requirements plan](plans/done/5_plan.md)",
+            "- [Phase review plan](plans/done/6_plan.md)",
+            "- [Meta optimization plan](plans/7_plan.md)",
+        ]
+    if phase_number == 1:
+        return [
+            "- [AI next-path phase plan](plans/4_plan.md)",
+            "- [Meta optimization plan](plans/7_plan.md)",
+        ]
+    return [
+        "- [Meta optimization plan](plans/7_plan.md)",
+    ]
 
 
 def write_phase_outcome_doc(root: Path, phase_number: int, title: str, summary: str, details: list[str]) -> Path:
@@ -42,9 +64,14 @@ def write_phase_outcome_doc(root: Path, phase_number: int, title: str, summary: 
 def _phase_0_body(root: Path, spec: dict[str, object], phase_report: list[dict[str, object]] | None, packet: dict[str, object] | None) -> list[str]:
     return [
         "",
+        f"purpose: {spec['purpose']}",
+        "",
         "tags:",
         "- thinking_workspace",
         "- self_learning",
+        "",
+        "## related plans",
+        *_phase_plan_links(0),
         "",
         "navigation:",
         "- [Project index](docs/index.md)",
@@ -61,7 +88,6 @@ def _phase_0_body(root: Path, spec: dict[str, object], phase_report: list[dict[s
         "- [Learning loop notes](docs/learning-loop.md)",
         "- [Filesystem autonomy notes](docs/filesystem-autonomy.md)",
         "- [Automation notes](docs/automation.md)",
-        "- [Glossary phase plan](plans/done/3_plan.md)",
         "- [Base project file organization standard](../base/002-requi-prj-file-organization-standard.md)",
         "- [Base phase 0](../base/phase_0.md)",
         "- [Phase 1](phase_1.md)",
@@ -84,6 +110,15 @@ def _phase_0_body(root: Path, spec: dict[str, object], phase_report: list[dict[s
 def _phase_1_body(root: Path, spec: dict[str, object], phase_report: list[dict[str, object]] | None, packet: dict[str, object] | None) -> list[str]:
     return [
         "",
+        "output_contract:",
+        "- candidate_paths: derive at least three paths from current files and glossary terms.",
+        "- ranking: score every candidate with visible criteria and short rationale.",
+        "- selection: pick one winner and explain the tradeoffs against the others.",
+        "- output: write the result to phase_1.md and docs/phase-1-outcome.md.",
+        "",
+        "## related plans",
+        *_phase_plan_links(1),
+        "",
         "navigation:",
         "- [Project index](docs/index.md)",
         "- [Glossary](docs/glossary.md)",
@@ -98,7 +133,6 @@ def _phase_1_body(root: Path, spec: dict[str, object], phase_report: list[dict[s
         "- [Phase 0](phase_0.md)",
         "- [Phase 2](phase_2.md)",
         "- [Automation notes](docs/automation.md)",
-        "- [Meta optimization plan](plans/7_plan.md)",
         "",
         f"status: {spec['status']}",
     ]
@@ -114,11 +148,10 @@ def _phase_history_lines(phase_report: list[dict[str, object]]) -> list[str]:
         else:
             previous_phase = f"phase_{int(item['phase'].split('_')[1].split('.')[0]) - 1}.md" if item['phase'].startswith('phase_') and item['phase'].split('_')[1].split('.')[0].isdigit() and int(item['phase'].split('_')[1].split('.')[0]) > 0 else 'phase_0.md'
             lines.append(f"- inherited from {previous_phase}")
-            if goals:
-                lines.append("- goals:")
-                lines.extend(f"  - {goal}" for goal in goals)
+        if goals:
+            lines.append("- goals:")
+            lines.extend(f"  - {goal}" for goal in goals)
         lines.extend([
-            f"- goal: {item['goal']}",
             f"- outcome: {item['outcome']}",
             f"- status: {item['status']}",
             "",
@@ -139,6 +172,9 @@ def _phase_2_body(root: Path, spec: dict[str, object], phase_report: list[dict[s
         f"- selected: {selected.get('key', '')} ({selected.get('score', '')})" if selected else "- selected: ",
         f"- files: {', '.join(selected.get('files', []))}" if selected else "- files: ",
         f"- rationale: {packet.get('rationale', '')}",
+        "",
+        "## related plans",
+        *_phase_plan_links(2),
         "",
         "ranking:",
     ]
@@ -173,7 +209,7 @@ PHASE_DOC_SPECS: dict[int, dict[str, object]] = {
         "inherits_from": "base",
         "purpose": "self learning how to think sharp & structured",
         "goal": "use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.",
-        "goals": [],
+        "goals": ["use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path."],
         "outcome": "a simple navigation page for the self_learn project.",
         "outcome_doc": "docs/phase-0-outcome.md",
         "status": "completed",
@@ -193,37 +229,44 @@ PHASE_DOC_SPECS: dict[int, dict[str, object]] = {
     1: {
         "title": "PROJECT PHASE 1",
         "inherits_from": "phase_0",
-        "goal": "have AI suggest the first self-learn path with explicit criteria and a review loop.",
-        "goals": ["have AI suggest the first self-learn path with explicit criteria and a review loop."],
-        "outcome": "a ranked first path that can be verified and turned into the next plan.",
+        "goals": [
+            "derive candidate self-learn paths from current files, glossary terms, and project state.",
+            "rank candidate paths with explicit criteria, scores, and a short rationale.",
+            "select one path and write the result into the phase outcome files.",
+        ],
+        "outcome": "a ranked first-path brief with candidate comparison and selected next plan.",
         "outcome_doc": "docs/phase-1-outcome.md",
         "status": "active",
         "core_requirements": [
-            "derive at least one candidate self-learn path from the current project state.",
-            "rank candidates with explicit criteria and a short rationale.",
-            "review the selected path against the phase goals, outcome, and modularity budget.",
-            "record feedback in docs and the meta trace so later phases can reuse it.",
+            "derive at least three candidate self-learn paths from the current project state and glossary.",
+            "score the candidates with explicit criteria, costs, and risks.",
+            "select one candidate and explain why it wins over the others.",
+            "write the selected path and review context into phase_1.md and docs/phase-1-outcome.md.",
         ],
         "body": _phase_1_body,
         "outcome_details": [
-            "Goal: have AI suggest the first self-learn path with explicit criteria and a review loop.",
-            "Outcome remains a ranked path, not a hidden assumption.",
-            "The linked outcome file holds the selected path and review context.",
+            "Candidate set: at least three paths derived from current files, glossary terms, and project state.",
+            "Ranking: every candidate must have visible criteria, scores, and a short reason.",
+            "Selection: choose one path, explain why it wins, and name the rejected alternatives.",
+            "Linked outputs: phase_1.md, docs/phase-1-next-path.md, and docs/phase-1-outcome.md must all tell the same story.",
         ],
     },
     2: {
         "title": "PROJECT PHASE 2",
         "inherits_from": "phase_1",
-        "goal": "have AI suggest the first concrete automation learning path from prior phase evidence.",
-        "goals": ["have AI suggest the first concrete automation learning path from prior phase evidence."],
+        "goals": [
+            "derive a phase 2 automation mission from phase 0 and phase 1 evidence.",
+            "rank candidate missions with explicit criteria, cost, risk, and reuse.",
+            "publish the selected mission as linked docs and durable metadata.",
+        ],
         "outcome": "derive the next automation mission from phase 0 and phase 1 evidence.",
         "outcome_doc": "docs/phase-2-outcome.md",
         "status": "active",
         "core_requirements": [
-            "derive the first concrete automation learning path from phase 0 and phase 1 evidence.",
-            "rank the candidate paths with explicit criteria, costs, and risks.",
-            "write the selected phase 2 mission into the filesystem and meta trace.",
-            "keep the result reusable for later phases without rewriting history.",
+            "derive candidate mission paths from phase 0 and phase 1 evidence.",
+            "score and compare candidate paths with explicit criteria, costs, risks, and reuse.",
+            "write the selected mission into phase_2.md, docs/phase-2-mission.md, and docs/phase-2-outcome.md.",
+            "keep the mission reusable for later phases without rewriting historical record.",
         ],
         "body": _phase_2_body,
         "outcome_details": [
@@ -250,9 +293,6 @@ def write_phase_doc(root: Path, phase_number: int, phase_report: list[dict[str, 
     purpose = spec.get("purpose")
     if purpose:
         content.append(f"purpose: {purpose}")
-    goal = spec.get("goal")
-    if goal:
-        content.append(f"goal: {goal}")
     goals = spec.get("goals") or []
     if goals:
         content.append("goals:")

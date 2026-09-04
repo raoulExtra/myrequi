@@ -32,8 +32,10 @@ Current core requirements:
 Challenge the requirements for phase_1.md.
 Purpose: inherited from phase_0 and shaped by phase goals.
 Goals:
-- have AI suggest the first self-learn path with explicit criteria and a review loop.
-Outcome: a ranked first path that can be verified and turned into the next plan.
+- derive candidate self-learn paths from current files, glossary terms, and project state.
+- rank candidate paths with explicit criteria, scores, and a short rationale.
+- select one path and write the result into the phase outcome files.
+Outcome: a ranked first-path brief with candidate comparison and selected next plan.
 Status: active
 Questions:
 - Are the core requirements specific enough to test?
@@ -42,17 +44,19 @@ Questions:
 - Does the phase need more or fewer goals?
 - What should be added to make the phase future-proof?
 Current core requirements:
-- [auto_ai] PH001-RC001: derive at least one candidate self-learn path from the current project state.
-- [auto_ai] PH001-RC002: rank candidates with explicit criteria and a short rationale.
-- [auto_ai] PH001-RC003: review the selected path against the phase goals, outcome, and modularity budget.
-- [auto_ai] PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
+- [auto_ai] PH001-RC001: derive at least three candidate self-learn paths from the current project state and glossary.
+- [auto_ai] PH001-RC002: score the candidates with explicit criteria, costs, and risks.
+- [auto_ai] PH001-RC003: select one candidate and explain why it wins over the others.
+- [auto_ai] PH001-RC004: write the selected path and review context into phase_1.md and docs/phase-1-outcome.md.
 
 ## phase_2.md
 ### AI challenge prompt
 Challenge the requirements for phase_2.md.
 Purpose: inherited from phase_0 and shaped by phase goals.
 Goals:
-- have AI suggest the first concrete automation learning path from prior phase evidence.
+- derive a phase 2 automation mission from phase 0 and phase 1 evidence.
+- rank candidate missions with explicit criteria, cost, risk, and reuse.
+- publish the selected mission as linked docs and durable metadata.
 Outcome: derive the next automation mission from phase 0 and phase 1 evidence.
 Status: active
 Questions:
@@ -62,7 +66,7 @@ Questions:
 - Does the phase need more or fewer goals?
 - What should be added to make the phase future-proof?
 Current core requirements:
-- [auto_ai] PH002-RC001: derive the first concrete automation learning path from phase 0 and phase 1 evidence.
-- [auto_ai] PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
-- [auto_ai] PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
-- [auto_ai] PH002-RC004: keep the result reusable for later phases without rewriting history.
+- [auto_ai] PH002-RC001: derive candidate mission paths from phase 0 and phase 1 evidence.
+- [auto_ai] PH002-RC002: score and compare candidate paths with explicit criteria, costs, risks, and reuse.
+- [auto_ai] PH002-RC003: write the selected mission into phase_2.md, docs/phase-2-mission.md, and docs/phase-2-outcome.md.
+- [auto_ai] PH002-RC004: keep the mission reusable for later phases without rewriting historical record.

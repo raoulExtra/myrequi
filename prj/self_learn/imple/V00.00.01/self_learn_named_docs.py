@@ -27,10 +27,10 @@ PHASE_0_ACCEPTANCE_CRITERIA = {
 }
 
 PHASE_1_CORE_REQUIREMENTS = [
-    "derive at least one candidate self-learn path from the current project state.",
-    "rank candidates with explicit criteria and a short rationale.",
-    "review the selected path against the phase goals, outcome, and modularity budget.",
-    "record feedback in docs and the meta trace so later phases can reuse it.",
+    "derive at least three candidate self-learn paths from the current project state and glossary.",
+    "score the candidates with explicit criteria, costs, and risks.",
+    "select one candidate and explain why it wins over the others.",
+    "write the selected path and review context into phase_1.md and docs/phase-1-outcome.md.",
 ]
 
 PHASE_1_ACCEPTANCE_CRITERIA = {
@@ -53,10 +53,10 @@ PHASE_1_ACCEPTANCE_CRITERIA = {
 }
 
 PHASE_1_REVIEW_QUESTIONS = [
-    "Does the phase produce candidate paths from current state, not from wishful thinking?",
+    "Does the phase produce at least three candidate paths from current state, not from wishful thinking?",
     "Are the ranking criteria explicit, reviewable, and stable over time?",
-    "Does the review record feedback and protect the modularity budget?",
-    "Can the result be reused by the next plan without rewriting history?",
+    "Does the review capture costs, risks, feedback, and the modularity budget?",
+    "Can the selected path be reused by the next plan without rewriting history?",
 ]
 
 ALLOWED_CORE_REQUIREMENT_TYPES = ("manual", "code", "auto_ai")
@@ -121,6 +121,9 @@ def write_named_phase_0_doc(root: Path) -> Path:
         "This is the named, human-friendly companion to `phase_0.md`.",
         "It keeps the entry phase easy to browse like the named files in `prj/demo`.",
         "",
+        "## purpose",
+        "- self learning how to think sharp & structured.",
+        "",
         "## core requirements",
     ]
     content.extend(_render_core_requirements(0, PHASE_0_CORE_REQUIREMENTS))
@@ -130,6 +133,15 @@ def write_named_phase_0_doc(root: Path) -> Path:
     ])
     content.extend(_render_acceptance_criteria(0, PHASE_0_ACCEPTANCE_CRITERIA))
     content.extend([
+        "",
+        "## related plans",
+        "- [Filesystem autonomy plan](../plans/done/1_plan.md)",
+        "- [Next-step automation plan](../plans/done/2_plan.md)",
+        "- [Glossary phase plan](../plans/done/3_plan.md)",
+        "- [AI next-path phase plan](../plans/4_plan.md)",
+        "- [Phase requirements plan](../plans/done/5_plan.md)",
+        "- [Phase review plan](../plans/done/6_plan.md)",
+        "- [Meta optimization plan](../plans/7_plan.md)",
         "",
         "## navigation",
         "- [Phase 0](../phase_0.md)",
@@ -212,6 +224,10 @@ def write_named_phase_1_doc(root: Path) -> Path:
     ])
     content.extend(_render_acceptance_criteria(1, PHASE_1_ACCEPTANCE_CRITERIA))
     content.extend([
+        "",
+        "## related plans",
+        "- [AI next-path phase plan](../plans/4_plan.md)",
+        "- [Meta optimization plan](../plans/7_plan.md)",
         "",
         "## navigation",
         "- [Phase 1](../phase_1.md)",

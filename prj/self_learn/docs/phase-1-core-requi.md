@@ -1,10 +1,10 @@
 # Phase 1 core requirements
 
 ## core requirements
-- [auto_ai] PH001-RC001: derive at least one candidate self-learn path from the current project state.
-- [auto_ai] PH001-RC002: rank candidates with explicit criteria and a short rationale.
-- [auto_ai] PH001-RC003: review the selected path against the phase goals, outcome, and modularity budget.
-- [auto_ai] PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
+- [auto_ai] PH001-RC001: derive at least three candidate self-learn paths from the current project state and glossary.
+- [auto_ai] PH001-RC002: score the candidates with explicit criteria, costs, and risks.
+- [auto_ai] PH001-RC003: select one candidate and explain why it wins over the others.
+- [auto_ai] PH001-RC004: write the selected path and review context into phase_1.md and docs/phase-1-outcome.md.
 
 ## acceptance criteria
 ### PH001-RC001

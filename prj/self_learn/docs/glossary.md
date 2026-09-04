@@ -14,7 +14,7 @@ It is meant to stay small, clear, and extensible.
 | step | One actionable item inside a plan. | Keep steps small and ordered. |
 | goal | The target state the project is trying to reach. | Goals can drive plans and checkpoints. |
 | outcome | The result that actually happens after work. | Outcomes are observed, not assumed. |
-| objective | The reason a plan or project exists. | Usually broader than a step and narrower than a mission. |
+| objective | The intended target or direction for a phase, plan, or project. | Often broader than a goal and narrower than a mission; can contain multiple goals. |
 | canonical | The preferred default-facing term, file, or path. | Use one canonical home per idea. |
 | active | Currently in progress. | Active plans live outside plans/done/. |
 | done | Finished and retained for history. | Completed plans move to plans/done/. |

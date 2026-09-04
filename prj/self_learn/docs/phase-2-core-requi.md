@@ -34,5 +34,5 @@ It exists so the current automation mission can be carried forward from phase 0 
 
 ## phase history
 - phase_0.md: self learning how to think sharp & structured | use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. | a simple navigation page for the self_learn project.
-- phase_1.md: inherited from phase_0 | have AI suggest the first self-learn path with explicit criteria and a review loop. | a ranked first path that can be verified and turned into the next plan.
-- phase_2.md: inherited from phase_1 | have AI suggest the first concrete automation learning path from prior phase evidence. | derive the next automation mission from phase 0 and phase 1 evidence.
+- phase_1.md: inherited from phase_0 | derive candidate self-learn paths from current files, glossary terms, and project state. | rank candidate paths with explicit criteria, scores, and a short rationale. | select one path and write the result into the phase outcome files. | a ranked first-path brief with candidate comparison and selected next plan.
+- phase_2.md: inherited from phase_1 | derive a phase 2 automation mission from phase 0 and phase 1 evidence. | rank candidate missions with explicit criteria, cost, risk, and reuse. | publish the selected mission as linked docs and durable metadata. | derive the next automation mission from phase 0 and phase 1 evidence.

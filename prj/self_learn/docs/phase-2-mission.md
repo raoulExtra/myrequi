@@ -34,7 +34,7 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 - P2-C1: derive the next automation mission from phase 0 and phase 1 evidence
   - evidence: phase 0 + phase 1 state
   - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md, docs/phase-0-outcome.md, docs/phase-1-outcome.md, docs/phase-2-outcome.md
-  - why: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is have AI suggest the first self-learn path with explicit criteria and a review loop., so the mission should join evidence into one automated choice.
+  - why: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is derive candidate self-learn paths from current files, glossary terms, and project state.; rank candidate paths with explicit criteria, scores, and a short rationale.; select one path and write the result into the phase outcome files., so the mission should join evidence into one automated choice.
   - score: impact 5 + reuse 5 + testability 5 - cost 2 - risk 1 = 12
 - P2-C2: verify requirement coverage and acceptance criteria for the phase docs
   - evidence: phase 0 + phase 1 state
@@ -50,7 +50,7 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 ## ranking
 
 1. P2-C1 (12) - derive the next automation mission from phase 0 and phase 1 evidence
-   - why: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is have AI suggest the first self-learn path with explicit criteria and a review loop., so the mission should join evidence into one automated choice.
+   - why: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is derive candidate self-learn paths from current files, glossary terms, and project state.; rank candidate paths with explicit criteria, scores, and a short rationale.; select one path and write the result into the phase outcome files., so the mission should join evidence into one automated choice.
 2. P2-C2 (10) - verify requirement coverage and acceptance criteria for the phase docs
    - why: phase 0 and phase 1 now use RC/AC codes, so the automation can prove coverage before selecting a deeper mission.
 3. P2-C3 (6) - stabilize refresh, checkpoint, and plan movement for future phases
@@ -58,7 +58,7 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 
 ## selected outcome
 - P2-C1: derive the next automation mission from phase 0 and phase 1 evidence
-- rationale: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is have AI suggest the first self-learn path with explicit criteria and a review loop., so the mission should join evidence into one automated choice.
+- rationale: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is derive candidate self-learn paths from current files, glossary terms, and project state.; rank candidate paths with explicit criteria, scores, and a short rationale.; select one path and write the result into the phase outcome files., so the mission should join evidence into one automated choice.
 
 ## navigation
 - [Phase 2](../phase_2.md)
@@ -81,15 +81,19 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 ### phase_1.md
 - inherited from phase_0.md
 - goals:
-  - have AI suggest the first self-learn path with explicit criteria and a review loop.
-- goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
-- outcome: a ranked first path that can be verified and turned into the next plan.
+  - derive candidate self-learn paths from current files, glossary terms, and project state.
+  - rank candidate paths with explicit criteria, scores, and a short rationale.
+  - select one path and write the result into the phase outcome files.
+- goal: derive candidate self-learn paths from current files, glossary terms, and project state.
+- outcome: a ranked first-path brief with candidate comparison and selected next plan.
 - status: active
 
 ### phase_2.md
 - inherited from phase_1.md
 - goals:
-  - have AI suggest the first concrete automation learning path from prior phase evidence.
-- goal: have AI suggest the first concrete automation learning path from prior phase evidence.
+  - derive a phase 2 automation mission from phase 0 and phase 1 evidence.
+  - rank candidate missions with explicit criteria, cost, risk, and reuse.
+  - publish the selected mission as linked docs and durable metadata.
+- goal: derive a phase 2 automation mission from phase 0 and phase 1 evidence.
 - outcome: derive the next automation mission from phase 0 and phase 1 evidence.
 - status: active

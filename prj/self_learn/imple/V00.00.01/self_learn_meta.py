@@ -99,10 +99,18 @@ def build_meta_trace(
         )
     else:
         signals.append("active_plan_present")
+        signals.append("active_plan_requires_run")
+        recommendations.append(
+            {
+                "area": "planning",
+                "action": "run the active plan now and store the outcome in plans/done/ as a dedicated execution record",
+                "plans": active_plans,
+            }
+        )
         corrections.append(
             {
                 "area": "planning",
-                "action": "keep the active plan small and reviewable",
+                "action": "keep the active plan small, execute it, and archive the result as soon as the run is complete",
                 "kind": "preventive",
             }
         )

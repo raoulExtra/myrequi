@@ -4,10 +4,10 @@ This is the named, human-friendly companion to `phase_1.md`.
 It keeps the phase easy to browse like the named files in `prj/demo`.
 
 ## core requirements
-- [auto_ai] PH001-RC001: derive at least one candidate self-learn path from the current project state.
-- [auto_ai] PH001-RC002: rank candidates with explicit criteria and a short rationale.
-- [auto_ai] PH001-RC003: review the selected path against the phase goals, outcome, and modularity budget.
-- [auto_ai] PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
+- [auto_ai] PH001-RC001: derive at least three candidate self-learn paths from the current project state and glossary.
+- [auto_ai] PH001-RC002: score the candidates with explicit criteria, costs, and risks.
+- [auto_ai] PH001-RC003: select one candidate and explain why it wins over the others.
+- [auto_ai] PH001-RC004: write the selected path and review context into phase_1.md and docs/phase-1-outcome.md.
 
 ## acceptance criteria
 ### PH001-RC001
@@ -25,6 +25,10 @@ It keeps the phase easy to browse like the named files in `prj/demo`.
 ### PH001-RC004
 - PH001-RC004-AC001: feedback is written back into docs or the meta trace.
 - PH001-RC004-AC002: later phases can reuse the feedback without re-deriving it.
+
+## related plans
+- [AI next-path phase plan](../plans/4_plan.md)
+- [Meta optimization plan](../plans/7_plan.md)
 
 ## navigation
 - [Phase 1](../phase_1.md)

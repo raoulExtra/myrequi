@@ -13,7 +13,6 @@ AI should challenge them before the phase is treated as stable.
 - purpose: self learning how to think sharp & structured
 - goals:
   - use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
-- goal: use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
 - outcome: a simple navigation page for the self_learn project.
 - status: completed
 - outcome_doc: docs/phase-0-outcome.md
@@ -26,28 +25,30 @@ AI should challenge them before the phase is treated as stable.
 
 ## phase_1.md
 - goals:
-  - have AI suggest the first self-learn path with explicit criteria and a review loop.
-- goal: have AI suggest the first self-learn path with explicit criteria and a review loop.
-- outcome: a ranked first path that can be verified and turned into the next plan.
+  - derive candidate self-learn paths from current files, glossary terms, and project state.
+  - rank candidate paths with explicit criteria, scores, and a short rationale.
+  - select one path and write the result into the phase outcome files.
+- outcome: a ranked first-path brief with candidate comparison and selected next plan.
 - status: active
 - outcome_doc: docs/phase-1-outcome.md
 
 ### core requirements
-- [auto_ai] PH001-RC001: derive at least one candidate self-learn path from the current project state.
-- [auto_ai] PH001-RC002: rank candidates with explicit criteria and a short rationale.
-- [auto_ai] PH001-RC003: review the selected path against the phase goals, outcome, and modularity budget.
-- [auto_ai] PH001-RC004: record feedback in docs and the meta trace so later phases can reuse it.
+- [auto_ai] PH001-RC001: derive at least three candidate self-learn paths from the current project state and glossary.
+- [auto_ai] PH001-RC002: score the candidates with explicit criteria, costs, and risks.
+- [auto_ai] PH001-RC003: select one candidate and explain why it wins over the others.
+- [auto_ai] PH001-RC004: write the selected path and review context into phase_1.md and docs/phase-1-outcome.md.
 
 ## phase_2.md
 - goals:
-  - have AI suggest the first concrete automation learning path from prior phase evidence.
-- goal: have AI suggest the first concrete automation learning path from prior phase evidence.
+  - derive a phase 2 automation mission from phase 0 and phase 1 evidence.
+  - rank candidate missions with explicit criteria, cost, risk, and reuse.
+  - publish the selected mission as linked docs and durable metadata.
 - outcome: derive the next automation mission from phase 0 and phase 1 evidence.
 - status: active
 - outcome_doc: docs/phase-2-outcome.md
 
 ### core requirements
-- [auto_ai] PH002-RC001: derive the first concrete automation learning path from phase 0 and phase 1 evidence.
-- [auto_ai] PH002-RC002: rank the candidate paths with explicit criteria, costs, and risks.
-- [auto_ai] PH002-RC003: write the selected phase 2 mission into the filesystem and meta trace.
-- [auto_ai] PH002-RC004: keep the result reusable for later phases without rewriting history.
+- [auto_ai] PH002-RC001: derive candidate mission paths from phase 0 and phase 1 evidence.
+- [auto_ai] PH002-RC002: score and compare candidate paths with explicit criteria, costs, risks, and reuse.
+- [auto_ai] PH002-RC003: write the selected mission into phase_2.md, docs/phase-2-mission.md, and docs/phase-2-outcome.md.
+- [auto_ai] PH002-RC004: keep the mission reusable for later phases without rewriting historical record.
