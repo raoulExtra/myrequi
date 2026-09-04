@@ -9,5 +9,10 @@ The self_learn project is meant to keep its own filesystem organized.
   - `checkpoint`: refresh, stage `prj/self_learn` plus `continuity.db`, and commit
   - `status`: report the current filesystem shape
 
+## future-proofing
+- Keep the glossary small, canonical, and easy to extend.
+- Add a new term before using it widely.
+- Prefer updates that do not invalidate older docs.
+
 ## rule
 When a plan becomes complete, move it into `plans/done/`.

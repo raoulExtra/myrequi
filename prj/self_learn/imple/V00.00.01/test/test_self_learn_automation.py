@@ -35,6 +35,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             (root / "plans" / "done").mkdir(parents=True)
             (root / "docs").mkdir(parents=True)
             (root / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
+            (root / "docs" / "glossary.md").write_text("# glossary\n", encoding="utf-8")
             (root / "plans" / "2_plan.md").write_text("status: active\n", encoding="utf-8")
             (root / "plans" / "1_plan.md").write_text("status: completed\n", encoding="utf-8")
 
@@ -43,6 +44,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "index.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("learning-loop.md", index)
+            self.assertIn("glossary.md", index)
             self.assertIn("2_plan.md", index)
             self.assertIn("1_plan.md", index)
             self.assertIn("docs_index", report)

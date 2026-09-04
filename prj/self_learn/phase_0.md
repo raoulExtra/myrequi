@@ -10,9 +10,11 @@ tags:
 
 navigation:
 - [Project index](docs/index.md)
+- [Glossary](docs/glossary.md)
 - [Learning loop notes](docs/learning-loop.md)
 - [Filesystem autonomy notes](docs/filesystem-autonomy.md)
 - [Automation notes](docs/automation.md)
+- [Glossary phase plan](plans/3_plan.md)
 - [Next-step automation plan](plans/done/2_plan.md)
 - [Filesystem automation plan](plans/done/1_plan.md)
 - [Base project file organization standard](../base/002-requi-prj-file-organization-standard.md)
