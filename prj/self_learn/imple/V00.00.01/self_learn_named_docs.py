@@ -29,7 +29,7 @@ def _phase_code(phase_number: int) -> str:
 
 
 def _requirement_code(phase_number: int, requirement_number: int) -> str:
-    return f"{_phase_code(phase_number)}-R{requirement_number:03d}"
+    return f"{_phase_code(phase_number)}-RC{requirement_number:03d}"
 
 
 def _render_core_requirements(phase_number: int, requirements: list[str]) -> list[str]:
