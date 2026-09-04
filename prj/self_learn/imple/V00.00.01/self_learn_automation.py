@@ -52,6 +52,9 @@ GLOSSARY_ROWS = [
     ("priority", "The ranking weight that orders candidate paths.", "Higher priority wins unless criteria say otherwise."),
     ("feedback", "Observed results that change the next suggestion.", "Feeds the learning loop."),
     ("review", "A check of whether a path worked.", "Use after a path or plan."),
+    ("modularize", "Split a large file into smaller files or sections.", "Use when a file grows beyond the line budget."),
+    ("line budget", "The maximum allowed line count for a file.", "Currently 700 lines."),
+    ("oversized file", "A file that exceeds the line budget.", "Should trigger modularization before checkpointing."),
     ("next path", "The first or next learning route selected by AI.", "This is the phase-1 focus for self_learn."),
 ]
 
@@ -65,6 +68,8 @@ NEXT_PATH_ROWS = [
     ("feedback", "Observed outcome data that changes the next suggestion."),
     ("review", "A check that evaluates whether the chosen path worked."),
 ]
+
+MAX_FILE_LINES = 700
 
 PHASE1_PLAN_KEY = "4_plan.md"
 PHASE1_PLAN_TITLE = "AI-first self-learn path"
@@ -123,6 +128,36 @@ def sync(root: Path = PROJECT_ROOT) -> SyncReport:
     created_dirs = ensure_canonical_dirs(root)
     moved_plans = move_completed_plans(root)
     return SyncReport(created_dirs=created_dirs, moved_plans=moved_plans)
+
+
+def _count_text_lines(path: Path) -> int:
+    with path.open("r", encoding="utf-8") as handle:
+        return sum(1 for _ in handle)
+
+
+def modularity_budget(root: Path = PROJECT_ROOT, limit: int = MAX_FILE_LINES) -> list[dict[str, object]]:
+    issues: list[dict[str, object]] = []
+    for path in sorted(p for p in root.rglob("*") if p.is_file()):
+        try:
+            line_count = _count_text_lines(path)
+        except (OSError, UnicodeDecodeError):
+            continue
+        if line_count > limit:
+            issues.append({
+                "path": str(path.relative_to(root)),
+                "line_count": line_count,
+                "limit": limit,
+                "over_by": line_count - limit,
+            })
+    return issues
+
+
+def enforce_modularity_budget(root: Path = PROJECT_ROOT, limit: int = MAX_FILE_LINES) -> list[dict[str, object]]:
+    issues = modularity_budget(root, limit)
+    if issues:
+        summary = ", ".join(f"{item['path']} ({item['line_count']} lines)" for item in issues)
+        raise RuntimeError(f"Files over {limit} lines must be modularized first: {summary}")
+    return issues
 
 
 def _render_glossary() -> str:
@@ -191,6 +226,32 @@ def write_next_path_doc(root: Path = PROJECT_ROOT) -> Path:
     return path
 
 
+def write_modularity_doc(root: Path = PROJECT_ROOT) -> Path:
+    docs_dir = root / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    content = [
+        "# Modularity budget",
+        "",
+        f"The project keeps files at or below {MAX_FILE_LINES} lines where practical.",
+        "If a file grows beyond that budget, split it into smaller modules or docs.",
+        "",
+        "## check",
+        "",
+        "- `status` reports files over budget.",
+        "- `budget` prints the same report on demand.",
+        "- `checkpoint` and `advance` refuse to commit while over-budget files exist.",
+        "",
+        "## future-proofing",
+        "",
+        "- Use the budget as a warning before the file becomes hard to review.",
+        "- Prefer smaller support files over one large growing file.",
+        "- If a large generated file is necessary, document the exception explicitly.",
+    ]
+    path = docs_dir / "modularity.md"
+    path.write_text("\n".join(content) + "\n", encoding="utf-8")
+    return path
+
+
 def write_phase_0(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_0.md"
     content = """PROJECT PHASE 0
@@ -207,6 +268,7 @@ navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Modularity budget](docs/modularity.md)
 - [Learning loop notes](docs/learning-loop.md)
 - [Filesystem autonomy notes](docs/filesystem-autonomy.md)
 - [Automation notes](docs/automation.md)
@@ -244,6 +306,7 @@ navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Automation notes](docs/automation.md)
 - [Next path plan](plans/4_plan.md)
@@ -263,6 +326,7 @@ Project entry point.
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Phase 1](phase_1.md)
 - [Filesystem autonomy](docs/filesystem-autonomy.md)
@@ -335,6 +399,7 @@ def status(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "done_plans": done_plans,
         "docs": sorted(p.name for p in (root / "docs").glob("*.md")) if (root / "docs").exists() else [],
         "docs_index": str(root / "docs" / "index.md") if (root / "docs" / "index.md").exists() else None,
+        "modularity_budget": modularity_budget(root),
     }
 
 
@@ -342,8 +407,9 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     report = sync(root)
     glossary_path = write_glossary(root)
     next_path_doc = write_next_path_doc(root)
+    modularity_doc = write_modularity_doc(root)
     index_path = docs_index(root)
-    return {**report.as_dict(), "glossary": str(glossary_path), "next_path": str(next_path_doc), "docs_index": str(index_path)}
+    return {**report.as_dict(), "glossary": str(glossary_path), "next_path": str(next_path_doc), "modularity": str(modularity_doc), "docs_index": str(index_path), "modularity_budget": modularity_budget(root)}
 
 
 def advance(root: Path = PROJECT_ROOT) -> dict[str, object]:
@@ -382,12 +448,12 @@ def update_project_goal(root: Path = PROJECT_ROOT) -> None:
     db_path = repo_root / "continuity.db"
     if not db_path.exists():
         return
-    goal = "Use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path."
+    goal = "Use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, suggest the first self-learn path, and modularize files over 700 lines."
     conn = sqlite3.connect(db_path)
     try:
         conn.execute(
             "update metacognitive_state set value=?, version=?, updated_at=CURRENT_TIMESTAMP where state_key='project_goal__self_learn'",
-            (goal, 4),
+            (goal, 5),
         )
         conn.commit()
     finally:
@@ -395,15 +461,16 @@ def update_project_goal(root: Path = PROJECT_ROOT) -> None:
 
 
 def git_checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem checkpoint") -> dict[str, object]:
+    issues = enforce_modularity_budget(root)
     repo_root = _repo_root(root)
     rel_root = str(root.resolve().relative_to(repo_root))
     subprocess.run(["git", "-C", str(repo_root), "add", rel_root, "continuity.db"], check=True)
     diff = subprocess.run(["git", "-C", str(repo_root), "diff", "--cached", "--quiet"])
     if diff.returncode == 0:
-        return {"repo_root": str(repo_root), "staged": [], "committed": False, "message": message}
+        return {"repo_root": str(repo_root), "staged": [], "committed": False, "message": message, "modularity_budget": issues}
     subprocess.run(["git", "-C", str(repo_root), "commit", "-m", message], check=True)
     rev = subprocess.run(["git", "-C", str(repo_root), "rev-parse", "--short", "HEAD"], check=True, capture_output=True, text=True)
-    return {"repo_root": str(repo_root), "staged": [rel_root, "continuity.db"], "committed": True, "message": message, "commit": rev.stdout.strip()}
+    return {"repo_root": str(repo_root), "staged": [rel_root, "continuity.db"], "committed": True, "message": message, "commit": rev.stdout.strip(), "modularity_budget": issues}
 
 
 def checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem checkpoint") -> dict[str, object]:
@@ -413,7 +480,7 @@ def checkpoint(root: Path = PROJECT_ROOT, message: str = "self_learn: filesystem
 
 def main(argv: Iterable[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Self-learn filesystem automation helper")
-    parser.add_argument("action", choices=["sync", "refresh", "advance", "checkpoint", "status"])
+    parser.add_argument("action", choices=["sync", "refresh", "advance", "checkpoint", "status", "budget"])
     parser.add_argument("--root", default=str(PROJECT_ROOT), help="Project root directory")
     args = parser.parse_args(list(argv) if argv is not None else None)
     root = Path(args.root)
@@ -432,6 +499,9 @@ def main(argv: Iterable[str] | None = None) -> int:
         return 0
     if args.action == "status":
         print(status(root))
+        return 0
+    if args.action == "budget":
+        print({"limit": MAX_FILE_LINES, "modularity_budget": modularity_budget(root)})
         return 0
     return 1
 

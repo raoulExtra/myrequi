@@ -44,13 +44,16 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "index.md").exists())
             self.assertTrue((root / "docs" / "glossary.md").exists())
             self.assertTrue((root / "docs" / "next-path.md").exists())
+            self.assertTrue((root / "docs" / "modularity.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("learning-loop.md", index)
             self.assertIn("glossary.md", index)
             self.assertIn("next-path.md", index)
+            self.assertIn("modularity.md", index)
             self.assertIn("2_plan.md", index)
             self.assertIn("1_plan.md", index)
             self.assertIn("docs_index", report)
+            self.assertEqual(report["modularity_budget"], [])
 
     def test_main_advance_creates_next_phase(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -77,6 +80,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((project / "phase_1.md").exists())
             self.assertTrue((project / "docs" / "glossary.md").exists())
             self.assertTrue((project / "docs" / "next-path.md").exists())
+            self.assertTrue((project / "docs" / "modularity.md").exists())
             self.assertTrue((project / "plans" / "done" / "3_plan.md").exists())
             self.assertTrue((project / "plans" / "4_plan.md").exists())
             self.assertTrue((project / "docs" / "index.md").exists())
@@ -106,6 +110,7 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((project / "plans" / "done" / "3_plan.md").exists())
             self.assertTrue((project / "phase_1.md").exists())
             self.assertTrue((project / "docs" / "index.md").exists())
+            self.assertTrue((project / "docs" / "modularity.md").exists())
 
     def test_main_refresh_creates_index(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -121,11 +126,13 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "index.md").exists())
             self.assertTrue((root / "docs" / "glossary.md").exists())
             self.assertTrue((root / "docs" / "next-path.md").exists())
+            self.assertTrue((root / "docs" / "modularity.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("2_plan.md", index)
             self.assertIn("learning-loop.md", index)
             self.assertIn("glossary.md", index)
             self.assertIn("next-path.md", index)
+            self.assertIn("modularity.md", index)
 
     def test_status_reports_plans_and_docs(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -141,6 +148,30 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertEqual(report["active_plans"], ["2_plan.md"])
             self.assertEqual(report["done_plans"], ["1_plan.md"])
             self.assertIn("learning-loop.md", report["docs"])
+            self.assertEqual(report["modularity_budget"], [])
+
+    def test_modularity_budget_flags_large_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            root.mkdir(parents=True)
+            big = root / "big.md"
+            big.write_text("\n".join(f"line {i}" for i in range(701)) + "\n", encoding="utf-8")
+
+            issues = sla.modularity_budget(root)
+
+            self.assertEqual(len(issues), 1)
+            self.assertEqual(issues[0]["path"], "big.md")
+            self.assertEqual(issues[0]["line_count"], 701)
+            self.assertEqual(issues[0]["limit"], 700)
+
+    def test_git_checkpoint_blocks_large_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            root.mkdir(parents=True)
+            (root / "big.md").write_text("\n".join(f"line {i}" for i in range(701)) + "\n", encoding="utf-8")
+
+            with self.assertRaises(RuntimeError):
+                sla.git_checkpoint(root)
 
 
 if __name__ == "__main__":

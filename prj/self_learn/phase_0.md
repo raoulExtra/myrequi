@@ -12,6 +12,7 @@ navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Modularity budget](docs/modularity.md)
 - [Learning loop notes](docs/learning-loop.md)
 - [Filesystem autonomy notes](docs/filesystem-autonomy.md)
 - [Automation notes](docs/automation.md)

@@ -8,6 +8,7 @@ navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Modularity budget](docs/modularity.md)
 - [Phase 0](phase_0.md)
 - [Automation notes](docs/automation.md)
 - [Next path plan](plans/4_plan.md)
