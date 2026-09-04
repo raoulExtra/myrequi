@@ -21,7 +21,8 @@ AI should challenge them before the phase is treated as stable.
 - [code] PH000-RC001: define the canonical project entry point.
 - [code] PH000-RC002: keep the glossary and automation links visible.
 - [code] PH000-RC003: preserve the phase boundary into phase 1.
-- [code] PH000-RC004: stay small enough to review quickly.
+- [code] PH000-RC004: describe the auto subproject and its versioned docs/implementation layout.
+- [code] PH000-RC005: stay small enough to review quickly.
 
 ## phase_1.md
 - goals:

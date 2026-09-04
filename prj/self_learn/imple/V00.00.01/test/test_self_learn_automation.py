@@ -12,6 +12,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 import self_learn_automation as sla
+import self_learn_cli as cli
 import self_learn_phase_2 as phase2
 
 class SelfLearnAutomationTests(unittest.TestCase):
@@ -44,6 +45,74 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "plans" / "7_plan.md").exists())
             self.assertFalse((root / "plans" / "prep" / "7_plan.md").exists())
 
+    def test_trigger_next_phase_ai_suggests_next_phase_generation(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "plans" / "prep").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            (root / "plans" / "prep" / "7_plan.md").write_text("""# Self-learn meta optimization plan\nstatus: active\n\n## objective\nAutomate the trace of self-learning optimization so the project can see its own improvement signals.\n\n## when to run\n- run when a new active plan appears or an active plan changes.\n\n## steps\n1. Generate a meta optimization trace from phase state and modularity signals.\n2. Persist the trace in docs and continuity.db.\n3. Use the trace to guide the next self-learning review.\n4. Keep the trace format small and durable.\n""", encoding="utf-8")
+
+            result = cli.main(["trigger", "next-phase-ai", "--root", str(root)])
+
+            self.assertEqual(result, 0)
+            handoff = (root / "docs" / "active-plan.md").read_text(encoding="utf-8")
+            suggestion = (root / "docs" / "next-phase-generation.md").read_text(encoding="utf-8")
+            self.assertIn("phase 0 purpose", suggestion)
+            self.assertIn("phase 3", suggestion)
+            self.assertIn("manual trigger CLI", suggestion)
+            self.assertIn("active plans", handoff)
+            self.assertIn("prep plans", suggestion)
+            self.assertTrue((root / "plans" / "prep" / "7_plan.md").exists())
+            self.assertFalse((root / "plans" / "7_plan.md").exists())
+
+    def test_trigger_check_gloss_expands_current_phase_terms(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "docs").mkdir(parents=True)
+            (root / "docs" / "glossary.md").write_text((Path("prj/self_learn/docs/glossary.md")).read_text(encoding="utf-8"), encoding="utf-8")
+            (root / "phase_0.md").write_text("""PROJECT PHASE 0\npurpose: entry point\ngoal: keep navigation clear\noutcome: docs index stays useful\ncore_requirements:\n- define the canonical project entry point.\n- keep the glossary and automation links visible.\n- preserve the phase boundary into phase 1.\nstatus: completed\n""", encoding="utf-8")
+            (root / "phase_1.md").write_text("""PROJECT PHASE 1\npurpose: choose a next path\ngoal: suggest the next path\noutcome: ranked path\ncore_requirements:\n- define the first usable path candidates.\n- challenge each candidate with explicit criteria.\n- keep a review loop and feedback path.\n- make the manual trigger CLI obvious.\nstatus: active\n""", encoding="utf-8")
+
+            result = cli.main(["trigger", "check-gloss", "--root", str(root), "--expand"])
+
+            self.assertEqual(result, 0)
+            self.assertTrue((root / "docs" / "glossary-check.md").exists())
+            expanded = (root / "docs" / "glossary-check.md").read_text(encoding="utf-8")
+            self.assertIn("Glossary phase check", expanded)
+            self.assertIn("manual trigger CLI", expanded)
+            self.assertIn("new important term count", expanded)
+
+    def test_trigger_prep_plan_promotes_specific_prepared_plan(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "plans" / "prep").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            (root / "plans" / "prep" / "7_plan.md").write_text("""# Self-learn meta optimization plan\nstatus: active\n\n## objective\nAutomate the trace of self-learning optimization so the project can see its own improvement signals.\n\n## when to run\n- run when a new active plan appears or an active plan changes.\n\n## steps\n1. Generate a meta optimization trace from phase state and modularity signals.\n2. Persist the trace in docs and continuity.db.\n3. Use the trace to guide the next self-learning review.\n4. Keep the trace format small and durable.\n""", encoding="utf-8")
+
+            result = cli.main(["trigger", "prep-plan", "7", "--root", str(root)])
+
+            self.assertEqual(result, 0)
+            self.assertTrue((root / "plans" / "7_plan.md").exists())
+            self.assertFalse((root / "plans" / "prep" / "7_plan.md").exists())
+
+    def test_trigger_record_plan_creates_execution_record(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "plans").mkdir(parents=True)
+            (root / "docs").mkdir(parents=True)
+            plan = root / "plans" / "4_plan.md"
+            plan.write_text("""# Self-learn AI next-path phase plan\nstatus: active\n\n## objective\nHave AI derive, score, and select self-learn paths from current project evidence, then write the chosen path into the phase 1 docs.\n\n## when to run\n- run when the path selection work is ready.\n\n## steps\n1. Derive at least three candidate paths from the current project state and glossary.\n2. Score each candidate with explicit criteria, costs, and risks.\n3. Select one winner and explain why it beats the others.\n4. Write the selected path and review context into `phase_1.md` and `docs/phase-1-outcome.md`.\n""", encoding="utf-8")
+
+            result = cli.main(["trigger", "record-plan", "--root", str(root), "--plan", str(plan), "--summary", "manual run", "--detail", "step one", "--complete-source"])
+
+            self.assertEqual(result, 0)
+            done_dir = root / "plans" / "done"
+            records = sorted(done_dir.glob("4_plan_exec_*.md"))
+            self.assertTrue(records)
+            self.assertTrue((done_dir / "4_plan.md").exists())
+            self.assertFalse(plan.exists())
+            self.assertIn("manual run", records[-1].read_text(encoding="utf-8"))
+
     def test_refresh_writes_docs_index(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp) / "self_learn"
@@ -72,6 +141,14 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "phase-0-entry.md").exists())
             self.assertTrue((root / "docs" / "phase-0-core-requi.md").exists())
             self.assertTrue((root / "docs" / "phase-0-core-review.md").exists())
+            self.assertTrue((root / "docs" / "phase-0/auto/phase-0-core-requi-auto.md").exists())
+            self.assertTrue((root / "docs" / "phase-0/auto/phase-0-core-review-auto.md").exists())
+            auto_requirements = (root / "docs" / "phase-0/auto/phase-0-core-requi-auto.md").read_text(encoding="utf-8")
+            self.assertIn("RC001-AUTO", auto_requirements)
+            self.assertIn("RC001-AC001-AUTO", auto_requirements)
+            self.assertIn("RC008-AUTO", auto_requirements)
+            self.assertIn("RC008-AC002-AUTO", auto_requirements)
+            self.assertNotIn("AUTO-RC008", auto_requirements)
             self.assertTrue((root / "docs" / "phase-1-next-path.md").exists())
             self.assertTrue((root / "docs" / "phase-1-core-requi.md").exists())
             self.assertTrue((root / "docs" / "phase-1-core-review.md").exists())
@@ -237,6 +314,14 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertTrue((root / "docs" / "phase-0-entry.md").exists())
             self.assertTrue((root / "docs" / "phase-0-core-requi.md").exists())
             self.assertTrue((root / "docs" / "phase-0-core-review.md").exists())
+            self.assertTrue((root / "docs" / "phase-0/auto/phase-0-core-requi-auto.md").exists())
+            self.assertTrue((root / "docs" / "phase-0/auto/phase-0-core-review-auto.md").exists())
+            auto_review = (root / "docs" / "phase-0/auto/phase-0-core-review-auto.md").read_text(encoding="utf-8")
+            self.assertIn("RC001-AUTO", auto_review)
+            self.assertIn("RC001-AC001-AUTO", auto_review)
+            self.assertIn("RC008-AUTO", auto_review)
+            self.assertIn("RC008-AC002-AUTO", auto_review)
+            self.assertNotIn("AUTO-RC008", auto_review)
             self.assertTrue((root / "docs" / "phase-1-next-path.md").exists())
             self.assertTrue((root / "docs" / "phase-1-core-requi.md").exists())
             self.assertTrue((root / "docs" / "phase-1-core-review.md").exists())

@@ -3,11 +3,13 @@
 ## review questions
 - Is the entry point canonical and obvious?
 - Are the glossary and automation links visible?
+- Is the auto subproject clearly identified as the home for project automations?
+- Does the versioned docs and implementation layout show up explicitly?
 - Does the file stay small and readable?
 - Does the phase boundary to phase 1 remain clear?
 
 ## current view
-These core requirements are specific enough to test and future-proof because they keep the phase clean, visible, and bounded.
+These core requirements are specific enough to test and future-proof because they keep the phase clean, visible, bounded, and linked to the automation subproject.
 
 ## type legend
 
@@ -19,4 +21,5 @@ These core requirements are specific enough to test and future-proof because the
 - [code] PH000-RC001: define the canonical project entry point.
 - [code] PH000-RC002: keep the glossary and automation links visible.
 - [code] PH000-RC003: preserve the phase boundary into phase 1.
-- [code] PH000-RC004: stay small enough to review quickly.
+- [code] PH000-RC004: describe the auto subproject and its versioned docs/implementation layout.
+- [code] PH000-RC005: stay small enough to review quickly.

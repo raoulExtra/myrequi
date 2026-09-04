@@ -4,8 +4,12 @@ The self_learn project is meant to keep its own filesystem organized.
 
 ## current automation
 - `imple/V00.00.01/self_learn_automation.py`
-  - wrapper entry point for the implementation split
-- `imple/V00.00.01/self_learn_automation_core.py`
+  - compatibility wrapper entry point for the implementation split
+- `imple/V00.00.01/self_learn_cli.py`
+  - compatibility wrapper for the CLI entry point
+- `imple/V00.00.01/auto/self_learn_cli.py`
+  - user-facing CLI for manual triggers and plan recording
+- `imple/V00.00.01/auto/self_learn_automation_core.py`
   - `sync`: create canonical dirs, promote ready plans from `plans/prep/` into `plans/`, and move completed plans into `plans/done/`
   - `refresh`: sync, regenerate the docs, write `docs/meta-trace.json`, `docs/meta-optimization.md`, `docs/meta-actions.json`, `docs/meta-actions.md`, `docs/active-plan.md`, `docs/working-rules.md`, `docs/phase-0-entry.md`, `docs/phase-0-core-requi.md`, `docs/phase-0-core-review.md`, `docs/phase-1-next-path.md`, `docs/phase-1-core-requi.md`, `docs/phase-1-core-review.md`, `docs/phase-2-mission.md`, `docs/phase-2-core-requi.md`, `docs/phase-2-core-review.md`, and update `continuity.db`
   - `write_active_plan_handoff`: describe the current active plan, when to run it, and the exact storage path for its result
@@ -23,10 +27,19 @@ The self_learn project is meant to keep its own filesystem organized.
   - `meta-actions.md`: readable self-correction actions
   - `working-rules.md`: the current automation/testing rule of thumb
   - `phase-1-core-requi.md`: named phase 1 core requirements file
+  - `phase-0/auto/phase-0-core-requi-auto.md`: canonical phase 0 auto core requirements file
+  - `phase-0/auto/phase-0-core-review-auto.md`: canonical phase 0 auto core review file
+  - `phase-0-auto-core-requi.md`: legacy flat alias for the auto requirements file
+  - `phase-0-auto-core-review.md`: legacy flat alias for the auto review file
+  - implementation code now lives under `imple/V00.00.01/auto/`
   - `phase-1-core-review.md`: named phase 1 review file
   - `phase-2-mission.md`: named phase 2 mission file (current automation mission)
   - `phase-2-core-requi.md`: named phase 2 core requirements file
   - `phase-2-core-review.md`: named phase 2 review file
+  - `trigger handoff|next-phase-ai|check-gloss|prep-plan <number>|phase-0|phase-1|phase-2|phase-docs|meta-trace|record-plan`: manual triggers for specific automation elements
+  - `next-phase-ai`: suggest the best next phase generation without promoting plans
+  - `check-gloss [--expand]`: inspect the glossary; with `--expand`, report whether the current phase introduced new important terms and write a glossary-check doc
+  - `prep-plan <number>`: promote a specific prepared plan from `plans/prep/` into `plans/`
 
 ## future-proofing
 - Keep the glossary small, canonical, and easy to extend.
@@ -40,3 +53,4 @@ The self_learn project is meant to keep its own filesystem organized.
 When a plan is active, generate a handoff doc and run it before the next checkpoint.
 When a plan is in `plans/prep/` and its run trigger is ready, promote it into `plans/` so it can run.
 When a plan becomes complete, store a dedicated execution record in `plans/done/` and move the source plan into `plans/done/`.
+Use the CLI to manually trigger handoff, next-phase-ai planning, prep-plan promotion, phase docs, meta trace, and plan recording when needed.

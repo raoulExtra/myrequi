@@ -7,6 +7,7 @@
 
 ## docs
 - [active-plan.md](./active-plan.md)
+- [auto-core-requi.md](./auto-core-requi.md)
 - [automation.md](./automation.md)
 - [filesystem-autonomy.md](./filesystem-autonomy.md)
 - [glossary.md](./glossary.md)
@@ -15,10 +16,14 @@
 - [meta-optimization.md](./meta-optimization.md)
 - [modularity.md](./modularity.md)
 - [next-path.md](./next-path.md)
+- [phase-0-auto-core-requi.md](./phase-0-auto-core-requi.md)
+- [phase-0-auto-core-review.md](./phase-0-auto-core-review.md)
 - [phase-0-core-requi.md](./phase-0-core-requi.md)
 - [phase-0-core-review.md](./phase-0-core-review.md)
 - [phase-0-entry.md](./phase-0-entry.md)
 - [phase-0-outcome.md](./phase-0-outcome.md)
+- [phase-0/auto/phase-0-core-requi-auto.md](./phase-0/auto/phase-0-core-requi-auto.md)
+- [phase-0/auto/phase-0-core-review-auto.md](./phase-0/auto/phase-0-core-review-auto.md)
 - [phase-1-core-requi.md](./phase-1-core-requi.md)
 - [phase-1-core-review.md](./phase-1-core-review.md)
 - [phase-1-next-path.md](./phase-1-next-path.md)
@@ -49,6 +54,7 @@
 - docs/
 - examples/
 - imple/V00.00.01/
+- imple/V00.00.01/auto/
 - imple/V00.00.01/test/
 - plans/
 - plans/done/

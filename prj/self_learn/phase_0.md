@@ -10,9 +10,17 @@ core_requirements:
 - [code] PH000-RC001: define the canonical project entry point.
 - [code] PH000-RC002: keep the glossary and automation links visible.
 - [code] PH000-RC003: preserve the phase boundary into phase 1.
-- [code] PH000-RC004: stay small enough to review quickly.
+- [code] PH000-RC004: describe the auto subproject and its versioned docs/implementation layout.
+- [code] PH000-RC005: stay small enough to review quickly.
 
 purpose: self learning how to think sharp & structured
+
+## automation subproject
+- auto handles project automations.
+- it has docs/phase-0/auto/phase-0-core-requi-auto.md and docs/phase-0/auto/phase-0-core-review-auto.md as the canonical phase-0 auto companions.
+- the legacy flat aliases remain available during the transition.
+- it keeps the code in `imple/V00.00.01/auto/` and the companions in `docs/phase-0/auto/`.
+- phase 0 keeps this automation surface visible so the project can explain how it automates itself.
 
 tags:
 - thinking_workspace
@@ -34,6 +42,10 @@ navigation:
 - [Named phase 0 file](docs/phase-0-entry.md)
 - [Phase 0 core requi file](docs/phase-0-core-requi.md)
 - [Phase 0 core review](docs/phase-0-core-review.md)
+- [Phase 0 auto core requirements](docs/phase-0/auto/phase-0-core-requi-auto.md)
+- [Phase 0 auto core review](docs/phase-0/auto/phase-0-core-review-auto.md)
+- [Legacy auto core requirements](docs/phase-0-auto-core-requi.md)
+- [Legacy auto core review](docs/phase-0-auto-core-review.md)
 - [Phase 0 outcome](docs/phase-0-outcome.md)
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
@@ -56,5 +68,7 @@ glossary:
 - path
 - suggestion
 - review
+- subproject
+- auto
 
 status: completed
