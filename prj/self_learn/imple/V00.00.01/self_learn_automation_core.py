@@ -5,7 +5,8 @@ import shutil
 import sqlite3
 import subprocess
 import self_learn_meta as meta
-from self_learn_named_docs import write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
+from self_learn_named_docs import write_named_phase_0_doc, write_phase_0_core_requi_doc, write_phase_0_core_review_doc, write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
+from self_learn_phase_docs import write_phase_requirements_doc, write_phase_challenge_doc, write_modularity_doc
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -288,99 +289,6 @@ def write_next_path_doc(root: Path = PROJECT_ROOT) -> Path:
     path.write_text("\n".join(content) + "\n", encoding="utf-8")
     return path
 
-def write_phase_requirements_doc(root: Path = PROJECT_ROOT) -> Path:
-    docs_dir = root / "docs"
-    docs_dir.mkdir(parents=True, exist_ok=True)
-    report = phase_requirement_report(root)
-    content = [
-        "# Phase core requirements",
-        "",
-        "Each phase defines its own core requirements.",
-        "AI should challenge them before the phase is treated as stable.",
-    ]
-    for item in report:
-        content.extend([
-            "",
-            f"## {item['phase']}",
-            f"- purpose: {item['purpose']}",
-            f"- goal: {item['goal']}",
-            f"- outcome: {item['outcome']}",
-            f"- status: {item['status']}",
-            "",
-            "### core requirements",
-        ])
-        if item["core_requirements"]:
-            content.extend(f"- {req}" for req in item["core_requirements"])
-        else:
-            content.append("- none")
-    path = docs_dir / "phase-requirements.md"
-    path.write_text("\n".join(content) + "\n", encoding="utf-8")
-    return path
-
-def write_phase_challenge_doc(root: Path = PROJECT_ROOT) -> Path:
-    docs_dir = root / "docs"
-    docs_dir.mkdir(parents=True, exist_ok=True)
-    report = phase_requirement_report(root)
-    content = [
-        "# Phase challenge prompts",
-        "",
-        "Ask AI to challenge every phase before it is treated as ready.",
-        "",
-        "## challenge rules",
-        "",
-        "1. Check that purpose, goal, outcome, and status are all explicit.",
-        "2. Check that core requirements are small, testable, and non-overlapping.",
-        "3. Ask what would break the phase definition as the project grows.",
-        "4. Capture fixes as doc changes, not hidden assumptions.",
-    ]
-    for item in report:
-        requirements = item["core_requirements"] or ["none"]
-        content.extend([
-            "",
-            f"## {item['phase']}",
-            "### AI challenge prompt",
-            f"Challenge the requirements for {item['phase']}.",
-            f"Purpose: {item['purpose']}",
-            f"Goal: {item['goal']}",
-            f"Outcome: {item['outcome']}",
-            f"Status: {item['status']}",
-            "Questions:",
-            "- Are the core requirements specific enough to test?",
-            "- Are any requirements duplicated, vague, or missing?",
-            "- What future growth would break this phase definition?",
-            "- What should be added to make the phase future-proof?",
-            "Current core requirements:",
-        ])
-        content.extend(f"- {req}" for req in requirements)
-    path = docs_dir / "phase-challenge.md"
-    path.write_text("\n".join(content) + "\n", encoding="utf-8")
-    return path
-
-def write_modularity_doc(root: Path = PROJECT_ROOT) -> Path:
-    docs_dir = root / "docs"
-    docs_dir.mkdir(parents=True, exist_ok=True)
-    content = [
-        "# Modularity budget",
-        "",
-        f"The project keeps files at or below {MAX_FILE_LINES} lines where practical.",
-        "If a file grows beyond that budget, split it into smaller modules or docs.",
-        "",
-        "## check",
-        "",
-        "- `status` reports files over budget.",
-        "- `budget` prints the same report on demand.",
-        "- `checkpoint` and `advance` refuse to commit while over-budget files exist.",
-        "",
-        "## future-proofing",
-        "",
-        "- Use the budget as a warning before the file becomes hard to review.",
-        "- Prefer smaller support files over one large growing file.",
-        "- If a large generated file is necessary, document the exception explicitly.",
-    ]
-    path = docs_dir / "modularity.md"
-    path.write_text("\n".join(content) + "\n", encoding="utf-8")
-    return path
-
 def write_phase_0(root: Path = PROJECT_ROOT) -> Path:
     path = root / "phase_0.md"
     content = """PROJECT PHASE 0
@@ -403,6 +311,9 @@ navigation:
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Named phase 0 file](docs/phase-0-entry.md)
+- [Phase 0 core requi file](docs/phase-0-core-requi.md)
+- [Phase 0 core review](docs/phase-0-core-review.md)
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
@@ -473,6 +384,12 @@ Project entry point.
 - [Project index](docs/index.md)
 - [Glossary](docs/glossary.md)
 - [Next path](docs/next-path.md)
+- [Named phase 0 file](docs/phase-0-entry.md)
+- [Phase 0 core requi file](docs/phase-0-core-requi.md)
+- [Phase 0 core review](docs/phase-0-core-review.md)
+- [Named phase 1 file](docs/phase-1-next-path.md)
+- [Phase 1 core requi file](docs/phase-1-core-requi.md)
+- [Phase 1 core review](docs/phase-1-core-review.md)
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
@@ -565,17 +482,23 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     meta_state = meta.update_meta_trace_state(root, meta_trace)
     glossary_path = write_glossary(root)
     next_path_doc = write_next_path_doc(root)
+    named_phase_0_doc = write_named_phase_0_doc(root)
+    phase_0_core_requi_doc = write_phase_0_core_requi_doc(root)
+    phase_0_core_review_doc = write_phase_0_core_review_doc(root)
     named_phase_1_doc = write_named_phase_1_doc(root)
     phase_1_core_requi_doc = write_phase_1_core_requi_doc(root)
     phase_1_core_review_doc = write_phase_1_core_review_doc(root)
-    requirements_doc = write_phase_requirements_doc(root)
-    challenge_doc = write_phase_challenge_doc(root)
-    modularity_doc = write_modularity_doc(root)
+    requirements_doc = write_phase_requirements_doc(root, phase_report)
+    challenge_doc = write_phase_challenge_doc(root, phase_report)
+    modularity_doc = write_modularity_doc(root, MAX_FILE_LINES)
     index_path = docs_index(root)
     return {
         **report.as_dict(),
         "glossary": str(glossary_path),
         "next_path": str(next_path_doc),
+        "named_phase_0": str(named_phase_0_doc),
+        "phase_0_core_requi": str(phase_0_core_requi_doc),
+        "phase_0_core_review": str(phase_0_core_review_doc),
         "named_phase_1": str(named_phase_1_doc),
         "phase_1_core_requi": str(phase_1_core_requi_doc),
         "phase_1_core_review": str(phase_1_core_review_doc),
@@ -679,7 +602,8 @@ def main(argv: Iterable[str] | None = None) -> int:
         print({"limit": MAX_FILE_LINES, "modularity_budget": modularity_budget(root)})
         return 0
     if args.action == "challenge":
-        print({"phase_manifest": phase_manifest(root), "phase_challenge_bundle": phase_challenge_bundle(root), "phase_challenge": str(write_phase_challenge_doc(root))})
+        phase_report = phase_requirement_report(root)
+        print({"phase_manifest": phase_manifest(root), "phase_challenge_bundle": phase_challenge_bundle(root), "phase_challenge": str(write_phase_challenge_doc(root, phase_report))})
         return 0
     if args.action == "review":
         print({"phase_manifest": phase_manifest(root), "phase_challenge_bundle": phase_challenge_bundle(root), "phase_review": phase_challenge_bundle(root)})
