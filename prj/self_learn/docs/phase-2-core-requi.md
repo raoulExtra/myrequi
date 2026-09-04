@@ -30,6 +30,7 @@ It exists so the current automation mission can be carried forward from phase 0 
 ## mission summary
 - summary: derive and rank the next automation mission from phase 0 and phase 1 evidence
 - outcome: derive the next automation mission from phase 0 and phase 1 evidence
+- smallest useful fileset: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
 
 ## phase history
 - phase_0.md: entry point for the self_learn project documentation.

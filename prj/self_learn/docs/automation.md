@@ -14,6 +14,7 @@ The self_learn project is meant to keep its own filesystem organized.
   - `budget`: print the modularity budget report on demand
   - `challenge`: regenerate the phase challenge prompt and print the manifest plus phase challenge bundle
   - `review`: print the manifest and review bundle for AI phase critique
+  - file info for AI: when no concrete file list is available, use the smallest useful fileset related to the phase
   - `meta-trace.json`: machine-readable optimization trace for self-learning itself
   - `meta-optimization.md`: readable summary of the trace and recommendations
   - `meta-actions.json`: machine-readable self-correction actions

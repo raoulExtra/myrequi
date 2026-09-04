@@ -33,14 +33,17 @@ It uses phase 0 and phase 1 history to define the current automation mission.
 
 - P2-C1: derive the next automation mission from phase 0 and phase 1 evidence
   - evidence: phase 0 + phase 1 state
+  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
   - why: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is have AI suggest the first self-learn path with explicit criteria and a review loop., so the mission should join evidence into one automated choice.
   - score: impact 5 + reuse 5 + testability 5 - cost 2 - risk 1 = 12
 - P2-C2: verify requirement coverage and acceptance criteria for the phase docs
   - evidence: phase 0 + phase 1 state
+  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
   - why: phase 0 and phase 1 now use RC/AC codes, so the automation can prove coverage before selecting a deeper mission.
   - score: impact 4 + reuse 4 + testability 5 - cost 2 - risk 1 = 10
 - P2-C3: stabilize refresh, checkpoint, and plan movement for future phases
   - evidence: phase 0 + phase 1 state
+  - files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
   - why: the project already regenerates many docs and commits phase state, so this path keeps the learning loop durable.
   - score: impact 3 + reuse 4 + testability 4 - cost 3 - risk 2 = 6
 

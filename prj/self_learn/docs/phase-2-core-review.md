@@ -18,6 +18,7 @@ Phase 2 should turn history into a ranked mission so the automation can learn fr
 ## ranking summary
 - selected: P2-C1
 - score: 12
+- files: docs/index.md, docs/glossary.md, docs/next-path.md, docs/automation.md, docs/phase-requirements.md, docs/phase-challenge.md, phase_0.md, phase_1.md, phase_2.md
 - rationale: phase 0 is use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path. and phase 1 is have AI suggest the first self-learn path with explicit criteria and a review loop., so the mission should join evidence into one automated choice.
 
 ## phase history

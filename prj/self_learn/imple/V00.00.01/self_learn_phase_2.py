@@ -58,6 +58,12 @@ def _render_acceptance_criteria(phase_number: int, criteria_by_requirement: dict
     return lines
 
 
+def smallest_useful_fileset_for_phase(phase_number: int) -> list[str]:
+    files = ["docs/index.md", "docs/glossary.md", "docs/next-path.md", "docs/automation.md", "docs/phase-requirements.md", "docs/phase-challenge.md"]
+    files.extend([f"phase_{n}.md" for n in range(phase_number + 1)])
+    return files
+
+
 def derive_phase_2_candidates(phase_report: list[dict[str, object]]) -> list[dict[str, object]]:
     phase_0 = next((item for item in phase_report if item["phase"] == "phase_0.md"), None)
     phase_1 = next((item for item in phase_report if item["phase"] == "phase_1.md"), None)
@@ -73,6 +79,7 @@ def derive_phase_2_candidates(phase_report: list[dict[str, object]]) -> list[dic
             "testability": 5,
             "cost": 2,
             "risk": 1,
+            "files": smallest_useful_fileset_for_phase(2),
         },
         {
             "key": "P2-C2",
@@ -83,6 +90,7 @@ def derive_phase_2_candidates(phase_report: list[dict[str, object]]) -> list[dic
             "testability": 5,
             "cost": 2,
             "risk": 1,
+            "files": smallest_useful_fileset_for_phase(2),
         },
         {
             "key": "P2-C3",
@@ -93,6 +101,7 @@ def derive_phase_2_candidates(phase_report: list[dict[str, object]]) -> list[dic
             "testability": 4,
             "cost": 3,
             "risk": 2,
+            "files": smallest_useful_fileset_for_phase(2),
         },
     ]
 
@@ -141,6 +150,7 @@ def _candidate_lines(packet: dict[str, object]) -> list[str]:
         lines.extend([
             f"- {candidate['key']}: {candidate['path']}",
             f"  - evidence: phase 0 + phase 1 state",
+            f"  - files: {', '.join(candidate.get('files', []))}",
             f"  - why: {candidate['why']}",
             f"  - score: impact {candidate['impact']} + reuse {candidate['reuse']} + testability {candidate['testability']} - cost {candidate['cost']} - risk {candidate['risk']} = {candidate['score']}",
         ])
@@ -225,6 +235,7 @@ def write_phase_2_core_requi_doc(root: Path, phase_report: list[dict[str, object
         "## mission summary",
         f"- summary: {packet['summary']}",
         f"- outcome: {packet['outcome']}",
+        f"- smallest useful fileset: {', '.join(packet['selected'].get('files', []))}",
         "",
         "## phase history",
     ])
@@ -259,6 +270,7 @@ def write_phase_2_core_review_doc(root: Path, phase_report: list[dict[str, objec
         "## ranking summary",
         f"- selected: {packet['selected']['key']}",
         f"- score: {packet['selected']['score']}",
+        f"- files: {', '.join(packet['selected'].get('files', []))}",
         f"- rationale: {packet['rationale']}",
         "",
         "## phase history",
@@ -287,6 +299,7 @@ def write_phase_2(root: Path, phase_report: list[dict[str, object]]) -> Path:
         "derived_learning_path:",
         f"- summary: {packet['summary']}",
         f"- selected: {packet['selected']['key']} ({packet['selected']['score']})",
+        f"- files: {', '.join(packet['selected'].get('files', []))}",
         f"- rationale: {packet['rationale']}",
         "",
         "ranking:",
