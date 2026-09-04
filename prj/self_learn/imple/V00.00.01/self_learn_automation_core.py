@@ -7,6 +7,7 @@ import subprocess
 import self_learn_meta as meta
 from self_learn_named_docs import write_named_phase_0_doc, write_phase_0_core_requi_doc, write_phase_0_core_review_doc, write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
 from self_learn_phase_docs import write_phase_requirements_doc, write_phase_challenge_doc, write_modularity_doc
+from self_learn_working_rules import write_working_rules_doc
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable
@@ -317,6 +318,7 @@ navigation:
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
+- [Working rules](docs/working-rules.md)
 - [Learning loop notes](docs/learning-loop.md)
 - [Filesystem autonomy notes](docs/filesystem-autonomy.md)
 - [Automation notes](docs/automation.md)
@@ -393,6 +395,7 @@ Project entry point.
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
+- [Working rules](docs/working-rules.md)
 - [Phase 0](phase_0.md)
 - [Phase 1](phase_1.md)
 - [Filesystem autonomy](docs/filesystem-autonomy.md)
@@ -491,6 +494,7 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     requirements_doc = write_phase_requirements_doc(root, phase_report)
     challenge_doc = write_phase_challenge_doc(root, phase_report)
     modularity_doc = write_modularity_doc(root, MAX_FILE_LINES)
+    working_rules_doc = write_working_rules_doc(root)
     index_path = docs_index(root)
     return {
         **report.as_dict(),
@@ -505,6 +509,7 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "phase_requirements": str(requirements_doc),
         "phase_challenge": str(challenge_doc),
         "modularity": str(modularity_doc),
+        "working_rules": str(working_rules_doc),
         "docs_index": str(index_path),
         "modularity_budget": modularity,
         "phase_requirements_report": phase_report,

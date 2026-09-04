@@ -21,6 +21,7 @@
 - [phase-1-next-path.md](./phase-1-next-path.md)
 - [phase-challenge.md](./phase-challenge.md)
 - [phase-requirements.md](./phase-requirements.md)
+- [working-rules.md](./working-rules.md)
 
 ## active plans
 - [7_plan.md](../plans/7_plan.md)

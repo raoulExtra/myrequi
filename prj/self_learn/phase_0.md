@@ -21,6 +21,7 @@ navigation:
 - [Phase requirements](docs/phase-requirements.md)
 - [Phase challenge](docs/phase-challenge.md)
 - [Modularity budget](docs/modularity.md)
+- [Working rules](docs/working-rules.md)
 - [Learning loop notes](docs/learning-loop.md)
 - [Filesystem autonomy notes](docs/filesystem-autonomy.md)
 - [Automation notes](docs/automation.md)
