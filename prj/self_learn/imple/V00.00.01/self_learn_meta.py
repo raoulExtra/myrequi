@@ -26,6 +26,7 @@ def build_meta_trace(
     done_plans = list(snapshot.get("done_plans", []))
     missing_phases = [item["phase"] for item in phase_report if item.get("missing")]
     recommendations: list[dict[str, object]] = []
+    corrections: list[dict[str, object]] = []
     signals: list[str] = []
 
     if modularity_budget:
@@ -37,8 +38,22 @@ def build_meta_trace(
                 "count": len(modularity_budget),
             }
         )
+        corrections.append(
+            {
+                "area": "modularity",
+                "action": "split or move the oversized files into smaller modules now",
+                "kind": "auto-heal",
+            }
+        )
     else:
         signals.append("modularity_budget_clean")
+        corrections.append(
+            {
+                "area": "modularity",
+                "action": "keep watching file size before it becomes a problem",
+                "kind": "preventive",
+            }
+        )
 
     if missing_phases:
         signals.append("phase_definitions_need_review")
@@ -49,8 +64,23 @@ def build_meta_trace(
                 "phases": missing_phases,
             }
         )
+        corrections.append(
+            {
+                "area": "phase_requirements",
+                "action": "add or sharpen the missing phase core requirements",
+                "phases": missing_phases,
+                "kind": "auto-heal",
+            }
+        )
     else:
         signals.append("phase_definitions_clear")
+        corrections.append(
+            {
+                "area": "phase_requirements",
+                "action": "rechallenge the phase definitions whenever a new phase appears",
+                "kind": "preventive",
+            }
+        )
 
     if not active_plans:
         signals.append("no_active_plan")
@@ -60,8 +90,22 @@ def build_meta_trace(
                 "action": "define or promote an active plan for the next self-learn move",
             }
         )
+        corrections.append(
+            {
+                "area": "planning",
+                "action": "promote or create the next active plan",
+                "kind": "auto-heal",
+            }
+        )
     else:
         signals.append("active_plan_present")
+        corrections.append(
+            {
+                "area": "planning",
+                "action": "keep the active plan small and reviewable",
+                "kind": "preventive",
+            }
+        )
 
     if done_plans:
         signals.append("history_available")
@@ -81,6 +125,7 @@ def build_meta_trace(
         "missing_phases": missing_phases,
         "signals": signals,
         "recommendations": recommendations,
+        "corrections": corrections,
     }
 
 
@@ -107,6 +152,13 @@ def render_meta_optimization_doc(trace: dict[str, object]) -> str:
             lines.append(f"- {rec.get('area')}: {rec.get('action')}")
     else:
         lines.append("- none")
+    lines.extend(["", "## corrections"])
+    corrections = trace.get("corrections", [])
+    if corrections:
+        for item in corrections:
+            lines.append(f"- {item.get('kind')}: {item.get('area')} -> {item.get('action')}")
+    else:
+        lines.append("- none")
     lines.extend(["", "## raw trace", "```json", json.dumps(trace, indent=2, sort_keys=True), "```"])
     return "\n".join(lines) + "\n"
 
@@ -116,9 +168,14 @@ def write_meta_trace_files(root: Path, trace: dict[str, object]) -> dict[str, st
     docs_dir.mkdir(parents=True, exist_ok=True)
     json_path = docs_dir / "meta-trace.json"
     md_path = docs_dir / "meta-optimization.md"
+    actions_json = docs_dir / "meta-actions.json"
+    actions_md = docs_dir / "meta-actions.md"
     json_path.write_text(json.dumps(trace, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     md_path.write_text(render_meta_optimization_doc(trace), encoding="utf-8")
-    return {"meta_trace": str(json_path), "meta_optimization": str(md_path)}
+    actions_payload = {"signals": trace.get("signals", []), "corrections": trace.get("corrections", []), "recommendations": trace.get("recommendations", [])}
+    actions_json.write_text(json.dumps(actions_payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    actions_md.write_text(render_meta_optimization_doc({**trace, "summary": "Meta actions"}), encoding="utf-8")
+    return {"meta_trace": str(json_path), "meta_optimization": str(md_path), "meta_actions": str(actions_md), "meta_actions_json": str(actions_json)}
 
 
 def update_meta_trace_state(root: Path, trace: dict[str, object]) -> dict[str, object]:
@@ -140,6 +197,9 @@ def update_meta_trace_state(root: Path, trace: dict[str, object]) -> dict[str, o
             """
         )
         columns = {row[1] for row in conn.execute("pragma table_info(metacognitive_state)")}
+        row = conn.execute("select version from metacognitive_state where state_key=?", (META_TRACE_STATE_KEY,)).fetchone()
+        current_version = int(row[0]) if row and row[0] is not None else 0
+        next_version = current_version + 1
         insert_columns = ["state_key"]
         values = [META_TRACE_STATE_KEY]
         if "category" in columns:
@@ -156,7 +216,7 @@ def update_meta_trace_state(root: Path, trace: dict[str, object]) -> dict[str, o
             values.append("self_learn_meta")
         if "version" in columns:
             insert_columns.append("version")
-            values.append(META_TRACE_VERSION)
+            values.append(next_version)
         placeholders = ", ".join("?" for _ in insert_columns)
         column_sql = ", ".join(insert_columns)
         update_columns = [col for col in insert_columns if col != "state_key"]
@@ -170,4 +230,4 @@ def update_meta_trace_state(root: Path, trace: dict[str, object]) -> dict[str, o
         conn.commit()
     finally:
         conn.close()
-    return {"updated": True, "state_key": META_TRACE_STATE_KEY, "version": META_TRACE_VERSION}
+    return {"updated": True, "state_key": META_TRACE_STATE_KEY, "version": next_version}

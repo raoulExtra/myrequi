@@ -1,6 +1,6 @@
 # Meta optimization trace
 
-Meta optimization is ready.
+Meta actions
 
 - ready: True
 - phase count: 2
@@ -58,7 +58,7 @@ Meta optimization is ready.
     "active_plan_present",
     "history_available"
   ],
-  "summary": "Meta optimization is ready.",
+  "summary": "Meta actions",
   "version": 1
 }
 ```

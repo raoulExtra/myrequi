@@ -9,6 +9,7 @@
 - [filesystem-autonomy.md](./filesystem-autonomy.md)
 - [glossary.md](./glossary.md)
 - [learning-loop.md](./learning-loop.md)
+- [meta-actions.md](./meta-actions.md)
 - [meta-optimization.md](./meta-optimization.md)
 - [modularity.md](./modularity.md)
 - [next-path.md](./next-path.md)
