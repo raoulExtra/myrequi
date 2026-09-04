@@ -1,6 +1,6 @@
 # Self-learn glossary phase plan
 
-status: active
+status: completed
 
 ## objective
 Collect the glossary needed for a project like this and make the vocabulary future-proof.

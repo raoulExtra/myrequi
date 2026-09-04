@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sqlite3
 import subprocess
 import tempfile
 import unittest
@@ -35,19 +36,50 @@ class SelfLearnAutomationTests(unittest.TestCase):
             (root / "plans" / "done").mkdir(parents=True)
             (root / "docs").mkdir(parents=True)
             (root / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
-            (root / "docs" / "glossary.md").write_text("# glossary\n", encoding="utf-8")
             (root / "plans" / "2_plan.md").write_text("status: active\n", encoding="utf-8")
             (root / "plans" / "1_plan.md").write_text("status: completed\n", encoding="utf-8")
 
             report = sla.refresh(root)
 
             self.assertTrue((root / "docs" / "index.md").exists())
+            self.assertTrue((root / "docs" / "glossary.md").exists())
+            self.assertTrue((root / "docs" / "next-path.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("learning-loop.md", index)
             self.assertIn("glossary.md", index)
+            self.assertIn("next-path.md", index)
             self.assertIn("2_plan.md", index)
             self.assertIn("1_plan.md", index)
             self.assertIn("docs_index", report)
+
+    def test_main_advance_creates_next_phase(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repo = Path(tmp) / "repo"
+            project = repo / "prj" / "self_learn"
+            (project / "plans" / "done").mkdir(parents=True)
+            (project / "docs").mkdir(parents=True)
+            (project / "plans" / "3_plan.md").write_text("status: active\n", encoding="utf-8")
+            (project / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
+            db = sqlite3.connect(repo / "continuity.db")
+            db.execute("create table metacognitive_state(state_key text primary key, value text, version integer, updated_at text default current_timestamp)")
+            db.execute("insert into metacognitive_state(state_key, value, version) values(?,?,?)", ('project_goal__self_learn', 'seed', 3))
+            db.commit()
+            db.close()
+            subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+            subprocess.run(["git", "config", "user.name", "Self Learn"], cwd=repo, check=True)
+            subprocess.run(["git", "config", "user.email", "self_learn@example.com"], cwd=repo, check=True)
+
+            rc = sla.main(["advance", "--root", str(project)])
+
+            self.assertEqual(rc, 0)
+            log = subprocess.run(["git", "log", "--oneline", "-1"], cwd=repo, check=True, capture_output=True, text=True).stdout.strip()
+            self.assertIn("self_learn: advance to phase 1", log)
+            self.assertTrue((project / "phase_1.md").exists())
+            self.assertTrue((project / "docs" / "glossary.md").exists())
+            self.assertTrue((project / "docs" / "next-path.md").exists())
+            self.assertTrue((project / "plans" / "done" / "3_plan.md").exists())
+            self.assertTrue((project / "plans" / "4_plan.md").exists())
+            self.assertTrue((project / "docs" / "index.md").exists())
 
     def test_main_checkpoint_creates_git_commit(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -55,9 +87,13 @@ class SelfLearnAutomationTests(unittest.TestCase):
             project = repo / "prj" / "self_learn"
             (project / "plans" / "done").mkdir(parents=True)
             (project / "docs").mkdir(parents=True)
-            (project / "plans" / "2_plan.md").write_text("status: completed\n", encoding="utf-8")
+            (project / "plans" / "3_plan.md").write_text("status: active\n", encoding="utf-8")
             (project / "docs" / "learning-loop.md").write_text("# loop\n", encoding="utf-8")
-            (repo / "continuity.db").write_text("seed\n", encoding="utf-8")
+            db = sqlite3.connect(repo / "continuity.db")
+            db.execute("create table metacognitive_state(state_key text primary key, value text, version integer, updated_at text default current_timestamp)")
+            db.execute("insert into metacognitive_state(state_key, value, version) values(?,?,?)", ('project_goal__self_learn', 'seed', 3))
+            db.commit()
+            db.close()
             subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
             subprocess.run(["git", "config", "user.name", "Self Learn"], cwd=repo, check=True)
             subprocess.run(["git", "config", "user.email", "self_learn@example.com"], cwd=repo, check=True)
@@ -66,8 +102,9 @@ class SelfLearnAutomationTests(unittest.TestCase):
 
             self.assertEqual(rc, 0)
             log = subprocess.run(["git", "log", "--oneline", "-1"], cwd=repo, check=True, capture_output=True, text=True).stdout.strip()
-            self.assertIn("self_learn: filesystem checkpoint", log)
-            self.assertTrue((project / "plans" / "done" / "2_plan.md").exists())
+            self.assertIn("self_learn: advance to phase 1", log)
+            self.assertTrue((project / "plans" / "done" / "3_plan.md").exists())
+            self.assertTrue((project / "phase_1.md").exists())
             self.assertTrue((project / "docs" / "index.md").exists())
 
     def test_main_refresh_creates_index(self):
@@ -82,9 +119,13 @@ class SelfLearnAutomationTests(unittest.TestCase):
 
             self.assertEqual(rc, 0)
             self.assertTrue((root / "docs" / "index.md").exists())
+            self.assertTrue((root / "docs" / "glossary.md").exists())
+            self.assertTrue((root / "docs" / "next-path.md").exists())
             index = (root / "docs" / "index.md").read_text(encoding="utf-8")
             self.assertIn("2_plan.md", index)
             self.assertIn("learning-loop.md", index)
+            self.assertIn("glossary.md", index)
+            self.assertIn("next-path.md", index)
 
     def test_status_reports_plans_and_docs(self):
         with tempfile.TemporaryDirectory() as tmp:

@@ -1,17 +1,23 @@
 # self_learn index
 
+## phases
+- [phase_0.md](../phase_0.md)
+- [phase_1.md](../phase_1.md)
+
 ## docs
 - [automation.md](./automation.md)
 - [filesystem-autonomy.md](./filesystem-autonomy.md)
 - [glossary.md](./glossary.md)
 - [learning-loop.md](./learning-loop.md)
+- [next-path.md](./next-path.md)
 
 ## active plans
-- [3_plan.md](../plans/3_plan.md)
+- [4_plan.md](../plans/4_plan.md)
 
 ## done plans
 - [1_plan.md](../plans/done/1_plan.md)
 - [2_plan.md](../plans/done/2_plan.md)
+- [3_plan.md](../plans/done/3_plan.md)
 
 ## canonical dirs
 - archive/
