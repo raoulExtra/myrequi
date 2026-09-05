@@ -7,6 +7,7 @@ from pathlib import Path
 
 from . import self_learn_automation_core as core
 from . import self_learn_meta as meta
+from . import self_learn_prompt as prompt
 
 
 def _root_path(value: str) -> Path:
@@ -371,6 +372,13 @@ def build_parser() -> argparse.ArgumentParser:
         cmd = sub.add_parser(name)
         cmd.add_argument("--root", default=str(core.PROJECT_ROOT), help="Project root directory")
 
+    ask_parser = sub.add_parser("ask", help="prompt the user with a question")
+    ask_parser.add_argument("question", help="The question to ask")
+    ask_parser.add_argument("--options", help="Comma-separated list of options")
+    ask_parser.add_argument("--note", help="Note to display before the question")
+    ask_parser.add_argument("--default", help="Default answer if user enters nothing")
+    ask_parser.add_argument("--root", default=str(core.PROJECT_ROOT), help="Project root directory")
+
     trigger = sub.add_parser("trigger", help="manually trigger one automation element")
     trigger.add_argument("element", choices=["handoff", "next-phase-ai", "prep-plan", "check-gloss", "phase-0", "phase-1", "phase-2", "phase-docs", "meta-trace", "promote-prep", "record-plan"])
     trigger.add_argument("number", nargs="?", help="Plan number for prep-plan")
@@ -412,6 +420,16 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if args.command == "review":
         print({"phase_manifest": core.phase_manifest(root), "phase_challenge_bundle": core.phase_challenge_bundle(root), "phase_review": core.phase_challenge_bundle(root)})
+        return 0
+    if args.command == "ask":
+        options_list = [item.strip() for item in args.options.split(",")] if args.options else None
+        answer = prompt.ask(
+            args.question,
+            options=options_list,
+            note=args.note or "",
+            default=args.default or "",
+        )
+        print(json.dumps({"answer": answer}, indent=2, sort_keys=True))
         return 0
     if args.command == "trigger":
         print(json.dumps(_trigger(root, args), indent=2, sort_keys=True))

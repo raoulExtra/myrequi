@@ -137,6 +137,60 @@ def set_primary_goal(conn, goal, reason=None):
     return version
 
 
+def promote_synthesis_to_policy(conn, synthesis_key, state_key=None, category='governance', reason=''):
+    cur = conn.cursor()
+    synthesis = cur.execute(
+        'select synthesis_key, topic, summary, claim, confidence, status, source_mode, metacognitive_note from syntheses where synthesis_key=?',
+        (synthesis_key,),
+    ).fetchone()
+    if synthesis is None:
+        raise ValueError(f'unknown synthesis: {synthesis_key}')
+
+    policy_key = state_key or synthesis[0]
+    policy_value = synthesis[3] or synthesis[2]
+    existing_policy = _fetch_state(cur, policy_key)
+    created = existing_policy is None
+
+    if created:
+        version = upsert_state(
+            cur,
+            policy_key,
+            category,
+            policy_value,
+            confidence=float(synthesis[4] or 0.98),
+            provenance=f'synthesis:{synthesis_key}',
+        )
+    else:
+        version = int(existing_policy[5])
+
+    if synthesis[5] != 'settled':
+        cur.execute(
+            "update syntheses set status='settled', updated_at=CURRENT_TIMESTAMP where synthesis_key=?",
+            (synthesis_key,),
+        )
+
+    if created:
+        ensure_journal(
+            cur,
+            'policy',
+            f'Promoted synthesis {synthesis_key} to metacognitive_state.{policy_key}',
+        )
+    elif synthesis[5] != 'settled':
+        ensure_journal(cur, 'policy', f'Settled synthesis {synthesis_key} without replacing existing metacognitive_state.{policy_key}')
+
+    if reason:
+        ensure_journal(cur, 'policy', f'Promotion note for {synthesis_key}: {reason}')
+
+    conn.commit()
+    return {
+        'synthesis_key': synthesis_key,
+        'policy_key': policy_key,
+        'created': created,
+        'policy_version': version,
+        'synthesis_status': 'settled',
+    }
+
+
 GENERAL_PLAN_HINTS = {
     'general', 'baseline', 'overview', 'system', 'core', 'default', 'meta', 'shared', 'global', 'always'
 }
@@ -294,8 +348,8 @@ def _plan_priority_score(plan, goal_words=None, focus_words=None, aspect_words=N
     text_words = _words(plan['title']) | _words(plan['objective']) | _words(plan.get('prompt', ''))
     overlap = (
         len(text_words & goal_words) * 5
-        + len(text_words & focus_words) * 3
-        + len(text_words & aspect_words) * 4
+        + len(text_words & focus_words)
+        + len(text_words & aspect_words)
     )
     active_bonus = 100 if plan['status'] == 'active' else 0
     recent_bonus = 0
@@ -342,6 +396,7 @@ def planning_status(conn):
             ).fetchall()
         ]
         plan_dict = {
+            'id': plan[0],
             'plan_key': plan[1],
             'title': plan[2],
             'objective': plan[3],
@@ -360,7 +415,7 @@ def planning_status(conn):
         plan_dict['priority_score'] = score
         plan_dict['_recency'] = recency
         plans.append(plan_dict)
-    plans.sort(key=lambda p: (p['priority_score'], p['_recency'], p['updated_at'], p['plan_key']), reverse=True)
+    plans.sort(key=lambda p: (p['priority_score'], p['id'], p['_recency'], p['updated_at'], p['plan_key']), reverse=True)
     for plan in plans:
         plan.pop('_recency', None)
     blockers = [
@@ -442,6 +497,15 @@ def main():
     step_block.add_argument('question')
     step_block.add_argument('--db', default=str(DB_PATH))
 
+    synthesis_p = sub.add_parser('synthesis')
+    synthesis_sub = synthesis_p.add_subparsers(dest='action', required=True)
+    synthesis_promote = synthesis_sub.add_parser('promote')
+    synthesis_promote.add_argument('synthesis_key')
+    synthesis_promote.add_argument('state_key', nargs='?')
+    synthesis_promote.add_argument('--category', default='governance')
+    synthesis_promote.add_argument('--reason', default='')
+    synthesis_promote.add_argument('--db', default=str(DB_PATH))
+
     args = parser.parse_args()
 
     if args.command == 'status':
@@ -478,6 +542,12 @@ def main():
         conn = connect(Path(args.db))
         try:
             print(json.dumps({'question': block_step(conn, args.plan_key, args.step_key, args.question)}))
+        finally:
+            conn.close()
+    elif args.command == 'synthesis' and args.action == 'promote':
+        conn = connect(Path(args.db))
+        try:
+            print(json.dumps(promote_synthesis_to_policy(conn, args.synthesis_key, state_key=args.state_key, category=args.category, reason=args.reason)))
         finally:
             conn.close()
     else:

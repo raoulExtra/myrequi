@@ -203,6 +203,9 @@ cython_debug/
 # Temporary file for partial code execution
 tempCodeRunnerFile.py
 
+# Generated Rust demo snippets
+/prj/demo/examples/*.rs
+
 # Ruff stuff:
 .ruff_cache/
 

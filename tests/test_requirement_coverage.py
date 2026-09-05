@@ -247,6 +247,19 @@ class RequirementCoverageTests(unittest.TestCase):
 
         return _test
 
+    def test_goal_mission_taxonomy_terms(self):
+        conn = hardening.connect()
+        try:
+            rows = conn.execute(
+                "select term_key, term, phase from requirements_glossary_terms where term_key in ('aim','goal','mission','strategy','plan','step') order by sort_order"
+            ).fetchall()
+            self.assertEqual([r[0] for r in rows], ['aim', 'goal', 'mission', 'strategy', 'plan', 'step'])
+            self.assertEqual(rows[0][1], 'Aim')
+            self.assertEqual(rows[1][1], 'Goal')
+            self.assertEqual(rows[4][2], 'Specify')
+        finally:
+            conn.close()
+
 
 for _key, _checks in REQUIREMENT_SPECS:
     def _factory(key=_key, checks=_checks):

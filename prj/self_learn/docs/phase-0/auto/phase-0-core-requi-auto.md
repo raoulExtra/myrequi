@@ -11,6 +11,7 @@
 - [code] RC008-AUTO: keep refresh and checkpoint able to regenerate and validate the auto docs.
 - [code] RC009-AUTO: keep tests covering both the canonical paths and the legacy aliases.
 - [code] RC010-AUTO: keep naming aligned across code, docs, and generated outputs.
+- [code] RC011-AUTO: keep auto as the canonical home for automation code and the related support files.
 
 ## acceptance criteria
 ### RC001-AUTO
@@ -52,6 +53,16 @@
 ### RC010-AUTO
 - RC010-AC001-AUTO: filenames, doc references, and generated outputs use the same naming scheme.
 - RC010-AC002-AUTO: the naming stays obvious enough for a future move or cleanup.
+
+### RC011-AUTO
+- RC011-AC001-AUTO: the canonical home stays under `imple/V00.00.01/auto/`.
+- RC011-AC002-AUTO: every canonical auto module lives in the `auto/` package.
+- RC011-AC003-AUTO: the legacy wrappers stay thin and temporary.
+- RC011-AC004-AUTO: package-relative imports work inside `auto/`.
+- RC011-AC005-AUTO: the CLI trigger surface stays stable for filesystem actions.
+- RC011-AC006-AUTO: refresh and checkpoint regenerate and validate the auto docs.
+- RC011-AC007-AUTO: tests cover canonical paths and legacy aliases.
+- RC011-AC008-AUTO: naming stays aligned across code, docs, and outputs.
 
 ## use
 This is the canonical phase-0 auto requirements file.

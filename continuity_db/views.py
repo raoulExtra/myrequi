@@ -72,6 +72,92 @@ LEFT JOIN concepts c ON o.object_type='concept' AND c.concept_key = o.object_key
 ORDER BY recorded_at DESC, t.tag_key, o.object_type, o.object_key
 """
 
+CONCEPT_SEARCH_VIEW_SQL = """
+CREATE VIEW v_concept_search AS
+WITH link_summary AS (
+    SELECT
+        concept_key,
+        COUNT(*) AS link_count,
+        COALESCE(group_concat(object_type || ':' || object_key || ' [' || relation || '] ' || note, char(10)), '') AS linked_items
+    FROM concept_links
+    GROUP BY concept_key
+), tag_summary AS (
+    SELECT
+        object_key AS concept_key,
+        COALESCE(group_concat(tag_key || COALESCE(' [' || note || ']', ''), char(10)), '') AS tagged_terms
+    FROM object_epistemic_tags
+    WHERE object_type='concept'
+    GROUP BY object_key
+)
+SELECT
+    c.concept_key,
+    c.name,
+    c.description,
+    c.status,
+    c.confidence,
+    c.created_at,
+    c.updated_at,
+    COALESCE(ls.link_count, 0) AS link_count,
+    COALESCE(ls.linked_items, '') AS linked_items,
+    COALESCE(ts.tagged_terms, '') AS tagged_terms,
+    lower(
+        COALESCE(c.concept_key, '') || ' ' ||
+        COALESCE(c.name, '') || ' ' ||
+        COALESCE(c.description, '') || ' ' ||
+        COALESCE(c.status, '') || ' ' ||
+        COALESCE(ls.linked_items, '') || ' ' ||
+        COALESCE(ts.tagged_terms, '')
+    ) AS searchable_text
+FROM concepts c
+LEFT JOIN link_summary ls ON ls.concept_key = c.concept_key
+LEFT JOIN tag_summary ts ON ts.concept_key = c.concept_key
+ORDER BY COALESCE(ls.link_count, 0) DESC, c.confidence DESC, c.updated_at DESC, c.concept_key
+"""
+
+DECISION_OVERVIEW_VIEW_SQL = """
+CREATE VIEW v_decisions AS
+WITH option_counts AS (
+    SELECT
+        decision_id,
+        COUNT(*) AS option_count,
+        SUM(CASE WHEN status='candidate' THEN 1 ELSE 0 END) AS candidate_option_count,
+        SUM(CASE WHEN status='chosen' THEN 1 ELSE 0 END) AS chosen_option_count,
+        SUM(CASE WHEN status='rejected' THEN 1 ELSE 0 END) AS rejected_option_count,
+        SUM(CASE WHEN status='deferred' THEN 1 ELSE 0 END) AS deferred_option_count
+    FROM decision_options
+    GROUP BY decision_id
+), history_counts AS (
+    SELECT
+        decision_id,
+        COUNT(*) AS version_count,
+        MAX(version) AS latest_version,
+        MAX(recorded_at) AS latest_recorded_at
+    FROM decision_versions
+    GROUP BY decision_id
+)
+SELECT
+    d.id AS decision_id,
+    d.decision AS decision_text,
+    d.rationale_summary,
+    d.alternatives AS alternatives_summary,
+    d.uncertainty,
+    d.status,
+    d.origin_reasoning_episode_id,
+    COALESCE(oc.option_count, 0) AS option_count,
+    COALESCE(oc.candidate_option_count, 0) AS candidate_option_count,
+    COALESCE(oc.chosen_option_count, 0) AS chosen_option_count,
+    COALESCE(oc.rejected_option_count, 0) AS rejected_option_count,
+    COALESCE(oc.deferred_option_count, 0) AS deferred_option_count,
+    COALESCE(hc.version_count, 0) AS version_count,
+    hc.latest_version,
+    hc.latest_recorded_at,
+    d.created_at
+FROM decisions d
+LEFT JOIN option_counts oc ON oc.decision_id = d.id
+LEFT JOIN history_counts hc ON hc.decision_id = d.id
+ORDER BY d.created_at DESC, d.id DESC
+"""
+
 COMPONENT_INFLUENCE_VIEWS_SQL = """
 CREATE VIEW v_component_influence_modes AS
 SELECT mode_key, label, description, created_at
@@ -130,8 +216,8 @@ JOIN component_influence_modes m ON m.mode_key = h.mode_key
 ORDER BY h.changed_at DESC, h.id DESC;
 """
 
-SCHEMA_CATALOG_VIEW_SQL = """
-CREATE VIEW v_schema_catalog AS
+SCHEMA_CATALOG_ALL_VIEW_SQL = """
+CREATE VIEW v_schema_catalog_all AS
 SELECT
     name AS object_name,
     type AS object_type,
@@ -142,6 +228,24 @@ FROM sqlite_master
 WHERE type IN ('table', 'view')
   AND name NOT LIKE 'sqlite_%'
 ORDER BY type, name
+"""
+
+SCHEMA_CATALOG_VIEW_SQL = """
+CREATE VIEW v_schema_catalog AS
+SELECT
+    sm.name AS object_name,
+    sm.type AS object_type,
+    sm.tbl_name AS table_name,
+    COALESCE(sm.sql, '') AS definition,
+    lower(sm.name || ' ' || sm.type || ' ' || sm.tbl_name || ' ' || COALESCE(sm.sql, '')) AS searchable_text
+FROM sqlite_master sm
+JOIN object_epistemic_tags oet
+  ON oet.object_type='schema_object'
+ AND oet.object_key=sm.name
+ AND oet.tag_key='canonical'
+WHERE sm.type IN ('table', 'view')
+  AND sm.name NOT LIKE 'sqlite_%'
+ORDER BY sm.type, sm.name
 """
 
 FRAME_VIEWS_SQL = """
@@ -348,4 +452,173 @@ WHERE c.concept_key='reusable_decision_patterns'
    )
 GROUP BY c.concept_key
 ORDER BY CASE WHEN c.concept_key='reusable_decision_patterns' THEN 0 ELSE 1 END, c.confidence DESC, c.concept_key;
+"""
+
+REASONING_QUALITY_VIEWS_SQL = """
+CREATE VIEW v_reasoning_quality AS
+WITH input_stats AS (
+    SELECT
+        r.id AS episode_id,
+        COUNT(i.episode_id) AS input_count,
+        COALESCE(SUM(i.weight), 0.0) AS input_weight,
+        SUM(CASE WHEN i.relation IN ('supports', 'grounds', 'refines') THEN 1 ELSE 0 END) AS support_input_count,
+        SUM(CASE WHEN i.relation IN ('questions', 'opposes') THEN 1 ELSE 0 END) AS challenge_input_count
+    FROM reasoning_episodes r
+    LEFT JOIN reasoning_episode_inputs i ON i.episode_id = r.id
+    GROUP BY r.id
+),
+scored AS (
+    SELECT
+        r.id,
+        r.episode_key,
+        r.title,
+        r.claim,
+        r.evidence_summary,
+        r.inference,
+        r.rejected_alternatives,
+        r.uncertainty,
+        r.next_action,
+        r.status,
+        r.source_mode,
+        r.created_at,
+        r.updated_at,
+        COALESCE(s.input_count, 0) AS input_count,
+        COALESCE(s.input_weight, 0.0) AS input_weight,
+        COALESCE(s.support_input_count, 0) AS support_input_count,
+        COALESCE(s.challenge_input_count, 0) AS challenge_input_count,
+        lower(r.title || ' ' || r.claim || ' ' || r.evidence_summary || ' ' || r.inference || ' ' || r.rejected_alternatives || ' ' || r.uncertainty || ' ' || r.next_action) AS context_text,
+        CASE
+            WHEN length(trim(r.claim)) BETWEEN 35 AND 180 THEN 5
+            WHEN length(trim(r.claim)) BETWEEN 20 AND 240 THEN 4
+            WHEN length(trim(r.claim)) BETWEEN 12 AND 300 THEN 3
+            WHEN trim(r.claim) <> '' THEN 2
+            ELSE 1
+        END AS claim_clarity_score,
+        CASE
+            WHEN COALESCE(s.input_count, 0) >= 4 THEN 5
+            WHEN COALESCE(s.input_count, 0) >= 2 THEN 4
+            WHEN COALESCE(s.input_count, 0) >= 1 OR length(trim(r.evidence_summary)) >= 80 THEN 3
+            WHEN trim(r.evidence_summary) <> '' THEN 2
+            ELSE 1
+        END AS evidence_score,
+        CASE
+            WHEN length(trim(r.inference)) BETWEEN 35 AND 220 THEN 5
+            WHEN length(trim(r.inference)) BETWEEN 20 AND 280 THEN 4
+            WHEN trim(r.inference) <> '' THEN 3
+            ELSE 1
+        END AS inference_score,
+        CASE
+            WHEN trim(r.uncertainty) = '' THEN 2
+            WHEN lower(r.uncertainty) LIKE '%may%' OR lower(r.uncertainty) LIKE '%might%' OR lower(r.uncertainty) LIKE '%depend%' OR lower(r.uncertainty) LIKE '%uncertain%' OR lower(r.uncertainty) LIKE '%need%' OR lower(r.uncertainty) LIKE '%vary%' THEN 5
+            ELSE 4
+        END AS uncertainty_score,
+        CASE
+            WHEN lower(r.next_action) LIKE '%test%' OR lower(r.next_action) LIKE '%compare%' OR lower(r.next_action) LIKE '%review%' OR lower(r.next_action) LIKE '%measure%' OR lower(r.next_action) LIKE '%record%' OR lower(r.next_action) LIKE '%validate%' OR lower(r.next_action) LIKE '%revise%' THEN 5
+            WHEN trim(r.next_action) <> '' THEN 3
+            ELSE 1
+        END AS actionability_score,
+        CASE
+            WHEN COALESCE(s.input_count, 0) >= 3 THEN 5
+            WHEN COALESCE(s.input_count, 0) >= 1 THEN 4
+            ELSE 2
+        END AS traceability_score,
+        CASE
+            WHEN lower(r.title || ' ' || r.claim || ' ' || r.evidence_summary || ' ' || r.inference || ' ' || r.rejected_alternatives || ' ' || r.uncertainty || ' ' || r.next_action) LIKE '%before%'
+              OR lower(r.title || ' ' || r.claim || ' ' || r.evidence_summary || ' ' || r.inference || ' ' || r.rejected_alternatives || ' ' || r.uncertainty || ' ' || r.next_action) LIKE '%after%'
+              OR lower(r.title || ' ' || r.claim || ' ' || r.evidence_summary || ' ' || r.inference || ' ' || r.rejected_alternatives || ' ' || r.uncertainty || ' ' || r.next_action) LIKE '%compare%'
+              OR lower(r.title || ' ' || r.claim || ' ' || r.evidence_summary || ' ' || r.inference || ' ' || r.rejected_alternatives || ' ' || r.uncertainty || ' ' || r.next_action) LIKE '%comparison%'
+              OR lower(r.title || ' ' || r.claim || ' ' || r.evidence_summary || ' ' || r.inference || ' ' || r.rejected_alternatives || ' ' || r.uncertainty || ' ' || r.next_action) LIKE '%delta%'
+              OR lower(r.title || ' ' || r.claim || ' ' || r.evidence_summary || ' ' || r.inference || ' ' || r.rejected_alternatives || ' ' || r.uncertainty || ' ' || r.next_action) LIKE '%improv%' THEN 5
+            ELSE 2
+        END AS improvement_signal_score
+    FROM reasoning_episodes r
+    LEFT JOIN input_stats s ON s.episode_id = r.id
+),
+ranked AS (
+    SELECT
+        scored.*,
+        ROUND((
+            claim_clarity_score +
+            evidence_score +
+            inference_score +
+            uncertainty_score +
+            actionability_score +
+            traceability_score +
+            improvement_signal_score
+        ) / 7.0, 2) AS quality_score,
+        LAG(ROUND((
+            claim_clarity_score +
+            evidence_score +
+            inference_score +
+            uncertainty_score +
+            actionability_score +
+            traceability_score +
+            improvement_signal_score
+        ) / 7.0, 2)) OVER (ORDER BY scored.created_at, scored.id) AS previous_quality_score
+    FROM scored
+)
+SELECT
+    ranked.id,
+    ranked.episode_key,
+    ranked.title,
+    ranked.claim,
+    ranked.evidence_summary,
+    ranked.inference,
+    ranked.uncertainty,
+    ranked.next_action,
+    ranked.status,
+    ranked.source_mode,
+    ranked.created_at,
+    ranked.updated_at,
+    ranked.input_count,
+    ranked.input_weight,
+    ranked.support_input_count,
+    ranked.challenge_input_count,
+    ranked.claim_clarity_score,
+    ranked.evidence_score,
+    ranked.inference_score,
+    ranked.uncertainty_score,
+    ranked.actionability_score,
+    ranked.traceability_score,
+    ranked.improvement_signal_score,
+    ranked.quality_score,
+    ranked.previous_quality_score,
+    ROUND(ranked.quality_score - COALESCE(ranked.previous_quality_score, ranked.quality_score), 2) AS quality_delta,
+    CASE
+        WHEN ranked.quality_score >= 4.5 THEN 'excellent'
+        WHEN ranked.quality_score >= 4.0 THEN 'strong'
+        WHEN ranked.quality_score >= 3.0 THEN 'steady'
+        WHEN ranked.quality_score >= 2.0 THEN 'mixed'
+        ELSE 'weak'
+    END AS quality_band,
+    CASE
+        WHEN ROUND(ranked.quality_score - COALESCE(ranked.previous_quality_score, ranked.quality_score), 2) > 0 THEN 'improved'
+        WHEN ROUND(ranked.quality_score - COALESCE(ranked.previous_quality_score, ranked.quality_score), 2) < 0 THEN 'regressed'
+        ELSE 'flat'
+    END AS quality_trend
+FROM ranked
+ORDER BY ranked.created_at DESC, ranked.id DESC;
+
+CREATE VIEW v_reasoning_quality_daily AS
+SELECT
+    date(created_at) AS day,
+    COUNT(*) AS episode_count,
+    ROUND(AVG(quality_score), 2) AS avg_quality_score,
+    ROUND(AVG(quality_delta), 2) AS avg_quality_delta,
+    SUM(CASE WHEN quality_trend = 'improved' THEN 1 ELSE 0 END) AS improved_count,
+    SUM(CASE WHEN quality_trend = 'regressed' THEN 1 ELSE 0 END) AS regressed_count,
+    ROUND(100.0 * SUM(CASE WHEN quality_trend = 'improved' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS improved_pct
+FROM v_reasoning_quality
+GROUP BY date(created_at)
+ORDER BY day;
+
+CREATE VIEW v_reasoning_quality_summary AS
+SELECT
+    COUNT(*) AS episode_count,
+    ROUND(AVG(quality_score), 2) AS avg_quality_score,
+    ROUND(AVG(quality_delta), 2) AS avg_quality_delta,
+    SUM(CASE WHEN quality_trend = 'improved' THEN 1 ELSE 0 END) AS improved_count,
+    SUM(CASE WHEN quality_trend = 'regressed' THEN 1 ELSE 0 END) AS regressed_count,
+    ROUND(100.0 * SUM(CASE WHEN quality_trend = 'improved' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0), 1) AS improved_pct
+FROM v_reasoning_quality;
 """

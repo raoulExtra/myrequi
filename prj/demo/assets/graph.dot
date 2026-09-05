@@ -1,0 +1,11 @@
+digraph G {
+  graph [rankdir=LR, splines=true, nodesep=0.45, ranksep=0.6];
+  node [shape=box, fontname=Helvetica, margin=0.08];
+  edge [fontname=Helvetica];
+  "1" [label="Node 1\nfirst", tooltip="weight_int=1 | weight=1"];
+  "2" [label="Node 2\nsecond", tooltip="weight_int=2 | weight=2"];
+  "3" [label="Node 3\nthird", tooltip="weight_int=3 | weight=3"];
+  "1" -> "2" [label="1 to 2"];
+  "2" -> "3" [label="2 to 3", weight="2"];
+  "3" -> "1" [label="3 to 1", weight="3"];
+}

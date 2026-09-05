@@ -6,11 +6,12 @@ TABLE_CONTRACT_ROWS = [
     ("convictions", "current", "mutable", "conviction_versions, conviction_inputs", "Canonical current conviction row for durable commitments and working judgments."),
     ("concept_links", "evidence", "append_only", "concepts", "Links from concepts to beliefs, decisions, requirements, and states."),
     ("concepts", "current", "mutable", "concept_links", "Canonical concept catalog."),
+    ("v_concept_search", "derived", "derived", "concepts,concept_links,object_epistemic_tags", "Readable concept lookup surface with links and tags."),
     ("continuity_requirement_versions", "history", "append_only", "continuity_requirements", "Immutable requirement history"),
     ("continuity_requirements", "current", "mutable", "continuity_requirement_versions", "Canonical current requirement row"),
-    ("decision_versions", "history", "append_only", "decisions", "Receipt-backed decision snapshots"),
-    ("decision_options", "current", "mutable", "decisions", "Decision candidate rows used to compare implementation choices."),
-    ("decisions", "current", "mutable", "decision_versions, reasoning_episodes, decision_options", "Canonical current decision row"),
+    ("decision_versions", "history", "append_only", "decisions", "Immutable decision snapshots for the current choice history."),
+    ("decision_options", "current", "mutable", "decisions", "Candidate options compared against the current decision."),
+    ("decisions", "current", "mutable", "decision_versions, reasoning_episodes, decision_options", "Canonical current decision row; options and history live in separate tables."),
     ("epistemic_receipts", "audit", "immutable", None, "Immutable audit log"),
     ("open_questions", "current", "mutable", "reasoning_episodes", "Open questions that must be resolved or skipped explicitly."),
     ("epistemic_tags", "current", "mutable", "object_epistemic_tags", "Tag vocabulary for epistemic separation."),
@@ -34,12 +35,14 @@ TABLE_CONTRACT_ROWS = [
     ("syntheses", "current", "mutable", "synthesis_inputs, synthesis_conflicts", "Canonical interpreted layer entries."),
     ("v_concept_links", "derived", "derived", "concepts,concept_links", "Readable expanded concept links view."),
     ("v_concepts", "derived", "derived", "concepts,concept_links", "Readable concept catalog view."),
+    ("v_concept_search", "derived", "derived", "concepts,concept_links,object_epistemic_tags", "Readable concept lookup surface with links and tags."),
     ("v_convictions", "derived", "derived", "convictions,conviction_versions,conviction_inputs", "Readable conviction catalog and history view."),
     ("v_problem_solving_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable problem-solving patterns and their links."),
     ("v_problem_understanding_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable problem-understanding patterns and their links."),
     ("v_lean_thinking_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable lean-thinking patterns and their links."),
     ("v_decision_patterns", "derived", "derived", "concepts,concept_links", "Readable recall view for reusable decision patterns and their links."),
     ("v_decision_options", "derived", "derived", "decision_options,decisions", "Readable decision option comparison view."),
+    ("v_decisions", "derived", "derived", "decisions,decision_options,decision_versions", "Current decision overview that separates the chosen decision from options and snapshots."),
     ("v_decision_versions", "derived", "derived", "decision_versions,decisions,epistemic_receipts", "Receipt-backed decision snapshot history."),
     ("v_explain", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts,metacognitive_state", "Synthesis explanations with evidence, conflicts, and metacognitive context."),
     ("v_open_question_flow", "derived", "derived", "open_questions,reasoning_episodes", "Lifecycle view linking open questions to their originating and resolving reasoning episodes."),
@@ -49,18 +52,21 @@ TABLE_CONTRACT_ROWS = [
     ("v_item_links", "derived", "derived", "concept_links,project_objects,project_requirements,work_plan_links,synthesis_inputs", "Unified relationship graph across the raw and interpreted layers."),
     ("v_items", "derived", "derived", "beliefs,decisions,open_questions,journal,observations,arguments,reasoning_episodes,metacognitive_state,continuity_requirements,concepts,ethical_principles,ethical_conflict_rules,tool_command_guide,work_plans,work_plan_steps,projects,research_jobs", "Canonical raw item layer including arguments and reasoning episodes."),
     ("v_meaningful_sentences", "derived", "derived", "beliefs,decisions,continuity_requirements,metacognitive_state,concepts,ethical_principles", "Prioritized view of meaningful sentences across the main semantic tables."),
-    ("v_entry_points", "derived", "derived", "v_recall", "Curated GPT-friendly entry points over recall items."),
+    ("v_entry_points_all", "derived", "derived", "v_recall_all", "Unfiltered GPT-friendly entry points over recall items."),
+    ("v_entry_points", "derived", "derived", "v_recall", "Curated GPT-friendly entry points over canonical recall items."),
     ("v_component_influence", "derived", "derived", "component_influence,component_influence_modes", "Current influence settings with presets and overrides."),
     ("v_component_influence_history", "derived", "derived", "component_influence_history,component_influence_modes", "History of influence changes across component presets."),
     ("v_component_influence_modes", "derived", "derived", "component_influence_modes", "Named influence presets for default and state-specific modes."),
     ("v_component_influence_presets", "derived", "derived", "component_influence_presets,component_influence_modes", "Named preset rows for each influence mode."),
     ("v_core_model", "derived", "derived", "beliefs,convictions,continuity_requirements,work_plans,work_plan_steps,reasoning_episodes,epistemic_receipts,metacognitive_state", "Compact four-layer summary of the engine's tightened model."),
-    ("v_memory_index", "derived", "derived", "v_recall", "Compatibility recall alias."),
-    ("v_schema_catalog", "derived", "derived", "sqlite_master", "Readable catalog of tables and views for discovery and entry-point searches."),
+    ("v_memory_index", "derived", "derived", "v_recall_all", "Compatibility recall alias over the full recall surface."),
+    ("v_recall_all", "derived", "derived", "v_items,syntheses,synthesis_conflicts", "Unfiltered recall view spanning raw items and synthesized interpretations."),
+    ("v_schema_catalog_all", "derived", "derived", "sqlite_master", "Readable catalog of tables and views for discovery and entry-point searches."),
+    ("v_schema_catalog", "derived", "derived", "sqlite_master,object_epistemic_tags", "Canonical-only catalog of tables and views for discovery and entry-point searches."),
     ("v_meta", "derived", "derived", "metacognitive_state", "Canonical metacognitive state view."),
     ("v_object_epistemic_tags", "derived", "derived", "epistemic_tags,object_epistemic_tags", "Readable expanded epistemic tags view."),
     ("v_tag_search", "derived", "derived", "epistemic_tags,object_epistemic_tags,metacognitive_state", "Searchable tag-to-object view that expands persona-style metacognitive states."),
-    ("v_recall", "derived", "derived", "v_items,syntheses,synthesis_conflicts", "Normalized recall view spanning raw items and synthesized interpretations."),
+    ("v_recall", "derived", "derived", "v_recall_all,object_epistemic_tags", "Canonical-only recall view spanning raw items and synthesized interpretations."),
     ("v_synthesis_conflicts", "derived", "derived", "syntheses,synthesis_conflicts", "Readable conflict and tension view for syntheses."),
     ("v_synthesis_inputs", "derived", "derived", "syntheses,synthesis_inputs", "Readable evidence view for syntheses."),
     ("v_syntheses", "derived", "derived", "syntheses,synthesis_inputs,synthesis_conflicts", "Readable summary view for syntheses."),
@@ -77,7 +83,13 @@ UNION ALL SELECT 'conviction','current','convictions','conviction_versions, conv
 UNION ALL SELECT 'continuity_requirement','current','continuity_requirements','continuity_requirement_versions',NULL,'Current requirement text and status live in continuity_requirements; prior versions live in continuity_requirement_versions.'
 UNION ALL SELECT 'metacognitive_state','current','metacognitive_state','metacognitive_state_history',NULL,'Current metacognitive state lives in metacognitive_state; prior versions live in metacognitive_state_history.'
 UNION ALL SELECT 'vision','derived','v_visions','metacognitive_state',NULL,'Vision is exposed as a readable view over metacognitive_state.'
-UNION ALL SELECT 'schema_catalog','derived','v_schema_catalog',NULL,'sqlite_master','Readable catalog of tables and views for discovery and entry-point searches.'
+UNION ALL SELECT 'schema_catalog','derived','v_schema_catalog',NULL,'sqlite_master, object_epistemic_tags','Canonical-only catalog of tables and views for discovery and entry-point searches.'
+UNION ALL SELECT 'schema_catalog_all','derived','v_schema_catalog_all',NULL,'sqlite_master','Unfiltered catalog of tables and views for discovery and entry-point searches.'
+UNION ALL SELECT 'recall','derived','v_recall',NULL,'v_recall_all, object_epistemic_tags','Canonical-only recall layer for reasoning and retrieval.'
+UNION ALL SELECT 'recall_all','derived','v_recall_all',NULL,'v_items, syntheses, synthesis_conflicts','Unfiltered recall layer for reasoning and retrieval.'
+UNION ALL SELECT 'entry_points','derived','v_entry_points',NULL,'v_recall','Curated GPT-friendly entry points over canonical recall items.'
+UNION ALL SELECT 'entry_points_all','derived','v_entry_points_all',NULL,'v_recall_all','Unfiltered GPT-friendly entry points over recall items.'
+UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'v_recall_all','Compatibility recall alias over the full recall surface.'
 UNION ALL SELECT 'core_model','derived','v_core_model',NULL,'beliefs, convictions, continuity_requirements, work_plans, work_plan_steps, reasoning_episodes, epistemic_receipts, metacognitive_state','Compact four-layer summary of the engine''s tightened model.'
 UNION ALL SELECT 'policy','derived','v_core_model',NULL,'metacognitive_state, component_influence, component_influence_modes, component_influence_presets, feature_flags, epistemic_tags','Policy is exposed through the tightened core model rather than as a standalone table.'
 UNION ALL SELECT 'mission','derived','v_missions','projects',NULL,'Mission is exposed as a readable view over projects.'
@@ -91,7 +103,9 @@ UNION ALL SELECT 'problem_solving_patterns','derived','v_problem_solving_pattern
 UNION ALL SELECT 'problem_understanding_patterns','derived','v_problem_understanding_patterns','concepts,concept_links',NULL,'Problem-understanding patterns are exposed as a readable recall view over the reusable pattern catalog and its links.'
 UNION ALL SELECT 'lean_thinking_patterns','derived','v_lean_thinking_patterns','concepts,concept_links',NULL,'Lean-thinking patterns are exposed as a readable recall view over the reusable lean pattern catalog and its links.'
 UNION ALL SELECT 'decision_patterns','derived','v_decision_patterns','concepts,concept_links',NULL,'Decision patterns are exposed as a readable recall view over the reusable decision pattern catalog and its links.'
+UNION ALL SELECT 'concept_search','derived','v_concept_search','concepts,concept_links,object_epistemic_tags','concepts','Concept lookup surface combining the catalog, links, and concept tags.'
 UNION ALL SELECT 'decision','current','decisions','decision_versions, reasoning_episodes, decision_options',NULL,'Decisions are stored as current rows in decisions; receipt-backed history lives in decision_versions, reasoning links live in reasoning_episodes, and candidate options live in decision_options.'
+UNION ALL SELECT 'decision_surface','derived','v_decisions','decisions, decision_options, decision_versions','decision_versions','Current decision overview that separates the chosen decision from options and immutable snapshots.'
 UNION ALL SELECT 'decision_option','current','decision_options','decisions',NULL,'Decision candidate rows live in decision_options and point back to their parent decision.'
 UNION ALL SELECT 'decision_history','history','decision_versions','decisions',NULL,'Receipt-backed decision snapshots live in decision_versions.'
 UNION ALL SELECT 'reasoning_episode_input','evidence','reasoning_episode_inputs','reasoning_episodes',NULL,'Structured evidence links used by reasoning episodes.'
@@ -116,10 +130,6 @@ UNION ALL SELECT 'synthesis','current','syntheses','synthesis_inputs, synthesis_
 UNION ALL SELECT 'synthesis_input','evidence','synthesis_inputs','syntheses',NULL,'Evidence links, weights, and notes used by syntheses.'
 UNION ALL SELECT 'synthesis_conflict','audit','synthesis_conflicts','syntheses',NULL,'Recorded tensions or unresolved issues around syntheses.'
 UNION ALL SELECT 'interpreted_layer','derived','v_interpreted_layer',NULL,'syntheses, synthesis_inputs, synthesis_conflicts, metacognitive_state','Workbench view over interpreted syntheses and the governing metacognitive policy.'
-UNION ALL SELECT 'recall','derived','v_recall',NULL,'v_items, syntheses, synthesis_conflicts','Normalized recall layer for reasoning and retrieval.'
-UNION ALL SELECT 'entry_points','derived','v_entry_points',NULL,'v_recall','Curated GPT-friendly entry points over recall items.'
-UNION ALL SELECT 'memory_index','derived','v_memory_index',NULL,'v_recall','Compatibility recall alias.'
-UNION ALL SELECT 'schema_catalog','derived','v_schema_catalog',NULL,'sqlite_master','Readable catalog of tables and views for discovery and entry-point searches.'
 UNION ALL SELECT 'tag_search','derived','v_tag_search',NULL,'epistemic_tags,object_epistemic_tags,metacognitive_state','Searchable tag-to-object view that expands persona-style metacognitive states.'
 UNION ALL SELECT 'project','current','projects','project_activation_events', 'project_objects, project_requirements','Project identity and active status live in projects; related objects and requirements live in project_objects and project_requirements.'
 UNION ALL SELECT 'research','current','research_jobs','research_sources',NULL,'Research job lifecycle lives in research_jobs; cited sources live in research_sources.'
@@ -183,7 +193,7 @@ WHERE ff.feature_key='scientist_mode'
 
 MEMORY_INDEX_VIEW_SQL = """
 CREATE VIEW v_memory_index AS
-SELECT * FROM v_recall
+SELECT * FROM v_recall_all
 """
 
 MEMORY_PACKET_VIEW_SQL = """
@@ -204,7 +214,7 @@ SELECT
     confidence,
     version,
     recorded_at
-FROM v_recall
+FROM v_recall_all
 ORDER BY
     CASE
         WHEN source_type IN ('decision', 'decision_version', 'journal', 'observation', 'open_question', 'reasoning_episode') THEN 1
@@ -347,6 +357,10 @@ UNION ALL SELECT 'concept', 'concept:' || concept_key, concept_key, name,
        description, confidence, NULL, status,
        'concepts', created_at, updated_at
 FROM concepts
+UNION ALL SELECT 'concept_search', 'concept_search:' || concept_key, concept_key, name,
+       description || COALESCE(char(10) || 'Links: ' || (SELECT COALESCE(group_concat(object_type || ':' || object_key || ' [' || relation || '] ' || note, char(10)), '') FROM concept_links WHERE concept_key = concepts.concept_key), '') || COALESCE(char(10) || 'Tags: ' || (SELECT COALESCE(group_concat(tag_key || COALESCE(' [' || note || ']', ''), char(10)), '') FROM object_epistemic_tags WHERE object_type='concept' AND object_key = concepts.concept_key), ''), confidence, NULL, status,
+       'v_concept_search', updated_at, updated_at
+FROM concepts
 UNION ALL SELECT 'ethical_principle', 'ethical_principle:' || principle_key, principle_key, principle_key,
        statement || ' ' || rationale, NULL, NULL, status,
        'ethical_principles', created_at, created_at
@@ -389,19 +403,33 @@ FROM base
 LEFT JOIN memory_conditions mc ON mc.source_type = base.item_kind AND mc.source_key = base.source_key
 ORDER BY base.recorded_at DESC;
 
-CREATE VIEW v_recall AS
+CREATE VIEW v_recall_all AS
 SELECT item_kind AS source_type, source_key, title, body, condition, confidence, version, recorded_at
 FROM v_items
 UNION ALL SELECT 'synthesis', synthesis_key, topic, summary || COALESCE(' ' || claim, ''), COALESCE(mc.condition, ''), confidence, NULL, s.updated_at
 FROM syntheses s
 LEFT JOIN memory_conditions mc ON mc.source_type='synthesis' AND mc.source_key = s.synthesis_key
+WHERE s.status='active'
 UNION ALL SELECT 'synthesis_conflict', s.synthesis_key || ': ' || CAST(c.id AS TEXT), s.synthesis_key || ': ' || c.issue,
        c.resolution_note || COALESCE(' ' || c.issue, ''), COALESCE(mc.condition, ''), NULL, NULL, c.created_at
 FROM synthesis_conflicts c
 JOIN syntheses s ON s.id = c.synthesis_id
-LEFT JOIN memory_conditions mc ON mc.source_type='synthesis_conflict' AND mc.source_key = CAST(c.id AS TEXT);
+LEFT JOIN memory_conditions mc ON mc.source_type='synthesis_conflict' AND mc.source_key = CAST(c.id AS TEXT)
+WHERE s.status='active';
 
-CREATE VIEW v_entry_points AS
+CREATE VIEW v_recall AS
+SELECT *
+FROM v_recall_all
+WHERE EXISTS (
+    SELECT 1
+    FROM object_epistemic_tags oet
+    WHERE oet.object_type='recall_source_type'
+      AND oet.object_key = v_recall_all.source_type
+      AND oet.tag_key='canonical'
+)
+ORDER BY recorded_at DESC;
+
+CREATE VIEW v_entry_points_all AS
 SELECT
     source_type AS entry_kind,
     source_key AS entry_key,
@@ -416,8 +444,19 @@ SELECT
         WHEN source_type IN ('reasoning_episode', 'synthesis') THEN 'analysis'
         ELSE 'context'
     END AS entry_role
-FROM v_recall
-WHERE source_type IN ('belief', 'concept', 'journal', 'observation', 'project', 'work_plan', 'decision', 'open_question', 'reasoning_episode', 'synthesis')
+FROM v_recall_all
+WHERE source_type IN ('belief', 'concept', 'concept_search', 'journal', 'observation', 'project', 'work_plan', 'decision', 'open_question', 'reasoning_episode', 'synthesis');
+
+CREATE VIEW v_entry_points AS
+SELECT *
+FROM v_entry_points_all
+WHERE EXISTS (
+    SELECT 1
+    FROM object_epistemic_tags oet
+    WHERE oet.object_type='recall_source_type'
+      AND oet.object_key = v_entry_points_all.entry_kind
+      AND oet.tag_key='canonical'
+)
 ORDER BY recorded_at DESC, entry_role, entry_kind, entry_key;
 
 CREATE VIEW v_explain AS
@@ -812,7 +851,7 @@ CREATE TABLE IF NOT EXISTS syntheses (
     summary TEXT NOT NULL,
     claim TEXT,
     confidence REAL NOT NULL CHECK(confidence BETWEEN 0 AND 1),
-    status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','active','superseded')),
+    status TEXT NOT NULL DEFAULT 'draft' CHECK(status IN ('draft','active','superseded','settled')),
     source_mode TEXT NOT NULL DEFAULT 'derived' CHECK(source_mode IN ('derived','reviewed','external')),
     metacognitive_note TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

@@ -4,7 +4,7 @@
 - plan_key: dependency_first_planning
 - title: Dependency-first planning
 - objective: Uncover hidden dependencies before execution
-- status: active
+- status: completed
 - created_by: Peter
 - created_at: 2026-09-01 07:08:53
 - updated_at: 2026-09-01 07:08:53

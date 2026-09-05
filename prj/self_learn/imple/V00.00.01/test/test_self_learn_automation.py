@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import json
+import os
 import sqlite3
 import subprocess
 import tempfile
 import unittest
 from pathlib import Path
 import sys
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -14,6 +16,7 @@ sys.path.insert(0, str(ROOT))
 import self_learn_automation as sla
 import self_learn_cli as cli
 import self_learn_phase_2 as phase2
+import self_learn_prompt as prompt_module
 
 class SelfLearnAutomationTests(unittest.TestCase):
     def test_sync_creates_dirs_and_moves_completed_plan(self):
@@ -148,6 +151,8 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("RC001-AC001-AUTO", auto_requirements)
             self.assertIn("RC008-AUTO", auto_requirements)
             self.assertIn("RC008-AC002-AUTO", auto_requirements)
+            self.assertIn("RC011-AUTO", auto_requirements)
+            self.assertIn("RC011-AC008-AUTO", auto_requirements)
             self.assertNotIn("AUTO-RC008", auto_requirements)
             self.assertTrue((root / "docs" / "phase-1-next-path.md").exists())
             self.assertTrue((root / "docs" / "phase-1-core-requi.md").exists())
@@ -320,7 +325,8 @@ class SelfLearnAutomationTests(unittest.TestCase):
             self.assertIn("RC001-AUTO", auto_review)
             self.assertIn("RC001-AC001-AUTO", auto_review)
             self.assertIn("RC008-AUTO", auto_review)
-            self.assertIn("RC008-AC002-AUTO", auto_review)
+            self.assertIn("RC011-AUTO", auto_review)
+            self.assertIn("RC011-AC008-AUTO", auto_review)
             self.assertNotIn("AUTO-RC008", auto_review)
             self.assertTrue((root / "docs" / "phase-1-next-path.md").exists())
             self.assertTrue((root / "docs" / "phase-1-core-requi.md").exists())
@@ -469,6 +475,50 @@ status: active
             rc = sla.main(["review", "--root", str(root)])
 
             self.assertEqual(rc, 0)
+
+    def test_ask_command_returns_json_answer(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "docs").mkdir(parents=True)
+
+            with mock.patch("self_learn_cli.prompt.sys.stdin.isatty", return_value=True):
+                with mock.patch("self_learn_cli.prompt.input", return_value="1"):
+                    rc = cli.main(["ask", "Continue?", "--options", "yes,no", "--root", str(root)])
+
+            self.assertEqual(rc, 0)
+
+    def test_ask_command_uses_default_when_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "docs").mkdir(parents=True)
+
+            with mock.patch("self_learn_cli.prompt.sys.stdin.isatty", return_value=True):
+                with mock.patch("self_learn_cli.prompt.input", return_value=""):
+                    rc = cli.main(["ask", "Continue?", "--default", "yes", "--root", str(root)])
+
+            self.assertEqual(rc, 0)
+
+    def test_ask_non_interactive_reads_env(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "docs").mkdir(parents=True)
+
+            with mock.patch.dict(os.environ, {"SELF_LEARN_ANSWER": "maybe"}):
+                with mock.patch("self_learn_cli.prompt.sys.stdin.isatty", return_value=False):
+                    rc = cli.main(["ask", "Continue?", "--root", str(root)])
+
+            self.assertEqual(rc, 0)
+
+    def test_ask_non_interactive_falls_back_to_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp) / "self_learn"
+            (root / "docs").mkdir(parents=True)
+
+            with mock.patch("self_learn_cli.prompt.sys.stdin.isatty", return_value=False):
+                rc = cli.main(["ask", "Continue?", "--default", "yes", "--root", str(root)])
+
+            self.assertEqual(rc, 0)
+
 
 if __name__ == "__main__":
     unittest.main()

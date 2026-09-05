@@ -10,9 +10,12 @@ for_version: default_version
 The demo project SHALL provide a graph with nodes and edges.
 Nodes and edges MAY have labels. A node MAY have a text
 field in the JSON source, and that text SHALL be stored in a
-separate database table. Node weights SHALL be scalar values
-and default to float weights. A node MAY also have an
-integer weight. Edge weights SHALL represent abstract
+separate database table. Nodes and edges MAY also have
+optional `color` and `style` fields in the JSON source.
+These styling fields SHALL be stored as text fields with a
+maximum length of 256 characters. Node weights SHALL be
+scalar values and default to float weights. A node MAY also
+have an integer weight. Edge weights SHALL represent abstract
 meaning and SHALL default to 1 when omitted.
 
 ## Traceability

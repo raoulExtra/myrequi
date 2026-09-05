@@ -1,74 +1,33 @@
+# Phase 0: Auto Prompt Automation
+
 PROJECT PHASE 0
-inherits_from: base
-purpose: self learning how to think sharp & structured
+
+purpose: Enable AI to ask questions and automate self-learning paths through interactive prompts.
+
 goals:
-- use the project to learn from interactions, improve tools, keep the filespace coherent, learn how to think sharp, collect a future-proof glossary, and suggest the first self-learn path.
-outcome: a simple navigation page for the self_learn project.
+- Implement a lightweight prompt helper for automation questions
+- Support one-line questions, options, notes, and defaults
+- Maintain non-interactive safety and CLI compatibility
+- Keep documentation small and reviewable
+
+goals:
+- Create a standardized way to ask questions in automation workflows
+- Enable AI to suggest paths based on user input
+- Maintain backward compatibility with existing automation
+
+outcome: Interactive automation surface for decision-making in self-learning projects
 outcome_doc: docs/phase-0-outcome.md
 
 core_requirements:
-- [code] PH000-RC001: define the canonical project entry point.
-- [code] PH000-RC002: keep the glossary and automation links visible.
-- [code] PH000-RC003: preserve the phase boundary into phase 1.
-- [code] PH000-RC004: describe the auto subproject and its versioned docs/implementation layout.
-- [code] PH000-RC005: stay small enough to review quickly.
+- [code] PH000-RC001: define auto as the project automation subproject.
+- [code] RC012-AUTO: provide a lightweight prompt helper for automation questions.
+- [code] RC013-AUTO: support one-line questions without options.
+- [code] RC014-AUTO: support questions with numbered options.
+- [code] RC015-AUTO: support an optional note and default answer.
+- [code] RC017-AUTO: keep the CLI trigger surface stable for manual filesystem actions.
 
-purpose: self learning how to think sharp & structured
-
-## automation subproject
-- auto handles project automations.
-- it has docs/phase-0/auto/phase-0-core-requi-auto.md and docs/phase-0/auto/phase-0-core-review-auto.md as the canonical phase-0 auto companions.
-- the legacy flat aliases remain available during the transition.
-- it keeps the code in `imple/V00.00.01/auto/` and the companions in `docs/phase-0/auto/`.
-- phase 0 keeps this automation surface visible so the project can explain how it automates itself.
-
-tags:
-- thinking_workspace
-- self_learning
-
-## related plans
-- [Filesystem autonomy plan](plans/done/1_plan.md)
-- [Next-step automation plan](plans/done/2_plan.md)
-- [Glossary phase plan](plans/done/3_plan.md)
-- [AI next-path phase plan](plans/4_plan.md)
-- [Phase requirements plan](plans/done/5_plan.md)
-- [Phase review plan](plans/done/6_plan.md)
-- [Meta optimization plan](plans/7_plan.md)
-
-navigation:
-- [Project index](docs/index.md)
-- [Glossary](docs/glossary.md)
-- [Next path](docs/next-path.md)
-- [Named phase 0 file](docs/phase-0-entry.md)
-- [Phase 0 core requi file](docs/phase-0-core-requi.md)
-- [Phase 0 core review](docs/phase-0-core-review.md)
-- [Phase 0 auto core requirements](docs/phase-0/auto/phase-0-core-requi-auto.md)
-- [Phase 0 auto core review](docs/phase-0/auto/phase-0-core-review-auto.md)
-- [Legacy auto core requirements](docs/phase-0-auto-core-requi.md)
-- [Legacy auto core review](docs/phase-0-auto-core-review.md)
-- [Phase 0 outcome](docs/phase-0-outcome.md)
-- [Phase requirements](docs/phase-requirements.md)
-- [Phase challenge](docs/phase-challenge.md)
-- [Modularity budget](docs/modularity.md)
-- [Working rules](docs/working-rules.md)
-- [Learning loop notes](docs/learning-loop.md)
-- [Filesystem autonomy notes](docs/filesystem-autonomy.md)
-- [Automation notes](docs/automation.md)
-- [Base project file organization standard](../base/002-requi-prj-file-organization-standard.md)
-- [Base phase 0](../base/phase_0.md)
-- [Phase 1](phase_1.md)
-
-glossary:
-- learning loop
-- self improvement
-- filespace
-- canonical
-- project
-- plan
-- path
-- suggestion
-- review
-- subproject
-- auto
-
-status: completed
+acceptance criteria:
+- RC012-AC001-AUTO: auto is described as the place where project automations live.
+- RC012-AC002-AUTO: the description stays visible in the phase 0 story.
+- RC012-AC003-AUTO: the implementation path is explicit and reusable.
+- RC017-AC001-AUTO: the CLI trigger surface remains stable for filesystem actions.

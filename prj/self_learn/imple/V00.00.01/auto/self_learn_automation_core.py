@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Iterable
 
 from . import self_learn_meta as meta
-from .self_learn_named_docs import write_named_phase_0_doc, write_phase_0_core_requi_doc, write_phase_0_core_review_doc, write_phase_0_auto_core_requi_doc, write_phase_0_auto_core_review_doc, write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
+from .self_learn_named_docs import write_named_phase_0_doc, write_phase_0_core_requi_doc, write_phase_0_core_review_doc, write_phase_0_auto_core_requi_doc, write_phase_0_auto_core_review_doc, write_auto_prompt_core_requi_doc, write_auto_prompt_core_review_doc, write_named_phase_1_doc, write_phase_1_core_requi_doc, write_phase_1_core_review_doc
 from .self_learn_phase_2 import select_phase_2_mission, write_named_phase_2_doc, write_phase_2_core_requi_doc, write_phase_2_core_review_doc, write_phase_2
 from .self_learn_phase_docs import write_phase_requirements_doc, write_phase_challenge_doc, write_modularity_doc
 from .self_learn_phase_output import write_phase_0, write_phase_1
@@ -363,11 +363,12 @@ def _active_plan_paths(root: Path = PROJECT_ROOT) -> list[Path]:
         if "status: active" in _read_text(plan).lower():
             active.append(plan)
     return active
-def _extract_plan_title_and_objective(plan: Path) -> tuple[str, str, list[str], list[str]]:
+def _extract_plan_title_and_objective(plan: Path) -> tuple[str, str, list[dict[str, object]], list[str]]:
     title = plan.stem
     objective = ""
-    steps: list[str] = []
+    steps: list[dict[str, object]] = []
     when_to_run: list[str] = []
+    loop_stack: list[int] = []
     section: str | None = None
     for raw_line in _read_text(plan).splitlines():
         line = raw_line.strip()
@@ -385,6 +386,15 @@ def _extract_plan_title_and_objective(plan: Path) -> tuple[str, str, list[str], 
         if line == "## steps":
             section = "steps"
             continue
+        if line.startswith("## loop"):
+            loop_stack.append(len(steps) + 1)
+            section = "loop"
+            continue
+        if line == "## end loop":
+            if loop_stack:
+                loop_stack.pop()
+            section = "steps" if not loop_stack else "loop"
+            continue
         if line.startswith("## "):
             section = None
             continue
@@ -393,8 +403,13 @@ def _extract_plan_title_and_objective(plan: Path) -> tuple[str, str, list[str], 
         elif section == "when_to_run" and line.startswith("-"):
             when_to_run.append(line[1:].strip())
         elif section == "steps" and line[0].isdigit() and ". " in line:
-            steps.append(line)
-    return title, objective, when_to_run, steps
+            steps.append({"text": line, "loop_depth": len(loop_stack)})
+        elif section == "loop" and line.startswith(("-", "*")):
+            steps.append({"text": line, "loop_depth": len(loop_stack)})
+        elif section == "loop" and line.startswith((">>", "@")):
+            ref = line[2:].strip() if line.startswith(">>") else line[1:].strip()
+            steps.append({"text": line, "reference": ref, "loop_depth": len(loop_stack)})
+    return title, objective, steps, when_to_run
 def _plan_is_phase_related(plan: Path) -> bool:
     text = _read_text(plan).lower()
     return "phase" in plan.name.lower() or "phase" in text
@@ -433,7 +448,13 @@ def write_active_plan_handoff(root: Path = PROJECT_ROOT) -> Path:
                 lines.extend(f"  - {item}" for item in when_to_run)
             if steps:
                 lines.append("- steps:")
-                lines.extend(f"  - {step}" for step in steps)
+                for step in steps:
+                    text = step.get("text", str(step))
+                    ref = step.get("reference")
+                    if ref:
+                        lines.append(f"  - {text}  (ref: {ref})")
+                    else:
+                        lines.append(f"  - {text}")
             lines.extend([
                 f"- outcome store: plans/done/{plan.stem}_exec_<timestamp>.md",
                 "- completion rule: update the source plan to status: completed, then let sync move it into plans/done/.",
@@ -470,7 +491,13 @@ def write_plan_execution_record(root: Path, plan: Path, summary: str, details: l
         lines.extend(f"  - {item}" for item in when_to_run)
     if steps:
         lines.append("- steps:")
-        lines.extend(f"  - {step}" for step in steps)
+        for step in steps:
+            text = step.get("text", str(step))
+            ref = step.get("reference")
+            if ref:
+                lines.append(f"  - {text}  (ref: {ref})")
+            else:
+                lines.append(f"  - {text}")
     lines.extend(["", "## outcome", summary or "- none recorded", "", "## details"])
     lines.extend(details or ["- none recorded"])
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
@@ -547,6 +574,8 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
     phase_0_core_review_doc = write_phase_0_core_review_doc(root)
     phase_0_auto_core_requi_doc = write_phase_0_auto_core_requi_doc(root)
     phase_0_auto_core_review_doc = write_phase_0_auto_core_review_doc(root)
+    auto_prompt_core_requi_doc = write_auto_prompt_core_requi_doc(root)
+    auto_prompt_core_review_doc = write_auto_prompt_core_review_doc(root)
     named_phase_1_doc = write_named_phase_1_doc(root)
     phase_1_core_requi_doc = write_phase_1_core_requi_doc(root)
     phase_1_core_review_doc = write_phase_1_core_review_doc(root)
@@ -575,6 +604,8 @@ def refresh(root: Path = PROJECT_ROOT) -> dict[str, object]:
         "phase_0_core_review": str(phase_0_core_review_doc),
         "phase_0_auto_core_requi": str(phase_0_auto_core_requi_doc),
         "phase_0_auto_core_review": str(phase_0_auto_core_review_doc),
+        "auto_prompt_core_requi": str(auto_prompt_core_requi_doc),
+        "auto_prompt_core_review": str(auto_prompt_core_review_doc),
         "phase_0": str(phase_0_doc),
         "phase_1": str(phase_1_doc),
         "phase_2": str(phase_2_doc),

@@ -80,6 +80,9 @@ def ensure_memory_index_view(cur):
         UNION ALL SELECT 'concept', concept_key, name,
                description, confidence, NULL, updated_at
         FROM concepts
+        UNION ALL SELECT 'concept_search', concept_key || ':search', name,
+               description || COALESCE(char(10) || 'Links: ' || linked_items, '') || COALESCE(char(10) || 'Tags: ' || tagged_terms, ''), confidence, NULL, updated_at
+        FROM v_concept_search
         UNION ALL SELECT 'concept_link', CAST(id AS TEXT), concept_key || ' → ' || object_type || ':' || object_key,
                relation || ': ' || note, NULL, NULL, created_at
         FROM concept_links
@@ -113,9 +116,11 @@ def ensure_memory_index_view(cur):
         UNION ALL SELECT 'synthesis', synthesis_key, topic,
                summary || COALESCE(' ' || claim, ''), confidence, NULL, updated_at
         FROM syntheses
+        WHERE status='active'
         UNION ALL SELECT 'synthesis_conflict', CAST(c.id AS TEXT), s.synthesis_key || ': ' || c.issue,
                c.resolution_note || COALESCE(' ' || c.issue, ''), NULL, NULL, c.created_at
         FROM synthesis_conflicts c JOIN syntheses s ON s.id = c.synthesis_id
+        WHERE s.status='active'
         ORDER BY recorded_at DESC
         '''
     )
@@ -140,6 +145,7 @@ SOURCE_LAYER = {
     'belief': 'semantic',
     'belief_version': 'semantic',
     'concept': 'semantic',
+    'concept_search': 'semantic',
     'continuity_requirement': 'semantic',
     'ethical_conflict_rule': 'semantic',
     'ethical_principle': 'semantic',

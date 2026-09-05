@@ -117,6 +117,71 @@ class PlanCommandTests(unittest.TestCase):
         finally:
             shutil.rmtree(tmpdir)
 
+    def test_synthesis_promotion_creates_policy_when_missing(self):
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            db_copy = tmpdir / 'continuity.db'
+            shutil.copy2(plan_command.DB_PATH, db_copy)
+            conn = plan_command.connect(db_copy)
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "insert into syntheses(synthesis_key, topic, summary, claim, confidence, status, source_mode, metacognitive_note) values(?,?,?,?,?,?,?,?)",
+                    ('policy_transfer_probe', 'Policy transfer probe', 'Policy transfer probe summary', 'Policy transfer probe claim', 0.93, 'active', 'derived', 'probe'),
+                )
+                result = plan_command.promote_synthesis_to_policy(conn, 'policy_transfer_probe')
+                policy_row = conn.execute(
+                    "select category, value, confidence, provenance, version from metacognitive_state where state_key='policy_transfer_probe'"
+                ).fetchone()
+                synthesis_row = conn.execute(
+                    "select status from syntheses where synthesis_key='policy_transfer_probe'"
+                ).fetchone()
+            finally:
+                conn.close()
+
+            self.assertTrue(result['created'])
+            self.assertEqual(result['policy_key'], 'policy_transfer_probe')
+            self.assertEqual(policy_row[0], 'governance')
+            self.assertEqual(policy_row[1], 'Policy transfer probe claim')
+            self.assertEqual(policy_row[3], 'synthesis:policy_transfer_probe')
+            self.assertEqual(synthesis_row[0], 'settled')
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_synthesis_promotion_keeps_existing_policy(self):
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            db_copy = tmpdir / 'continuity.db'
+            shutil.copy2(plan_command.DB_PATH, db_copy)
+            conn = plan_command.connect(db_copy)
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "insert into syntheses(synthesis_key, topic, summary, claim, confidence, status, source_mode, metacognitive_note) values(?,?,?,?,?,?,?,?)",
+                    ('policy_keep_probe', 'Policy keep probe', 'Policy keep probe summary', 'Policy keep probe claim', 0.91, 'active', 'derived', 'probe'),
+                )
+                cur.execute(
+                    "insert into metacognitive_state(state_key, category, value, confidence, provenance, version) values(?,?,?,?,?,?)",
+                    ('policy_keep_probe', 'governance', 'Existing policy text', 0.5, 'manual', 1),
+                )
+                result = plan_command.promote_synthesis_to_policy(conn, 'policy_keep_probe')
+                policy_row = conn.execute(
+                    "select category, value, confidence, provenance, version from metacognitive_state where state_key='policy_keep_probe'"
+                ).fetchone()
+                synthesis_row = conn.execute(
+                    "select status from syntheses where synthesis_key='policy_keep_probe'"
+                ).fetchone()
+            finally:
+                conn.close()
+
+            self.assertFalse(result['created'])
+            self.assertEqual(policy_row[1], 'Existing policy text')
+            self.assertEqual(policy_row[2], 0.5)
+            self.assertEqual(policy_row[3], 'manual')
+            self.assertEqual(synthesis_row[0], 'settled')
+        finally:
+            shutil.rmtree(tmpdir)
+
     def test_block_step_creates_open_question(self):
         tmpdir = Path(tempfile.mkdtemp())
         try:

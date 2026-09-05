@@ -31,6 +31,11 @@ requirements:
 - [R8-G: Beam search with filtering](R8-G-graph-beam-filter.md)
 - [R9-G: Convert a selected graph into a Python AST](R9-G-graph-to-py-ast.md)
 - [R10-G: Provide a `py_from_ast.py` module for graph-to-Python-AST use](R10-G-py-from-ast.md)
+- [R11-G: Graph tool can export Graphviz DOT and SVG](R11-G-graph-gviz.md)
+- [R12-G: Graph tool can select a graph by name](R12-G-graph-name-selection.md)
+- [R13-G: Graph tool supports optional node and edge color/style attributes](R13-G-graph-color-style.md)
+- [R14-G: Graph tool can serve a selected graph on localhost](R14-G-graph-localhost-view.md)
+- [R15-G: Graph tool can serve a DOT file as PNG on localhost](R15-G-graph-dot-localhost.md)
 - [R2: Standard phase document
   fields](002-requi-phase-document-structure.md)
 - [R3: Project overview
@@ -61,6 +66,13 @@ acceptance_criteria:
 - [R7-G acceptance
   criteria](R7-G-graph-semaphore-acc-crit.md)
 - [R8-G acceptance criteria](R8-G-graph-beam-filter-acc-crit.md)
+- [R9-G acceptance criteria](R9-G-graph-to-py-ast-acc-crit.md)
+- [R10-G acceptance criteria](R10-G-py-from-ast-acc-crit.md)
+- [R11-G acceptance criteria](R11-G-graph-gviz-acc-crit.md)
+- [R12-G acceptance criteria](R12-G-graph-name-selection-acc-crit.md)
+- [R13-G acceptance criteria](R13-G-graph-color-style-acc-crit.md)
+- [R14-G acceptance criteria](R14-G-graph-localhost-view-acc-crit.md)
+- [R15-G acceptance criteria](R15-G-graph-dot-localhost-acc-crit.md)
 - [R2 acceptance
   criteria](002-acc-crit-phase-document-structure.md)
 - [R3 acceptance

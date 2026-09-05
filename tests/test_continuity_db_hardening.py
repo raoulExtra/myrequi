@@ -61,10 +61,12 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('synthesis_inputs', 'evidence', 'append_only'),
             ('v_concept_links', 'derived', 'derived'),
             ('v_concepts', 'derived', 'derived'),
+            ('v_concept_search', 'derived', 'derived'),
             ('v_convictions', 'derived', 'derived'),
             ('v_decision_options', 'derived', 'derived'),
             ('v_decision_patterns', 'derived', 'derived'),
             ('v_decision_versions', 'derived', 'derived'),
+            ('v_entry_points_all', 'derived', 'derived'),
             ('v_entry_points', 'derived', 'derived'),
             ('v_explain', 'derived', 'derived'),
             ('v_interpreted_layer', 'derived', 'derived'),
@@ -73,6 +75,8 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('v_lean_thinking_patterns', 'derived', 'derived'),
             ('v_meaningful_sentences', 'derived', 'derived'),
             ('v_memory_index', 'derived', 'derived'),
+            ('v_recall_all', 'derived', 'derived'),
+            ('v_schema_catalog_all', 'derived', 'derived'),
             ('v_schema_catalog', 'derived', 'derived'),
             ('v_tag_search', 'derived', 'derived'),
             ('v_component_influence', 'derived', 'derived'),
@@ -80,6 +84,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('v_component_influence_modes', 'derived', 'derived'),
             ('v_component_influence_presets', 'derived', 'derived'),
             ('v_core_model', 'derived', 'derived'),
+            ('v_decisions', 'derived', 'derived'),
             ('v_meta', 'derived', 'derived'),
             ('v_object_epistemic_tags', 'derived', 'derived'),
             ('v_open_question_flow', 'derived', 'derived'),
@@ -111,11 +116,13 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertIn('belief', concepts)
         self.assertIn('conviction', concepts)
         self.assertIn('core_model', concepts)
+        self.assertIn('concept_search', concepts)
         self.assertIn('dream_session', concepts)
         self.assertIn('epistemic_receipt', concepts)
         self.assertIn('entry_points', concepts)
         self.assertIn('feature_flag', concepts)
         self.assertIn('interpreted_layer', concepts)
+        self.assertIn('decision_surface', concepts)
         self.assertIn('decision_history', concepts)
         self.assertIn('open_question_flow', concepts)
         self.assertIn('reasoning_flow', concepts)
@@ -314,6 +321,28 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertGreaterEqual(sample[1], 1)
         self.assertIsNotNone(sample[2])
 
+    def test_decision_overview_separates_choice_options_and_history(self):
+        conn = hardening.connect()
+        try:
+            sample = conn.execute(
+                "select decision_id, decision_text, option_count, version_count, latest_version from v_decisions where version_count > 0 order by version_count desc, option_count desc, decision_id limit 1"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        self.assertIsNotNone(sample)
+        conn = hardening.connect()
+        try:
+            option_count = conn.execute("select count(*) from decision_options where decision_id=?", (sample[0],)).fetchone()[0]
+            version_count = conn.execute("select count(*) from decision_versions where decision_id=?", (sample[0],)).fetchone()[0]
+        finally:
+            conn.close()
+
+        self.assertIsNotNone(sample[1])
+        self.assertEqual(sample[2], option_count)
+        self.assertEqual(sample[3], version_count)
+        self.assertGreaterEqual(sample[4], 1)
+
     def test_reasoning_flow_is_formalized(self):
         conn = hardening.connect()
         try:
@@ -365,6 +394,21 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             canonical = conn.execute(
                 "select name, description from concepts where concept_key='canonical_home_enforcement'"
             ).fetchone()
+            canonical_tag = conn.execute(
+                "select label, description from epistemic_tags where tag_key='canonical'"
+            ).fetchone()
+            canonical_schema_objects = conn.execute(
+                "select object_key from object_epistemic_tags where tag_key='canonical' and object_type='schema_object' order by object_key"
+            ).fetchall()
+            canonical_recall_sources = conn.execute(
+                "select object_key from object_epistemic_tags where tag_key='canonical' and object_type='recall_source_type' order by object_key"
+            ).fetchall()
+            canonical_schema_names = conn.execute(
+                "select object_name from v_schema_catalog order by object_name"
+            ).fetchall()
+            canonical_recall_types = conn.execute(
+                "select distinct source_type from v_recall order by source_type"
+            ).fetchall()
             links = conn.execute(
                 "select concept_key, object_key from concept_links where object_type='work_plan' and concept_key='discovery' order by object_key"
             ).fetchall()
@@ -439,6 +483,27 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertTrue(any(r[0] == 'entrypoint' and r[2] == 'discovery' for r in db_links))
         self.assertTrue(any(r[0] == 'correction' and r[2] == 'overlap_reduction' for r in db_links))
         self.assertEqual(tag_rows, [('persona', 'Persona'), ('system', 'System'), ('trait', 'Trait')])
+        self.assertIsNotNone(canonical_tag)
+        self.assertEqual(canonical_tag, ('Canonical', 'Marks default-facing objects and surfaces.'))
+        self.assertIn(('v_core_model',), canonical_schema_objects)
+        self.assertIn(('v_recall',), canonical_schema_objects)
+        self.assertIn(('v_entry_points',), canonical_schema_objects)
+        self.assertIn(('v_concept_search',), canonical_schema_objects)
+        self.assertIn(('v_decisions',), canonical_schema_objects)
+        self.assertIn(('v_schema_catalog',), canonical_schema_objects)
+        self.assertIn(('decision',), canonical_recall_sources)
+        self.assertIn(('open_question',), canonical_recall_sources)
+        self.assertIn(('work_plan',), canonical_recall_sources)
+        self.assertIn(('v_core_model',), canonical_schema_names)
+        self.assertIn(('v_entry_points',), canonical_schema_names)
+        self.assertIn(('v_concept_search',), canonical_schema_names)
+        self.assertIn(('v_decisions',), canonical_schema_names)
+        self.assertIn(('v_schema_catalog',), canonical_schema_names)
+        self.assertIn(('decision',), canonical_recall_types)
+        self.assertIn(('concept_search',), canonical_recall_types)
+        self.assertIn(('work_plan',), canonical_recall_types)
+        self.assertNotIn(('belief',), canonical_recall_types)
+        self.assertNotIn(('conviction',), canonical_schema_names)
         self.assertGreaterEqual(persona_tagged, 1)
         self.assertGreaterEqual(system_tagged, 1)
         self.assertGreaterEqual(trait_tagged, 1)
@@ -467,6 +532,22 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertEqual(row[0], 'v_entry_points')
         self.assertEqual(row[1], 'view')
         self.assertIn(('v_entry_points',), entry_rows)
+
+    def test_concept_search_surface_is_present(self):
+        conn = hardening.connect()
+        try:
+            row = conn.execute(
+                "select concept_key, name, link_count, searchable_text from v_concept_search where concept_key='schema_catalog'"
+            ).fetchone()
+        finally:
+            conn.close()
+
+        self.assertIsNotNone(row)
+        self.assertEqual(row[0], 'schema_catalog')
+        self.assertIn('schema', row[1].lower())
+        self.assertGreaterEqual(row[2], 1)
+        self.assertIn('schema_catalog', row[3])
+        self.assertIn('concept', row[3])
 
     def test_component_influence_preset_view_is_present(self):
         conn = hardening.connect()

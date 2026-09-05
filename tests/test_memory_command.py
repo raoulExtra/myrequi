@@ -216,6 +216,38 @@ class MemoryCommandTests(unittest.TestCase):
         self.assertIn('honesty', policy_hit['body'].lower())
         self.assertIn('trust', policy_hit['body'].lower())
 
+    def test_settled_syntheses_do_not_show_up_in_default_recall(self):
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            db_copy = tmpdir / 'continuity.db'
+            shutil.copy2(memory_command.DB_PATH, db_copy)
+            conn = memory_command.connect(db_copy)
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "insert into syntheses(synthesis_key, topic, summary, claim, confidence, status, source_mode, metacognitive_note) values(?,?,?,?,?,?,?,?)",
+                    ('settled_recall_probe', 'settled recall probe topic', 'settled recall probe summary', 'settled recall probe claim', 0.9, 'settled', 'derived', 'probe'),
+                )
+                synthesis_id = cur.execute("select id from syntheses where synthesis_key='settled_recall_probe'").fetchone()[0]
+                cur.execute(
+                    "insert into synthesis_conflicts(synthesis_id, issue, severity, resolved, resolution_note) values(?,?,?,?,?)",
+                    (synthesis_id, 'settled recall probe conflict token', 'warning', 0, 'settled recall probe conflict note'),
+                )
+                cur.execute(
+                    "insert into syntheses(synthesis_key, topic, summary, claim, confidence, status, source_mode, metacognitive_note) values(?,?,?,?,?,?,?,?)",
+                    ('active_recall_probe', 'active recall probe topic', 'active recall probe summary', 'active recall probe claim', 0.9, 'active', 'derived', 'probe'),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            result = json.loads(memory_command.run_memory_recall('settled recall probe', db_path=db_copy))
+            sources = {hit['source_key'] for hit in result['hits']}
+            self.assertIn('active_recall_probe', sources)
+            self.assertNotIn('settled_recall_probe', sources)
+        finally:
+            shutil.rmtree(tmpdir)
+
     def test_memory_index_view_exists_and_contains_known_rows(self):
         conn = memory_command.connect()
         try:

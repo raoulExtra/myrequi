@@ -27,7 +27,7 @@ from .schema import (
     TABLE_CONTRACT_ROWS,
     COMPONENT_INFLUENCE_SCHEMA_SQL,
 )
-from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, TAG_SEARCH_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL
+from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, SCHEMA_CATALOG_ALL_VIEW_SQL, TAG_SEARCH_VIEW_SQL, CONCEPT_SEARCH_VIEW_SQL, DECISION_OVERVIEW_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL, REASONING_QUALITY_VIEWS_SQL
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "continuity.db"
@@ -529,6 +529,12 @@ def create_reasoning_flow_views(cur):
     cur.executescript(REASONING_FLOW_VIEW_SQL)
 
 
+def create_reasoning_quality_views(cur):
+    for name in ['v_reasoning_quality', 'v_reasoning_quality_daily', 'v_reasoning_quality_summary']:
+        cur.execute(f'DROP VIEW IF EXISTS {name}')
+    cur.executescript(REASONING_QUALITY_VIEWS_SQL)
+
+
 def create_open_question_flow_view(cur):
     cur.execute('DROP VIEW IF EXISTS v_open_question_flow')
     cur.executescript(OPEN_QUESTION_FLOW_VIEW_SQL)
@@ -938,8 +944,13 @@ def create_decision_options_view(cur):
     cur.executescript(DECISION_OPTIONS_VIEW_SQL)
 
 
+def create_decision_overview_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_decisions")
+    cur.execute(DECISION_OVERVIEW_VIEW_SQL)
+
+
 def create_reasoning_v2_views(cur):
-    for name in ['v_item_links', 'v_meta', 'v_explain', 'v_recall', 'v_entry_points', 'v_items', 'v_memory_index', 'v_decision_versions', 'v_decision_options', 'v_open_question_flow', 'v_reasoning_episode_inputs', 'v_reasoning_flow']:
+    for name in ['v_item_links', 'v_meta', 'v_explain', 'v_recall', 'v_recall_all', 'v_entry_points', 'v_entry_points_all', 'v_items', 'v_memory_index', 'v_decision_versions', 'v_decision_options', 'v_open_question_flow', 'v_reasoning_episode_inputs', 'v_reasoning_flow']:
         cur.execute(f'DROP VIEW IF EXISTS {name}')
     cur.executescript(RAW_RECALL_VIEWS_SQL)
 
@@ -1052,12 +1063,18 @@ def create_provenance_summary_view(cur):
 
 def create_schema_catalog_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_schema_catalog")
-    cur.execute(SCHEMA_CATALOG_VIEW_SQL)
+    cur.execute("DROP VIEW IF EXISTS v_schema_catalog_all")
+    cur.executescript(SCHEMA_CATALOG_ALL_VIEW_SQL + ";\n" + SCHEMA_CATALOG_VIEW_SQL + ";")
 
 
 def create_tag_search_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_tag_search")
     cur.execute(TAG_SEARCH_VIEW_SQL)
+
+
+def create_concept_search_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_concept_search")
+    cur.execute(CONCEPT_SEARCH_VIEW_SQL)
 
 
 def create_component_influence_views(cur):
@@ -1139,6 +1156,127 @@ def seed_discovery_concept(cur):
             0.86,
         ),
     )
+
+
+def seed_plan_concept(cur):
+    cur.execute(
+        """
+        INSERT INTO concepts(concept_key, name, description, status, confidence)
+        VALUES(?,?,?,?,?)
+        ON CONFLICT(concept_key) DO UPDATE SET
+            name=excluded.name,
+            description=excluded.description,
+            status=excluded.status,
+            confidence=excluded.confidence,
+            updated_at=CURRENT_TIMESTAMP
+        """,
+        (
+            'plan',
+            'Plan',
+            'Alias for work_plan; the default-facing term for a work plan.',
+            'active',
+            0.92,
+        ),
+    )
+    for tag_key, note in [
+        ('canonical', 'Canonical alias for work_plan.'),
+        ('epistemic:planning', 'Plan is a planning concept and execution surface.'),
+    ]:
+        cur.execute(
+            """
+            INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+            VALUES(?,?,?,?)
+            ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
+                note=excluded.note
+            """,
+            ('concept', 'plan', tag_key, note),
+        )
+
+
+def seed_goal_mission_taxonomy_concepts(cur):
+    concepts = [
+        ('aim', 'Aim', 'A broad intended direction or effect.', 'active', 0.90),
+        ('goal', 'Goal', 'A specific desired target state or condition; if achieved, it yields an outcome.', 'active', 0.92),
+        ('mission', 'Mission', 'The enduring purpose that organizes a project’s aims and goals.', 'active', 0.91),
+        ('strategy', 'Strategy', 'A chosen approach for pursuing a mission and its goals.', 'active', 0.90),
+        ('step', 'Step', 'One executable action inside a plan.', 'active', 0.89),
+    ]
+    for concept_key, name, description, status, confidence in concepts:
+        cur.execute(
+            """
+            INSERT INTO concepts(concept_key, name, description, status, confidence)
+            VALUES(?,?,?,?,?)
+            ON CONFLICT(concept_key) DO UPDATE SET
+                name=excluded.name,
+                description=excluded.description,
+                status=excluded.status,
+                confidence=excluded.confidence,
+                updated_at=CURRENT_TIMESTAMP
+            """,
+            (concept_key, name, description, status, confidence),
+        )
+    tag_rows = {
+        'aim': [('epistemic:goal', 'Broad direction or effect, not a concrete delivery.' )],
+        'goal': [
+            ('epistemic:goal', 'Specific target state or condition.'),
+            ('epistemic:requirement', 'A goal can be expressed as a requirement-like target.'),
+        ],
+        'mission': [('epistemic:goal', 'Enduring purpose that organizes goals.')],
+        'strategy': [
+            ('epistemic:planning', 'Strategy is the approach that shapes plans.'),
+            ('epistemic:reasoning', 'Strategy is chosen by comparing approaches.'),
+        ],
+        'step': [
+            ('epistemic:functional', 'A step is an executable action surface.'),
+            ('epistemic:planning', 'A step is part of plan execution.'),
+        ],
+    }
+    for concept_key, rows in tag_rows.items():
+        for tag_key, note in rows:
+            cur.execute(
+                """
+                INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+                VALUES(?,?,?,?)
+                ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
+                    note=excluded.note
+                """,
+                ('concept', concept_key, tag_key, note),
+            )
+
+
+def seed_requirements_glossary_taxonomy_terms(cur):
+    terms = [
+        ('aim', 'Aim', 'Frame', 'A broad intended direction or effect.', 'Keeps the highest-level direction separate from concrete targets.', 'What broad direction or effect are we aiming for?', 'Improve the onboarding experience for new users.', 'Treat the aim as a task list.', 8, 0.90, 30),
+        ('goal', 'Goal', 'Frame', 'A specific desired target state or condition; if achieved, it yields an outcome.', 'Keeps the target state distinct from the realized result.', 'What specific target state do we want?', 'Reduce onboarding support delay to four hours.', 'Call the goal the outcome before it has happened.', 8, 0.92, 31),
+        ('mission', 'Mission', 'Frame', 'The enduring purpose that organizes a project’s aims and goals.', 'Provides a stable reason for the project and its work.', 'What enduring purpose does this project serve?', 'Help new users succeed at onboarding with less friction.', 'Use the mission as a one-off task.', 8, 0.91, 32),
+        ('strategy', 'Strategy', 'Analyze', 'A chosen approach for pursuing a mission and its goals.', 'Turns the mission into a deliberate path.', 'What approach will best reach the mission and goals?', 'Start with guided setup, then simplify the remaining tasks.', 'Confuse the strategy with the execution plan.', 8, 0.90, 33),
+        ('plan', 'Plan', 'Specify', 'The ordered execution path that turns strategy into actionable work.', 'Makes the intended sequence of work explicit.', 'What ordered execution path gets us there?', 'First reduce the support queue, then simplify onboarding, then measure the change.', 'Treat the plan as a vague intention.', 8, 0.92, 34),
+        ('step', 'Step', 'Manage', 'One executable action inside a plan.', 'Keeps execution concrete and tractable.', 'What is the next executable action in the plan?', 'Update the onboarding checklist.', 'Bundle many actions into one step.', 8, 0.89, 35),
+    ]
+    for term_key, term, phase, definition, why_it_matters, elegant_prompt, good_example, anti_pattern, primary_source_id, confidence, sort_order in terms:
+        cur.execute(
+            """
+            INSERT INTO requirements_glossary_terms(
+                term_key, term, phase, definition, why_it_matters,
+                elegant_prompt, good_example, anti_pattern, primary_source_id,
+                confidence, sort_order, status
+            )
+            VALUES(?,?,?,?,?,?,?,?,?,?,?, 'active')
+            ON CONFLICT(term_key) DO UPDATE SET
+                term=excluded.term,
+                phase=excluded.phase,
+                definition=excluded.definition,
+                why_it_matters=excluded.why_it_matters,
+                elegant_prompt=excluded.elegant_prompt,
+                good_example=excluded.good_example,
+                anti_pattern=excluded.anti_pattern,
+                primary_source_id=excluded.primary_source_id,
+                confidence=excluded.confidence,
+                sort_order=excluded.sort_order,
+                status=excluded.status
+            """,
+            (term_key, term, phase, definition, why_it_matters, elegant_prompt, good_example, anti_pattern, primary_source_id, confidence, sort_order),
+        )
 
 
 def seed_discovery_plan_links(cur):
@@ -1263,6 +1401,83 @@ def seed_quality_plan_links(cur):
             """,
             (concept_key, object_type, object_key, relation, note),
         )
+
+def seed_canonical_tag(cur):
+    cur.execute(
+        """
+        INSERT INTO epistemic_tags(tag_key, label, description)
+        VALUES(?,?,?)
+        ON CONFLICT(tag_key) DO UPDATE SET
+            label=excluded.label,
+            description=excluded.description
+        """,
+        ('canonical', 'Canonical', 'Marks default-facing objects and surfaces.'),
+    )
+    schema_objects = [
+        'v_core_model',
+        'v_recall',
+        'v_entry_points',
+        'v_concept_search',
+        'v_decisions',
+        'v_memory_index',
+        'v_schema_catalog',
+        'v_storage_map',
+        'v_meta',
+        'v_item_links',
+        'v_object_epistemic_tags',
+        'v_tag_search',
+        'decisions',
+        'open_questions',
+        'work_plans',
+        'work_plan_steps',
+        'reasoning_episodes',
+        'metacognitive_state',
+        'continuity_requirements',
+        'syntheses',
+        'epistemic_receipts',
+        'projects',
+        'observations',
+        'journal',
+        'object_metadata',
+        'object_provenance',
+    ]
+    for object_name in schema_objects:
+        cur.execute(
+            """
+            INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+            VALUES(?,?,?,?)
+            ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
+                note=excluded.note
+            """,
+            ('schema_object', object_name, 'canonical', 'Canonical default-facing schema object.'),
+        )
+    recall_source_types = [
+        'decision',
+        'open_question',
+        'journal',
+        'observation',
+        'reasoning_episode',
+        'work_plan',
+        'work_plan_step',
+        'project',
+        'synthesis',
+        'synthesis_conflict',
+        'metacognitive_state',
+        'continuity_requirement',
+        'epistemic_receipt',
+        'concept_search',
+    ]
+    for source_type in recall_source_types:
+        cur.execute(
+            """
+            INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+            VALUES(?,?,?,?)
+            ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
+                note=excluded.note
+            """,
+            ('recall_source_type', source_type, 'canonical', 'Canonical default-facing recall source type.'),
+        )
+
 
 def seed_persona_tag(cur):
     cur.execute(
@@ -1417,6 +1632,8 @@ def seed_scientist_mode_routes(cur):
         ('plan_step_add', r'^plan\s+step\s+add\s+.+$', "python3 plan_command.py step add <plan_key> <step_key> <description> --db continuity.db", 'Add a pending step to an active plan.'),
         ('plan_step_done', r'^plan\s+step\s+done\s+.+$', "python3 plan_command.py step done <plan_key> <step_key> --db continuity.db", 'Mark a plan step as completed.'),
         ('plan_step_block', r'^plan\s+step\s+block\s+.+$', "python3 plan_command.py step block <plan_key> <step_key> <question> --db continuity.db", 'Record a blocker as an open question.'),
+        ('synthesis_promote', r'^synthesis\s+promote\s+.+$', "python3 plan_command.py synthesis promote <synthesis_key> [state_key] --db continuity.db", 'Promote a settled synthesis into metacognitive state when no policy row exists yet.'),
+        ('project_goal_set', r'^project\s+goal\s+set\s+.+$', "python3 project_command.py goal set <project_name> <goal> --db continuity.db", 'Set a project-specific goal for a mission.'),
     ]
     cur.executemany(
         """
@@ -1721,8 +1938,11 @@ def validate(conn):
         "v_recall",
         "v_explain",
         "v_meta",
+        "v_entry_points_all",
         "v_entry_points",
         "v_memory_index",
+        "v_recall_all",
+        "v_schema_catalog_all",
         "v_schema_catalog",
         "v_tag_search",
         "v_component_influence_modes",
@@ -1733,6 +1953,9 @@ def validate(conn):
         "v_open_question_flow",
         "v_reasoning_episode_inputs",
         "v_reasoning_flow",
+        "v_reasoning_quality",
+        "v_reasoning_quality_daily",
+        "v_reasoning_quality_summary",
     ]:
         if cur.execute("select 1 from sqlite_master where type='view' and name=?", (view_name,)).fetchone() is None:
             issues.append((f'{view_name}_missing', [f'{view_name} missing'], []))
@@ -1787,6 +2010,21 @@ def validate(conn):
     trait_tag = cur.execute("select label, description from epistemic_tags where tag_key='trait'").fetchone()
     if not trait_tag:
         issues.append(("trait_tag", trait_tag, ('Trait', 'Marks reusable persona traits such as curiosity, caution, structure, and patience.')))
+    canonical_tag = cur.execute("select label, description from epistemic_tags where tag_key='canonical'").fetchone()
+    if not canonical_tag:
+        issues.append(("canonical_tag", canonical_tag, ('Canonical', 'Marks default-facing objects and surfaces.')))
+    canonical_schema_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='canonical' and object_type='schema_object'").fetchone()[0]
+    if canonical_schema_count < 10:
+        issues.append(("canonical_schema_object_tags", canonical_schema_count, '>=10'))
+    canonical_recall_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='canonical' and object_type='recall_source_type'").fetchone()[0]
+    if canonical_recall_count < 6:
+        issues.append(("canonical_recall_source_tags", canonical_recall_count, '>=6'))
+    canonical_schema_view = cur.execute("select count(*) from v_schema_catalog").fetchone()[0]
+    canonical_recall_view = cur.execute("select count(*) from v_recall").fetchone()[0]
+    if canonical_schema_view < 5:
+        issues.append(("canonical_schema_view_count", canonical_schema_view, '>=5'))
+    if canonical_recall_view < 5:
+        issues.append(("canonical_recall_view_count", canonical_recall_view, '>=5'))
     system_concept = cur.execute("select name, description from concepts where concept_key='system'").fetchone()
     if not system_concept:
         issues.append(("system_concept", system_concept, ('System', 'A bounded whole made of parts, relations, inputs, outputs, feedback, and purpose.')))
@@ -2018,6 +2256,7 @@ def apply_migration():
     seed_fairness_action_check(cur)
     seed_scientist_mode(cur)
     seed_discovery_concept(cur)
+    seed_plan_concept(cur)
     seed_discovery_plan_links(cur)
     seed_db_optimization_concepts(cur)
     seed_db_optimization_links(cur)
@@ -2068,6 +2307,8 @@ def apply_migration():
     seed_mistake_recording_policy(cur)
     seed_morphology_concept_provenance(cur)
     seed_memory_mvp_requirements(cur)
+    seed_goal_mission_taxonomy_concepts(cur)
+    seed_requirements_glossary_taxonomy_terms(cur)
     seed_reasoning_episodes(cur)
     backfill_reasoning_episode_inputs(cur)
     backfill_reasoning_decision_links(cur)
@@ -2076,6 +2317,7 @@ def apply_migration():
     backfill_decision_history(cur)
     seed_interpretive_layer(cur)
     seed_scientist_mode_routes(cur)
+    seed_canonical_tag(cur)
     create_storage_map_view(cur)
     create_core_model_view(cur)
     create_frame_views(cur)
@@ -2090,6 +2332,8 @@ def apply_migration():
     create_provenance_summary_view(cur)
     create_schema_catalog_view(cur)
     create_tag_search_view(cur)
+    create_concept_search_view(cur)
+    create_decision_overview_view(cur)
     create_component_influence_views(cur)
     create_convictions_view(cur)
     create_interpretive_layer_views(cur)
@@ -2098,6 +2342,7 @@ def apply_migration():
     create_reasoning_v2_views(cur)
     create_open_question_flow_view(cur)
     create_reasoning_flow_views(cur)
+    create_reasoning_quality_views(cur)
     create_memory_index_view(cur)
     create_memory_packet_view(cur)
     create_writeback_policy_view(cur)

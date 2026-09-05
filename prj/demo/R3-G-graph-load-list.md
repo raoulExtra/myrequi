@@ -19,8 +19,12 @@ existing rows for that graph ID before inserting the new
 graph. The JSON format SHALL be the simplest format that
 satisfies [R1-G](R1-G-graph.md), including node text in the
 JSON source. The JSON source SHALL not store `graph_id`; the
-database records the graph ID on load. If an edge references
-a missing node, the loader SHALL show a warning.
+database records the graph ID on load. The JSON source MAY
+also store a graph `name`, which the loader SHALL preserve
+for name-based selection. The JSON source MAY also store
+optional node and edge `color` and `style` fields, which the
+loader SHALL preserve for later export and Graphviz rendering.
+If an edge references a missing node, the loader SHALL show a warning.
 
 ## Traceability
 - stakeholder need: the demo should support simple graph

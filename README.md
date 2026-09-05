@@ -29,13 +29,19 @@ The DB now also models:
 - **vision / mission / strategy / plan views**:
   `v_visions`, `v_missions`, `v_strategies`,
   `v_plans`
+- **project-scoped goals**: goals now live as
+  project-specific `metacognitive_state` rows like
+  `project_goal__continuity_db`
 - **thinking patterns**:
   `constraint_first_thinking`,
   `battle_proven_thinking_way`,
   `reasoning_pattern_reuse_plan`,
   `core_thinking_patterns`
-- **decision options**: `decision_options` and
-  `v_decision_options` for side-by-side comparison
+- **decision surfaces**: `decisions` / `v_decisions`
+  for the current choice, `decision_options` /
+  `v_decision_options` for candidate comparisons,
+  and `decision_versions` / `v_decision_versions`
+  for immutable history
 - **reasoning improvement tracking**:
   `CDB-13.8` and related patterns for before/after
   episode comparison
@@ -76,6 +82,8 @@ keep the core model small:
   history, provenance
 - **policy**: metacognitive state, influence modes,
   feature flags, epistemic tags
+- **canonical**: tag default-facing tables/views and
+  let default surfaces prefer only canonical rows
 
 Everything else should usually be a view, alias, or
 supporting metadata.
@@ -103,13 +111,13 @@ supporting metadata.
   `metacognitive_state_history`
 - `syntheses`, `synthesis_inputs`,
   `synthesis_conflicts`
-- `decision_options`, `decisions`,
-  `decision_versions`
+- `decisions`, `decision_options`,
+  `decision_versions`, `v_decisions`
 - `object_metadata`, `object_provenance`,
   `epistemic_receipts`
 - `work_plans`, `work_plan_steps`,
   `work_plan_links`
-- `concepts`, `concept_links`
+- `concepts`, `concept_links`, `v_concept_search`
 - `journal`, `observations`, `open_questions`,
   `reasoning_episodes`
 - `projects` (missions)
@@ -118,18 +126,21 @@ supporting metadata.
 
 - `v_visions` / `v_missions`
 - `v_strategies` / `v_plans`
+- `v_decisions`
 - `v_decision_options`
+- `v_decision_versions`
 - `v_convictions`
 - `v_items`
-- `v_recall`
-- `v_entry_points`
+- `v_recall` / `v_recall_all`
+- `v_entry_points` / `v_entry_points_all`
 - `v_memory_index`
-- `v_schema_catalog`
+- `v_schema_catalog` / `v_schema_catalog_all`
 - `v_tag_search`
 - `v_component_influence`
 - `v_component_influence_presets`
 - `v_component_influence_history`
 - `v_component_influence_modes`
+- `v_concept_search`
 - `v_item_links`
 - `error_recovery_influence_flow` work plan
 - `evolved_baseline_demo` work plan
@@ -172,7 +183,7 @@ than storage. It might support:
 - **Plan continuity**: keeping work plans,
   dependencies, and follow-ups intact
 - **Mission/strategy clarity**: exposing the path from
-  vision to mission to strategy to plan
+  vision to mission to goal to plan
 - **Concept growth**: building richer semantic
   structure around important ideas over time
 - **Decision discipline**: comparing explicit options

@@ -1,0 +1,24 @@
+{
+  "name": "rust-demo",
+  "nodes": [
+    { "id": 1, "label": "Module", "text": "Module" },
+    { "id": 2, "label": "Function", "text": "add" },
+    { "id": 3, "label": "Param", "text": "a: i32" },
+    { "id": 4, "label": "Param", "text": "b: i32" },
+    { "id": 5, "label": "Return", "text": "Return" },
+    { "id": 6, "label": "BinaryExpr", "text": "BinaryExpr" },
+    { "id": 7, "label": "Name", "text": "a" },
+    { "id": 8, "label": "Add", "text": "Add" },
+    { "id": 9, "label": "Name", "text": "b" }
+  ],
+  "edges": [
+    { "from": 1, "to": 2, "label": "body", "order": 1 },
+    { "from": 2, "to": 3, "label": "params", "order": 1 },
+    { "from": 2, "to": 4, "label": "params", "order": 2 },
+    { "from": 2, "to": 5, "label": "body", "order": 1 },
+    { "from": 5, "to": 6, "label": "value", "order": 1 },
+    { "from": 6, "to": 7, "label": "left", "order": 1 },
+    { "from": 6, "to": 8, "label": "op", "order": 1 },
+    { "from": 6, "to": 9, "label": "right", "order": 1 }
+  ]
+}
