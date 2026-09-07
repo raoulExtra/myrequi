@@ -1,7 +1,7 @@
 '''yaml
 title: R3-G-graph-load-list
 requirement_id: R3-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -30,7 +30,7 @@ If an edge references a missing node, the loader SHALL show a warning.
 - stakeholder need: the demo should support simple graph
   import, graph listing, graph selection by id, import-time
   validation warnings, and replace-on-load behavior
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R3-G-graph-load-list-acc-crit.md)

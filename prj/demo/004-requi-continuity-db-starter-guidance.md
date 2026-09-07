@@ -1,7 +1,7 @@
 '''yaml
 title: 004-requi-continuity-db-starter-guidance
 requirement_id: R4
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -18,7 +18,7 @@ subdir docs/.
   database guidance from starter.md
 - evidence markers: continuity.db[REF_EXISTS]
   starter.md[REF_EXISTS] filesystem[REF_EXISTS]
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance

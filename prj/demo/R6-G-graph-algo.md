@@ -1,7 +1,7 @@
 '''yaml
 title: R6-G-graph-algo
 requirement_id: R6-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -16,7 +16,7 @@ MAY accept an optional goal node argument.
 - stakeholder need: the demo should support algorithm
   execution on a selected graph with configurable start and
   optional goal nodes
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R6-G-graph-algo-acc-crit.md)

@@ -1,7 +1,7 @@
 '''yaml
 title: R12-G-graph-name-selection
 requirement_id: R12-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -11,7 +11,7 @@ The demo project SHALL allow graph names to be provided in the graph JSON under 
 
 ## Traceability
 - stakeholder need: the demo should let users select a graph by a human-friendly name instead of only numeric id
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R12-G-graph-name-selection-acc-crit.md)

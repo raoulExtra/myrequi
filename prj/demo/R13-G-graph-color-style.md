@@ -1,7 +1,7 @@
 '''yaml
 title: R13-G-graph-color-style
 requirement_id: R13-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -11,7 +11,7 @@ The demo project SHALL allow optional `color` and `style` attributes on nodes an
 
 ## Traceability
 - stakeholder need: the demo should support basic visual styling metadata on graph nodes and edges
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R13-G-graph-color-style-acc-crit.md)

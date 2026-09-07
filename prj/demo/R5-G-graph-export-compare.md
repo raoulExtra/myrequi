@@ -1,7 +1,7 @@
 '''yaml
 title: R5-G-graph-export-compare
 requirement_id: R5-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -17,7 +17,7 @@ SHALL be `--id`.
 - stakeholder need: the demo should support graph export,
   graph-to-JSON comparison, and explicit graph selection by
   id
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance

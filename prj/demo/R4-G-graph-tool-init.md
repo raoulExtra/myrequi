@@ -1,7 +1,7 @@
 '''yaml
 title: R4-G-graph-tool-init
 requirement_id: R4-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -17,7 +17,7 @@ graph storage schema and leave it empty.
 ## Traceability
 - stakeholder need: the demo should provide a simple tool
   for creating graph storage before loading data
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R4-G-graph-tool-init-acc-crit.md)

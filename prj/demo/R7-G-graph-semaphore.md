@@ -1,7 +1,7 @@
 '''yaml
 title: R7-G-graph-semaphore
 requirement_id: R7-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -16,7 +16,7 @@ or releasing access.
 ## Traceability
 - stakeholder need: multiple processes should be able to
   work on the same graph safely using PID-based coordination
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R7-G-graph-semaphore-acc-crit.md)

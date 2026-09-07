@@ -1,7 +1,7 @@
 '''yaml
 title: R15-G-graph-dot-localhost
 requirement_id: R15-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -11,7 +11,7 @@ The demo project SHALL provide a `-dot <dotfile>` mode that converts the selecte
 
 ## Traceability
 - stakeholder need: the demo should show an existing DOT file as a browser-friendly PNG on localhost
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R15-G-graph-dot-localhost-acc-crit.md)

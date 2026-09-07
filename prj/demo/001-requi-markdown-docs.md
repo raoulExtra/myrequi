@@ -1,7 +1,7 @@
 '''yaml
 title: 001-requi-markdown-docs
 requirement_id: R1
-phase: phase_1_1
+phase: 001_001_phase
 '''
 
 # R1: Clear demo markdown files
@@ -13,7 +13,7 @@ the project in a clear and consistent format.
 - stakeholder need: the demo project should have clear
   markdown files that are pleasant to read and easy to
   navigate
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](001-acc-crit-markdown-docs.md)

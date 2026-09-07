@@ -1,7 +1,7 @@
 '''yaml
 title: R14-G-graph-localhost-view
 requirement_id: R14-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -11,7 +11,7 @@ The demo project SHALL provide a small localhost provider that serves the select
 
 ## Traceability
 - stakeholder need: the demo should show the graph in a browser on localhost without manual file handling
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R14-G-graph-localhost-view-acc-crit.md)

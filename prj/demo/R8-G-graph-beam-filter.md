@@ -1,7 +1,7 @@
 '''yaml
 title: R8-G-graph-beam-filter
 requirement_id: R8-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -11,7 +11,7 @@ The demo project SHALL provide a beam-search algorithm on the selected graph, an
 
 ## Traceability
 - stakeholder need: the demo should support a graph search method suitable for repeated thinking paths
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R8-G-graph-beam-filter-acc-crit.md)

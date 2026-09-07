@@ -1,33 +1,88 @@
-# Phase 0: Auto Prompt Automation
+# PROJECT PHASE 0
 
-PROJECT PHASE 0
+inherits_from: base
 
-purpose: Enable AI to ask questions and automate self-learning paths through interactive prompts.
+## Purpose
+Establish the foundational self-improving infrastructure for the self_learn project workspace.
 
-goals:
-- Implement a lightweight prompt helper for automation questions
-- Support one-line questions, options, notes, and defaults
-- Maintain non-interactive safety and CLI compatibility
-- Keep documentation small and reviewable
+## Goal
+Enable the cognition.db system to support precise working in phased projects through automation that keeps the AI focused on high-impact tasks.
 
-goals:
-- Create a standardized way to ask questions in automation workflows
-- Enable AI to suggest paths based on user input
-- Maintain backward compatibility with existing automation
+## Outcome
+- A meta-improvement system that learns from its own results and refines its processes
+- Filesystem-based state management that is auditable and version-controlled
+- Automated plan generation from project memory and context
+- A learning loop (Observe → Update → Verify → Reuse) embedded in project tooling
 
-outcome: Interactive automation surface for decision-making in self-learning projects
-outcome_doc: docs/phase-0-outcome.md
+## Core Requirements
 
-core_requirements:
-- [code] PH000-RC001: define auto as the project automation subproject.
-- [code] RC012-AUTO: provide a lightweight prompt helper for automation questions.
-- [code] RC013-AUTO: support one-line questions without options.
-- [code] RC014-AUTO: support questions with numbered options.
-- [code] RC015-AUTO: support an optional note and default answer.
-- [code] RC017-AUTO: keep the CLI trigger surface stable for manual filesystem actions.
+### CR0: Subprojects Structure
+- **auto** - Directory for automatic project handling tools and configurations
+- **auto/sim** - Directory for simulation-specific infrastructure and test scenarios
+- Subproject structure must support independent versioning and documentation
+- Each subproject inherits core requirements but may extend them
 
-acceptance criteria:
-- RC012-AC001-AUTO: auto is described as the place where project automations live.
-- RC012-AC002-AUTO: the description stays visible in the phase 0 story.
-- RC012-AC003-AUTO: the implementation path is explicit and reusable.
-- RC017-AC001-AUTO: the CLI trigger surface remains stable for filesystem actions.
+### CR1: Meta-Learning Improvement
+- The system must record its improvement actions and outcomes to continuity.db
+- Each self-improvement cycle must produce an audit trail
+- The system must identify at least 3 improvement patterns from past cycles
+- Quality metrics (before/after) must be measurable per improvement
+
+### CR2: Filesystem State Management
+- metacognitive_state.json must be tracked by git version control
+- State changes must include ISO 8601 timestamps
+- At least 5 state keys must be migratable (primary_goal, current_focus, current_aspect, active_project, current_project)
+- State must be readable via `self_query.py status`
+
+### CR3: Automated Plan Generation
+- Plans must be generable from JSON state entries using gen_improv_plan.py
+- Generated plans must include executable steps with clear success criteria
+- At least 3 plan types must be auto-generating (goals, focus, context)
+- Plans must inherit structure from plan templates
+
+### CR4: Embedded Learning Loop
+- Observe: Query memory for relevant context via self_query.py
+- Update: Apply changes through pi command or pi_query.py
+- Verify: Compare before/after states with measurable metrics
+- Reuse: Store patterns in reasoning_episodes table or JSON files
+
+### CR5: Learning Domain Separation
+- Project-specific learnings must be stored in `prj/self_learn/knowledge/` as markdown/JSON files
+- General continuity.db learnings remain in the main database
+- Each storage location must have a clear ownership marker (project vs. system)
+- Cross-referencing between domains must use unique trace IDs
+- Project knowledge must be exportable/importable independently of continuity.db
+
+--- TODO: Outcome needs refinement to be more specific and measurable
+
+## Navigation
+- [Phase 1](001_phase.md) - Core implementation of self-improvement tools
+- [Rules](rules/) - Governance rules for self-improvement
+- [Implementation](imple/) - Versioned implementations of self-improvement tools
+
+## Structure
+Recommended subdirectories following project conventions:
+- `docs/` — overview, usage, project explanation
+- `examples/` — sample outputs or mock content
+- `references/` — copied links to standards/specs if needed
+- `assets/` — images, diagrams, screenshots
+- `archive/` — old or superseded material (excluded from reading)
+- `decisions/` — project relevant decisions
+- `imple/<version>/` — implementation snapshots by version
+- `imple/<version>/test/` — tests for that implementation
+- `plans/` — work_plan templates and executions
+- `auto/` — automatic project handling tools
+- `auto/sim/` — simulation-specific infrastructure
+
+## Tags
+- thinking_workspace
+- self_improvement
+
+## Status
+active
+
+## Versions
+- V00_00_01 — Initial phase structure and pi_query implementation
+
+## Default version
+V00_00_01

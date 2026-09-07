@@ -1,7 +1,7 @@
 '''yaml
 title: R9-G-graph-to-py-ast
 requirement_id: R9-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -18,7 +18,7 @@ represent the same structures as node-and-edge graphs.
 
 ## Traceability
 - stakeholder need: the demo should be able to turn a graph into a Python AST using graph traversal and AST node construction
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R9-G-graph-to-py-ast-acc-crit.md)

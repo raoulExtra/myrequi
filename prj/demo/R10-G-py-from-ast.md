@@ -1,7 +1,7 @@
 '''yaml
 title: R10-G-py-from-ast
 requirement_id: R10-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -11,7 +11,7 @@ The demo project SHALL provide `prj/demo/imple/V00.00.01/py_from_ast.py` as a re
 
 ## Traceability
 - stakeholder need: the demo should have a reusable module that graph-oriented code can call to turn graph syntax into Python AST
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R10-G-py-from-ast-acc-crit.md)

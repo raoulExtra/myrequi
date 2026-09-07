@@ -1,7 +1,7 @@
 '''yaml
 title: R1-G-graph
 requirement_id: R1-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -23,7 +23,7 @@ meaning and SHALL default to 1 when omitted.
   structure, labels, node text in the JSON source, separate
   storage for node text, float or integer node sizing, and
   meaningful edge scoring
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R1-G-graph-acc-crit.md)

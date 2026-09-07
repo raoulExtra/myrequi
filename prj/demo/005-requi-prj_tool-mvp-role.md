@@ -1,7 +1,7 @@
 '''yaml
 title: 005-requi-prj_tool-mvp-role
 requirement_id: R5
-phase: phase_1_1
+phase: 001_001_phase
 '''
 
 # R5: prj_tool is documented
@@ -13,7 +13,7 @@ filespace.
 ## Traceability
 - stakeholder need: the demo project should reflect that
   prj_tool already exists and can support the MVP workflow
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](005-acc-crit-prj_tool-mvp-role.md)

@@ -1,41 +1,43 @@
-PROJECT PHASE 1
-inherits_from: phase_0
-goals:
-- derive candidate self-learn paths from current files, glossary terms, and project state.
-- rank candidate paths with explicit criteria, scores, and a short rationale.
-- select one path and write the result into the phase outcome files.
-outcome: a ranked first-path brief with candidate comparison and selected next plan.
-outcome_doc: docs/phase-1-outcome.md
+# PROJECT PHASE 1
 
-core_requirements:
-- [auto_ai] PH001-RC001: derive at least three candidate self-learn paths from the current project state and glossary.
-- [auto_ai] PH001-RC002: score the candidates with explicit criteria, costs, and risks.
-- [auto_ai] PH001-RC003: select one candidate and explain why it wins over the others.
-- [auto_ai] PH001-RC004: write the selected path and review context into phase_1.md and docs/phase-1-outcome.md.
+**inherits_from: 000_phase**
 
-output_contract:
-- candidate_paths: derive at least three paths from current files and glossary terms.
-- ranking: score every candidate with visible criteria and short rationale.
-- selection: pick one winner and explain the tradeoffs against the others.
-- output: write the result to phase_1.md and docs/phase-1-outcome.md.
+## Purpose
+Implement the core self-improvement tools for cognition.db.
 
-## related plans
-- [AI next-path phase plan](plans/4_plan.md)
-- [Meta optimization plan](plans/7_plan.md)
+## Goal
+Enable systematic self-improvement cycles that observe, update, verify, and reuse learnings.
 
-navigation:
-- [Project index](docs/index.md)
-- [Glossary](docs/glossary.md)
-- [Next path](docs/next-path.md)
-- [Named phase 1 file](docs/phase-1-next-path.md)
-- [Phase 1 core requi file](docs/phase-1-core-requi.md)
-- [Phase 1 core review](docs/phase-1-core-review.md)
-- [Phase 1 outcome](docs/phase-1-outcome.md)
-- [Phase requirements](docs/phase-requirements.md)
-- [Phase challenge](docs/phase-challenge.md)
-- [Modularity budget](docs/modularity.md)
-- [Phase 0](phase_0.md)
-- [Phase 2](phase_2.md)
-- [Automation notes](docs/automation.md)
+## Outcome
+- Working self_query.py for memory-assisted self-improvement queries
+- Requirement and acceptance criteria documents
+- Automated plan generation from DB plans
+- Integration with continuity.db for persistent state
 
-status: active
+## Requirements
+
+### R1: Self-query interface
+- [R1: Self-query interface](001-requi-self-query-interface.md)
+
+### R2: Plan generation from memory
+- [R2: Plan generation from memory](002-requi-plan-generation.md)
+
+### R3: Learning loop automation
+- [R3: Learning loop automation](003-requi-learning-loop.md)
+
+## Acceptance Criteria
+- [R1 acceptance criteria](001-acc-crit-self-query-interface.md)
+- [R2 acceptance criteria](002-acc-crit-plan-generation.md)
+- [R3 acceptance criteria](003-acc-crit-learning-loop.md)
+
+## Navigation
+- [Project phase 0](000_phase.md)
+- [Base project phase 0](../base/000_phase.md)
+- [Base project phase 1](../base/001_phase.md)
+- [Continuity_db phase 0](../continuity_db/000_phase.md)
+
+## Status
+active
+
+## Next step
+Implement the self_query.py module following the pi_query.py pattern.

@@ -1,7 +1,7 @@
 '''yaml
 title: 007-requi-traceability
 requirement_id: R7
-phase: phase_1_1
+phase: 001_001_phase
 '''
 
 # R7: Requirement traceability
@@ -11,7 +11,7 @@ stakeholder need.
 
 ## Traceability
 - stakeholder need: all stated needs for the demo project
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](007-acc-crit-traceability.md)

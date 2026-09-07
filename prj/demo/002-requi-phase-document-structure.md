@@ -1,7 +1,7 @@
 '''yaml
 title: 002-requi-phase-document-structure
 requirement_id: R2
-phase: phase_1_1
+phase: 001_001_phase
 '''
 
 # R2: Standard phase document fields
@@ -13,7 +13,7 @@ outcome, and status.
 - stakeholder need: the demo project should have clear
   markdown files that are pleasant to read and easy to
   navigate
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance

@@ -1,7 +1,7 @@
 '''yaml
 title: R11-G-graph-gviz
 requirement_id: R11-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -11,7 +11,7 @@ The demo project SHALL provide a graph-tool `-gviz` mode that writes a Graphviz 
 
 ## Traceability
 - stakeholder need: the demo should visualize graphs as DOT and SVG for inspection and sharing
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R11-G-graph-gviz-acc-crit.md)

@@ -1,7 +1,7 @@
 '''yaml
 title: 000-requi-checker-simulator-narration
 requirement_id: R0
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -14,7 +14,7 @@ numbered steps.
 ## Traceability
 - stakeholder need: readers should see what the checker does
   without having to infer internal behavior
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance

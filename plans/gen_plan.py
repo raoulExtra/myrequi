@@ -41,8 +41,8 @@ def connect(db_path: Path) -> sqlite3.Connection:
 def next_index(output_dir: Path) -> int:
     output_dir.mkdir(parents=True, exist_ok=True)
     max_idx = 0
-    for path in output_dir.glob("*_plan.md"):
-        m = re.match(r"^(\d+)_plan\.md$", path.name)
+    for path in output_dir.glob("*-plan.md"):
+        m = re.match(r"^(\d+)-plan\.md$", path.name)
         if m:
             max_idx = max(max_idx, int(m.group(1)))
     return max_idx + 1
@@ -224,7 +224,7 @@ def render_markdown(plan: PlanSource, ordinal: int) -> str:
     lines: list[str] = []
     lines.append(f"# {plan.title}")
     lines.append("")
-    lines.append(f"- file: {ordinal}_plan.md")
+    lines.append(f"- file: {ordinal}-plan.md")
     lines.append(f"- kind: {plan.kind}")
     lines.append("")
     lines.append(f"## Name")
@@ -296,7 +296,7 @@ def main() -> int:
         idx = next_index(out_dir)
         created = []
         for offset, src in enumerate(sources):
-            path = out_dir / f"{idx + offset}_plan.md"
+            path = out_dir / f"{idx + offset}-plan.md"
             path.write_text(render_markdown(src, idx + offset))
             created.append(str(path))
         for path in created:

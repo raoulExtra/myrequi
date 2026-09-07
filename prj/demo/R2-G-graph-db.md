@@ -1,7 +1,7 @@
 '''yaml
 title: R2-G-graph-db
 requirement_id: R2-G
-phase: phase_1_1
+phase: 001_001_phase
 for_version: default_version
 '''
 
@@ -19,7 +19,7 @@ Missing or invalid graph IDs SHALL produce a warning.
 - stakeholder need: the demo should persist graph data in
   the database, keep graph instances separable, and support
   graph listing
-- related phase: [phase_1_1](phase_1_1.md)
+- related phase: [001_001_phase](001_001_phase.md)
 
 ## Acceptance criteria
 - [Acceptance criteria](R2-G-graph-db-acc-crit.md)
