@@ -1,0 +1,196 @@
+{
+  "__class__": "prj.self_learn.auto.sim.models.PhasedProjectModel",
+  "version": "001.00.00.01",
+  "name": "self_learn_evolution",
+  "description": "Phased project evolution model with subprojects",
+  "phases": [
+    {
+      "phase_id": "phase_0",
+      "title": "Infrastructure Foundation",
+      "status": "completed",
+      "phases": [],
+      
+      "subprojects": [
+        {
+          "subproject_id": "auto",
+          "title": "Automatic Project Handling",
+          "description": "Tools and configurations for automated project operations",
+          "status": "active",
+          
+          "requirements": [
+            {
+              "req_id": "REQ-001",
+              "type": "functional",
+              "title": "Automated State Management",
+              "description": "System automatically manages project state in git-tracked files",
+              "priority": "high",
+              
+              "acceptance_criteria": [
+                {
+                  "ac_id": "AC-001.1",
+                  "description": "State changes tracked in metacognitive_state.json",
+                  "testable": true,
+                  "passed": true
+                },
+                {
+                  "ac_id": "AC-001.2",
+                  "description": "Git commits include state change messages",
+                  "testable": true,
+                  "passed": true
+                }
+              ],
+              
+              "tdd": {
+                "red_test": "test_state_not_in_git.py",
+                "green_implementation": "auto/scripts/state_sync.py",
+                "refactor_step": "optimize_git_diff_handling.py"
+              },
+              
+              "git_tests": {
+                "pre_commit_hook": "pre-commit-validate-state.sh",
+                "post_commit_verification": "verify-git-tracked-state.js",
+                "branch_strategy": "git-flow with feature branches",
+                "merge_policy": "pull-request with 2 approvals"
+              },
+              
+              "uat_tests": {
+                "scenarios": [
+                  "create_new_state_entry",
+                  "update_existing_state",
+                  "recover_state_from_git"
+                ],
+                "approval_required": true,
+                "environment": "staging"
+              }
+            },
+            
+            {
+              "req_id": "REQ-002",
+              "type": "non-functional",
+              "title": "Simulation Support",
+              "description": "Support Mesa-compatible JSON variations for simulations",
+              "priority": "medium",
+              
+              "acceptance_criteria": [
+                {
+                  "ac_id": "AC-002.1",
+                  "description": "JSON schema follows Mesa Model conventions",
+                  "testable": true,
+                  "passed": true
+                }
+              ],
+              
+              "devops": {
+                "ci_pipeline": ".github/workflows/sim-validation.yml",
+                "test_matrix": ["mesa-3.5", "mesa-3.4", "mesa-3.3"],
+                "deployment": "package-json-variant",
+                "monitoring": "simulation-duration-metrics"
+              }
+            }
+          ]
+        },
+        
+        {
+          "subproject_id": "auto_sim",
+          "title": "Simulation Infrastructure",
+          "description": "Mesa-based simulation framework for self-impovement testing",
+          "status": "active",
+          
+          "requirements": [
+            {
+              "req_id": "SIM-001",
+              "type": "functional",
+              "title": "Mesa Model Loading",
+              "description": "Load simulation models from JSON variants",
+              "priority": "high",
+              
+              "acceptance_criteria": [
+                {
+                  "ac_id": "AC-SIM.1",
+                  "description": "Model.from_json() loads all variants",
+                  "testable": true,
+                  "passed": true
+                }
+              ],
+              
+              "tdd": {
+                "test_file": "tests/test_mesa_json_loader.py",
+                "implementation": "auto/sim/lib/mesa_extensions.py"
+              },
+              
+              "git_tests": {
+                "lint_rules": "check-mesa-json-schema.yml",
+                "integration_tests": "verify-json-variant-loading"
+              },
+              
+              "uat_tests": {
+                "scenarios": ["load_simulation_variant", "verify_agent_states"],
+                "sign_off": "simulation-team-lead"
+              },
+              
+              "devops": {
+                "docker_image": "self-learn-sim-mesa",
+                "artifact": "mesa-variants-package",
+                "security_scan": "mesa-deps-audit"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    
+    {
+      "phase_id": "phase_1",
+      "title": "Learning Implementation",
+      "status": "active",
+      "phases": [],
+      
+      "subprojects": [
+        {
+          "subproject_id": "learning",
+          "title": "Self-Improvement Learning Loop",
+          "description": "Implement and test the learning cycle",
+          "status": "active",
+          
+          "requirements": [
+            {
+              "req_id": "LRN-001",
+              "type": "functional",
+              "title": "Observe Phase",
+              "description": "Query memory for relevant context",
+              "priority": "critical",
+              
+              "acceptance_criteria": [
+                {
+                  "ac_id": "AC-LRN.1",
+                  "description": "Returns relevant context from 3 sources",
+                  "testable": true,
+                  "passed": true
+                }
+              ],
+              
+              "tdd": {
+                "red": ["test_query_memory.py"],
+                "green": ["self_query.py"],
+                "refactor": ["optimize_queries.py"]
+              },
+              
+              "git_tests": ["unit-test-cov>=90%", "integration-pass"],
+              "uat_tests": ["prod-data-test-scenario"],
+              "devops": ["ci-trigger-on-change", "perf-bench"]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  
+  "project_metadata": {
+    "owner": "self_learn",
+    "domain": "project",
+    "created_at": "2026-09-06T13:50:00.000000",
+    "last_updated": "2026-09-06T13:50:00.000000",
+    "trace_id": "TRC-self_learn-evolution-001",
+    "status": "active"
+  }
+}

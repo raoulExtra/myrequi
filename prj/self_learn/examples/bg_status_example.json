@@ -1,0 +1,44 @@
+{
+  "description": "Example: Checking status of background tasks",
+  "bg_status_examples": [
+    {
+      "example": "Check status of all tasks",
+      "json": {
+        "task_id": null,
+        "description": "List all running and recent completed tasks"
+      }
+    },
+    {
+      "example": "Check specific task by ID",
+      "json": {
+        "task_id": "abc123",
+        "description": "Get status of task 'abc123'"
+      }
+    },
+    {
+      "example": "Check task by name prefix",
+      "json": {
+        "task_id": "Queue",
+        "description": "Find task starting with 'Queue'"
+      }
+    }
+  ],
+  "task_status_values": {
+    "running": "Task is currently executing",
+    "completed": "Task finished successfully",
+    "failed": "Task failed with an error",
+    "killed": "Task was stopped"
+  },
+  "output_response_example": {
+    "task_id": "a1b2c3d4",
+    "status": "completed",
+    "name": "Queue runner",
+    "command": "python3 pi_queue.py run-all",
+    "pid": 12345,
+    "output_path": ".pi/tasks/session-pid/a1b2c3d4.output",
+    "exit_code": 0,
+    "start_time": "2026-09-06T12:00:00Z",
+    "end_time": "2026-09-06T12:00:15Z",
+    "byte_count": 1024
+  }
+}

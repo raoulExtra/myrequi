@@ -50,6 +50,7 @@ RECEIPT_KIND_VALUES = {
 def connect():
     conn = sqlite3.connect(DB_PATH)
     conn.execute("PRAGMA foreign_keys = ON")
+    conn.execute("PRAGMA busy_timeout = 5000")
     return conn
 
 
@@ -1649,6 +1650,29 @@ def seed_scientist_mode_routes(cur):
     )
 
 
+def seed_session_prompt_routes(cur):
+    routes = [
+        (
+            'session_prompt',
+            r'^session\s+prompt\s+(.+)$',
+            'python3 pi_session.py <prompt>',
+            'Prompt the live Pi session bridge and return the bridge state plus send response.',
+        ),
+    ]
+    cur.executemany(
+        """
+        INSERT INTO control_command_routes(route_name,input_pattern,command_template,scope)
+        VALUES(?,?,?,?)
+        ON CONFLICT(route_name) DO UPDATE SET
+            input_pattern=excluded.input_pattern,
+            command_template=excluded.command_template,
+            scope=excluded.scope,
+            enabled=1
+        """,
+        routes,
+    )
+
+
 def create_scientist_mode_triggers(cur):
     for name in ['scientist_mode_enable', 'scientist_mode_disable']:
         drop_trigger(cur, name)
@@ -2317,6 +2341,7 @@ def apply_migration():
     backfill_decision_history(cur)
     seed_interpretive_layer(cur)
     seed_scientist_mode_routes(cur)
+    seed_session_prompt_routes(cur)
     seed_canonical_tag(cur)
     create_storage_map_view(cur)
     create_core_model_view(cur)

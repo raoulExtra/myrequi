@@ -1,0 +1,175 @@
+(pro)ven(ance)
+- (de)fini(tion)
+  - (re)cord of where (in)form(ation), evid(ence), claim(s), or artifact(s) came from
+  - trace of origin, path, (trans)form(ation), and (re)sponsibil(ity)
+  - (ex)plain(s) how someth(ing) (en)ter(ed) the system and why it can be (in)spect(ed)
+  - support(s) audit, trust, (co)rrec(tion), and (re)producibil(ity)
+- role in evid(ence)
+  - ident(ify)(s) the source behind evid(ence)
+  - (dis)tingu(ish)(s) direct observ(ation) from (co)pi(ed) (re)port
+  - (ex)pos(s) wheth(er) evid(ence) is fresh, (comp)lete, and (re)li(able)
+  - help(s) (de)tect source launder(ing) and (re)peat(ed) (co)py(s)
+  - support(s) lat(er) (co)rrec(tion) when a source change(s) or fail(s)
+- role in (re)ason(ing)
+  - make(s) (pre)mis(s) and evid(ence) trace(able)
+  - let(s) oth(er)(s) (in)spect why a (con)clus(ion) was accept(ed)
+  - separ(ate)(s) observ(ed) fact(s) from (inter)pret(ation)(s) and synth(es)(s)
+  - (con)strain(s) (con)fid(ence) when source qual(ity) is weak
+  - help(s) (comp)are riv(al) (ex)plan(ation)(s) by (comp)ar(ing) source path(s)
+- (co)re ele(ment)(s)
+  - origin
+    - first known source or creat(or)
+    - may be person, file, database row, docu(ment), measure(ment), tool, or observ(ation)
+  - path
+    - route by which the (in)form(ation) (re)ach(ed) the current artifact
+    - (in)clude(s) (co)py(s), (im)port(s), (trans)form(ation)(s), and summ(ary)(s)
+  - timestamp
+    - time of cre(ation), observ(ation), (re)triev(al), or upd(ate)
+    - help(s) evalu(ate) fresh(ness) and sequ(ence)
+  - act(or)
+    - person, agent, tool, or system (re)spons(ible) for a step
+    - support(s) accountabil(ity)
+  - method
+    - how the (in)form(ation) was obtain(ed) or (pro)duc(ed)
+    - may (in)clude query, (co)mmand, (ex)peri(ment), measure(ment), or (re)view
+  - (trans)form(ation)
+    - change (ap)pli(ed) to source materi(al)
+    - (in)clude(s) formatt(ing), summariz(ing), (trans)lat(ing), filter(ing), or (in)fer(ence)
+  - (con)fid(ence)
+    - (de)gree of justifi(ed) (re)li(ance) on the (pro)ven(ance) (re)cord or sourc(ed) claim
+    - should (re)flect source qual(ity) and trace (comp)lete(ness)
+  - (comp)lete(ness)
+    - wheth(er) (en)ough (pro)ven(ance) is (re)cord(ed) to audit the claim
+    - parti(al) (pro)ven(ance) should be mark(ed) (ex)plicit(ly)
+- (pro)ven(ance) type(s)
+  - source (pro)ven(ance)
+    - ident(ify)(s) origin(al) source materi(al)
+    - answ(er)(s) where did this (co)me from
+  - (de)riv(ation) (pro)ven(ance)
+    - (re)cord(s) (trans)form(ation)(s) from source to current claim
+    - answ(er)(s) how was this (pro)duc(ed)
+  - custody (pro)ven(ance)
+    - (re)cord(s) who or what handl(ed) the artifact
+    - answ(er)(s) who chang(ed) or (trans)mitt(ed) it
+  - (epi)stem(ic) (pro)ven(ance)
+    - (re)cord(s) why a belief, (con)fid(ence), or (re)quire(ment) is justifi(ed)
+    - link(s) claim, evid(ence), (in)fer(ence), and (con)fid(ence)
+  - filesystem (pro)ven(ance)
+    - (re)cord(s) file path(s), filename(s), move(s), generat(ed) output(s), and vers(ion)(s)
+    - help(s) (re)produce artifact(s)
+  - database (pro)ven(ance)
+    - (re)cord(s) row ident(ity), (tri)gg(er)(s), (re)ceipt(s), vers(ion)(s), and source (re)fer(ence)(s)
+    - help(s) audit (con)tinu(ity) db st(ate)
+  - tool (pro)ven(ance)
+    - (re)cord(s) (co)mmand, tool vers(ion), argu(ment)(s), (in)put(s), and output(s)
+    - help(s) (re)produce (auto)mat(ed) work
+- qual(ity) criter(ion)(s)
+  - trace(able)
+    - path from artifact to source can be follow(ed)
+  - specif(ic)
+    - source (re)fer(ence)(s) are precise (en)ough to loc(ate)
+  - (comp)lete
+    - key step(s) are not missing
+  - current
+    - timestamp(s) and vers(ion)(s) (re)flect lat(est) (re)lev(ant) st(ate)
+  - hon(est)
+    - (un)certainty and gap(s) are vis(ible)
+  - (re)produc(ible)
+    - anoth(er) person can (re)run or (re)check the path
+  - minimal
+    - (en)ough (de)tail for audit without (un)necess(ary) no(ise)
+  - link(ed)
+    - (re)lat(ed) claim(s), evid(ence), file(s), and (re)ceipt(s) are (con)nect(ed)
+- (pro)ven(ance) (comp)lete(ness)
+  - (comp)lete (pro)ven(ance)
+    - origin, path, method, act(or), and timestamp are (re)cord(ed)
+    - (trans)form(ation)(s) are vis(ible)
+  - parti(al) (pro)ven(ance)
+    - some source or path (in)form(ation) exist(s) but gap(s) (re)main
+    - should low(er) (con)fid(ence) or (in)vite (re)view
+  - missing (pro)ven(ance)
+    - source path is (un)known or (un)avail(able)
+    - should be mark(ed) rath(er) th(an) hidden
+  - (in)ferr(ed) (pro)ven(ance)
+    - (pro)ven(ance) is (re)construct(ed) from (con)text
+    - should be low(er) (con)fid(ence) th(an) direct (re)cord(s)
+- (pro)ven(ance) in (con)tinu(ity) db
+  - (epi)stem(ic) (re)ceipt(s) (re)cord govern(ed) object change(s)
+  - (pro)ven(ance)_json (re)cord(s) source basis and line(age)
+  - (pro)ven(ance)_(comp)lete mark(s) wheth(er) (pro)ven(ance) is (en)ough for audit
+  - source_(re)fer(ence) link(s) (re)quire(ment)(s) to support(ing) materi(al)
+  - vers(ion) table(s) (pre)serve histor(ical) st(ate)
+  - (pro)ject (con)text (ex)plain(s) where a (re)cord belong(s)
+  - journ(al) (en)try(s) (re)cord ac(tion)(s) and filesystem change(s)
+- (pro)ven(ance) in MIMAP workflow
+  - source markdown path (re)cord(s) the MIMAP (in)put
+  - generat(ed) HTML path (re)cord(s) the output artifact
+  - doc(s) to out path (pre)serv(ation) keep(s) (pro)ven(ance) vis(ible) in filename(s)
+  - all-mimap (re)gener(ation) make(s) cross-link fresh(ness) (re)produc(ible)
+  - morpho(logy) link(s) (pre)serve source token struct(ure)
+  - (con)cept link(s) show (re)lat(ed) MIMAP target(s) us(ed) dur(ing) (ex)port
+- (co)mmon fail(ure)(s)
+  - vague source
+    - evid(ence) is (de)scrib(ed) but not locat(able)
+  - broken chain
+    - (inter)medi(ate) (trans)form(ation) is missing
+  - source launder(ing)
+    - (co)pi(ed) claim(s) (ap)pear (in)dependent
+  - stale (pro)ven(ance)
+    - old source is treat(ed) as current
+  - hidden (trans)form(ation)
+    - summ(ary) or (in)fer(ence) is (pre)sent(ed) as raw evid(ence)
+  - (over)trust
+    - source (re)put(ation) (re)place(s) actu(al) traceabil(ity)
+  - path drift
+    - file(s) move but (re)fer(ence)(s) are not updat(ed)
+  - (un)mark(ed) (un)certainty
+    - (pro)ven(ance) gap(s) are hidden
+- (im)prove(ment) practice(s)
+  - cite (ex)act path(s) or row(s)
+    - (in)clude file path, table row, (re)ceipt id, URL, or (co)mmand
+  - separ(ate) source from (inter)pret(ation)
+    - (re)cord what was observ(ed) (ap)art from what it me(an)(s)
+  - (re)cord (trans)form(ation)(s)
+    - note formatt(ing), filter(ing), summariz(ing), or (in)fer(ence) step(s)
+  - keep vers(ion)(s)
+    - (pre)serve pri(or) st(ate)(s) when mean(ing) change(s)
+  - mark gap(s)
+    - say when (pro)ven(ance) is parti(al) or missing
+  - link artifact(s)
+    - (con)nect (re)quire(ment), source, output, test, and (re)ceipt
+  - (re)gener(ate) (de)riv(ed) output(s)
+    - (re)fresh HTML or (ex)port(s) when source MIMAP file(s) change
+  - ver(ify) (re)fer(ence)(s)
+    - check that path(s), link(s), and identifi(er)(s) still (re)solve
+- link(s) to oth(er) (con)cept(s)
+  - evid(ence)
+    - (pro)ven(ance) (ex)plain(s) where evid(ence) came from
+  - (re)ason(ing)
+    - (pro)ven(ance) make(s) (re)ason(ing) audit(able)
+  - (in)fer(ence)
+    - (pro)ven(ance) help(s) (in)spect the (in)put(s) behind an (in)fer(ence)
+  - (con)fid(ence)
+    - (con)fid(ence) (de)pend(s) part(ly) on (pro)ven(ance) qual(ity)
+  - trust
+    - trust is (in)form(ed) by (pro)ven(ance) but should not (re)place check(ing)
+  - claim
+    - (pro)ven(ance) link(s) a claim to support and origin
+  - source
+    - source is the origin (comp)onent of (pro)ven(ance)
+  - audit trail
+    - (pro)ven(ance) form(s) the path that an audit follow(s)
+  - (re)producibil(ity)
+    - (pro)ven(ance) enable(s) anoth(er) person to (re)check or (re)run work
+- output(s)
+  - source (re)fer(ence)
+    - precise point(er) to origin
+  - line(age)
+    - sequ(ence) from source to current artifact
+  - audit trail
+    - (in)spect(able) (re)cord of ac(tion)(s) and change(s)
+  - (con)fid(ence) (ad)just(ment)
+    - (re)ason to ra(ise) or low(er) (re)li(ance)
+  - (co)rrec(tion) path
+    - route for updat(ing) affect(ed) artifact(s) when a source change(s)
+

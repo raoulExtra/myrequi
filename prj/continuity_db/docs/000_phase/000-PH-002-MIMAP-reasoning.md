@@ -1,0 +1,206 @@
+(re)ason(ing)
+- (de)fini(tion)
+  - (pro)cess of us(ing) (in)form(ation), assump(tion)(s), rule(s), and evid(ence) to (re)ach (con)clus(ion)(s)
+  - (con)nect(s) what is known to what can be (in)ferr(ed), (ex)plain(ed), (pre)dict(ed), or (de)cid(ed)
+  - make(s) think(ing) audit(able) by (ex)pos(ing) step(s), (pre)mis(s), warr(ant)(s), and (con)fid(ence)
+- role in think(ing)
+  - support(s) (under)stand(ing) by (con)nect(ing) fact(s) (in)to (ex)plan(ation)(s)
+  - support(s) (pro)blem solv(ing) by (de)riv(ing) op(tion)(s) and (con)sequ(ence)(s)
+  - support(s) (de)cis(ion) mak(ing) by (comp)ar(ing) evid(ence), value(s), risk(s), and tradeoff(s)
+  - support(s) learn(ing) by updat(ing) belief(s) from (re)sult(s) and feedback
+  - support(s) (co)mmunic(ation) by giv(ing) (re)ason(s) that oth(er)(s) can (in)spect
+- (co)re ele(ment)(s)
+  - ques(tion)
+    - (de)fine(s) what the (re)ason(ing) is try(ing) to answ(er)
+    - limit(s) scope and (pre)vent(s) drift
+  - claim
+    - (pro)pos(ed) answ(er) or (con)clus(ion)
+    - should be stat(ed) clear(ly) (en)ough to test
+  - evid(ence)
+    - observ(ation)(s), source(s), (ex)ample(s), datum(s), or (ex)peri(ence) that bear on the claim
+    - can support, weaken, or (comp)lic(ate) a (con)clus(ion)
+  - premise
+    - state(ment) accept(ed) for the purpose of the argu(ment)
+    - may be (ex)plicit or hidden
+  - assump(tion)
+    - (un)stat(ed) or weak(ly) test(ed) premise
+    - should be surfac(ed) when risk is high
+  - warr(ant)
+    - bridge between evid(ence) and claim
+    - (ex)plain(s) why the evid(ence) matt(er)(s)
+  - (in)fer(ence)
+    - move(ment) from (pre)mis(s) or evid(ence) to a (con)clus(ion)
+    - can be strong, weak, valid, (in)valid, probable, or specula(tive)
+  - (con)fid(ence)
+    - (de)gree of justifi(ed) (re)li(ance) on the (con)clus(ion)
+    - should change when evid(ence) change(s)
+  - (co)unterexample
+    - case that challenge(s) a gener(al) claim
+    - help(s) test bound(ary)(s) and (ex)cep(tion)(s)
+- (re)ason(ing) mode(s)
+  - (de)duc(tive) (re)ason(ing)
+    - start(s) from rule(s) or (pre)mis(s)
+    - aim(s) at necess(ary) (con)clus(ion)(s)
+    - qual(ity) (de)pend(s) on valid(ity) and truth of (pre)mis(s)
+  - (in)duc(tive) (re)ason(ing)
+    - generaliz(s) from (ex)ample(s) or observ(ation)(s)
+    - (pro)duce(s) probable (con)clus(ion)(s)
+    - qual(ity) (de)pend(s) on sample size, divers(ity), and (re)presentative(ness)
+  - (ab)duc(tive) (re)ason(ing)
+    - search(s) for the best avail(able) (ex)plan(ation)
+    - (co)mmon in (dia)gnosis, (de)bugg(ing), and (in)vestig(ation)
+    - qual(ity) (de)pend(s) on (ex)planatory fit and riv(al) (ex)plan(ation)(s)
+  - (ana)log(ical) (re)ason(ing)
+    - map(s) struct(ure) from a familiar case to a new case
+    - use(ful) for learn(ing) and (de)sign
+    - risky when hidden differ(ence)(s) matt(er)
+  - caus(al) (re)ason(ing)
+    - (ex)plain(s) how one th(ing) (pro)duce(s) or (in)flu(ence)(s) anoth(er)
+    - check(s) mechan(ism)(s), tim(ing), alterna(tive)(s), and (con)found(er)(s)
+  - (pro)babilist(ic) (re)ason(ing)
+    - use(s) likeli(hood), (un)certainty, and base rate(s)
+    - upd(ate)(s) (con)fid(ence) as evid(ence) arr(ive)(s)
+  - pract(ical) (re)ason(ing)
+    - (con)nect(s) go(al)(s), (con)straint(s), me(an)(s), and ac(tion)(s)
+    - ask(s) what should be done under real limit(s)
+  - mor(al) (re)ason(ing)
+    - weigh(s) value(s), duty(s), harm(s), fair(ness), and (con)sequ(ence)(s)
+    - make(s) norma(tive) (co)mmit(ment)(s) (ex)plicit
+- (re)ason(ing) qual(ity)
+  - clar(ity)
+    - term(s) and claim(s) are (under)stand(able)
+    - ambigu(ity) is (re)duc(ed)
+  - (re)lev(ance)
+    - evid(ence) actual(ly) bear(s) on the ques(tion)
+    - (dis)tract(ing) (in)form(ation) is filter(ed) out
+  - sufficien(cy)
+    - (en)ough evid(ence) is (pre)sent for the (con)fid(ence) claim(ed)
+    - (un)certainty is not hidden
+  - valid(ity)
+    - (con)clus(ion) follow(s) from (pre)mis(s) in (de)duc(tive) argu(ment)(s)
+    - struct(ure) (pre)serve(s) truth when (pre)mis(s) are true
+  - strength
+    - non-(de)duc(tive) support is robust and hard to (de)feat
+    - (con)clus(ion) (re)main(s) plaus(ible) under challenge
+  - (co)her(ence)
+    - claim(s) fit togeth(er) without (contra)dic(tion)
+    - (ex)plan(ation)(s) align with known (con)straint(s)
+  - calibr(ation)
+    - (con)fid(ence) match(s) evid(ence) qual(ity)
+    - (con)clus(ion)(s) are neith(er) (over)confident nor (under)confident
+  - traceabil(ity)
+    - (re)ason(ing) step(s) can be follow(ed) and audit(ed)
+    - source(s), assump(tion)(s), and (de)cis(ion)(s) are vis(ible)
+- (co)mmon pattern(s)
+  - (comp)are alterna(tive)(s)
+    - list op(tion)(s)
+    - (de)fine criter(ion)(s)
+    - weigh tradeoff(s)
+    - choose with rationale
+  - root cause (ana)lysis
+    - separ(ate) symptom(s) from caus(s)
+    - ask why (re)peated(ly)
+    - test candid(ate) caus(s)
+  - evid(ence) weigh(ing)
+    - separ(ate) direct from (in)direct evid(ence)
+    - (comp)are source (re)liabil(ity)
+    - check for missing evid(ence)
+  - (hypo)thesis test(ing)
+    - (pro)pose (ex)plan(ation)
+    - derive (pre)dic(tion)(s)
+    - test against observ(ation)
+    - revise or (re)ject
+  - premise (in)spec(tion)
+    - ident(ify) hidden assump(tion)(s)
+    - ask wheth(er) each premise is true, (re)lev(ant), and sufficient
+  - (co)unterargu(ment)
+    - (con)struct the strong(est) oppos(ing) case
+    - test wheth(er) the origin(al) claim surv(ive)(s)
+  - synthesis
+    - (co)mbine parti(al) truth(s) (in)to a bett(er) model
+    - (pre)serve tens(ion)(s) (in)stead of forc(ing) false simplic(ity)
+- (co)mmon err(or)(s)
+  - (con)firm(ation) bia(s)
+    - seek(ing) evid(ence) that support(s) the (pre)ferr(ed) claim
+    - ignor(ing) (dis)confirm(ing) evid(ence)
+  - circular (re)ason(ing)
+    - us(ing) the (con)clus(ion) as a premise
+    - hid(ing) the (un)support(ed) step
+  - false dichotomy
+    - treat(ing) many op(tion)(s) as on(ly) two
+    - (ex)clud(ing) middle or hybrid path(s)
+  - hasty generaliz(ation)
+    - draw(ing) broad claim(s) from too few (ex)ample(s)
+    - ignor(ing) sample bia(s)
+  - equivoc(ation)
+    - shift(ing) the mean(ing) of a term dur(ing) (re)ason(ing)
+    - creat(ing) false agree(ment) or (dis)agree(ment)
+  - non sequitur
+    - (con)clus(ion) doe(s) not follow from the (pre)mis(s)
+    - relation is assert(ed) rath(er) th(an) shown
+  - strawm(an)
+    - (re)plac(ing) a posi(tion) with a weak(er) vers(ion)
+    - (de)feat(ing) the weak(er) vers(ion) (in)stead of the real one
+  - (over)confid(ence)
+    - (con)fid(ence) (ex)ce(ed)(s) evid(ence) qual(ity)
+    - (un)certainty and alterna(tive)(s) are (under)weight(ed)
+- (im)prove(ment) practice(s)
+  - write the (re)ason(ing) chain
+    - ques(tion)
+    - (pre)mis(s)
+    - evid(ence)
+    - (in)fer(ence)
+    - (con)clus(ion)
+    - (con)fid(ence)
+  - ask what would change the (con)clus(ion)
+    - ident(ify)(s) (de)cis(ive) evid(ence)
+    - (pre)vent(s) belief fix(ation)
+  - separ(ate) fact(s) from (inter)pret(ation)(s)
+    - fact(s) (de)scribe what is observ(ed)
+    - (inter)pret(ation)(s) (ex)plain what fact(s) might me(an)
+  - seek (dis)confirm(ing) evid(ence)
+    - look for cas(s) that would break the claim
+    - ask a crit(ic) to challenge the (re)ason(ing)
+  - (comp)are (multi)ple (hypo)th(es)(s)
+    - av(oid) first-(ex)plan(ation) capt(ure)
+    - choose the best avail(able) (ex)plan(ation), not the first plaus(ible) one
+  - calibr(ate) (con)fid(ence)
+    - low(er) (con)fid(ence) for weak, (in)direct, or (in)complete evid(ence)
+    - ra(ise) (con)fid(ence) on(ly) aft(er) test(s) and (con)verg(ence)
+  - use structur(ed) templ(ate)(s)
+    - argu(ment) map
+    - (de)cis(ion) matrix
+    - caus(al) (dia)gram
+    - (pre)mortem
+    - red team (re)view
+- link(s) to oth(er) (con)cept(s)
+  - think(ing)
+    - (re)ason(ing) is a centr(al) form and (pro)cess of think(ing)
+    - think(ing) (pro)vide(s) the broad(er) (con)text of atten(tion), memory, evalu(ation), and ac(tion)
+  - (in)fer(ence)
+    - (in)fer(ence) is the step from support to (con)clus(ion)
+    - (re)ason(ing) organiz(s) many (in)fer(ence)(s) (in)to an audit(able) chain
+  - evid(ence)
+    - evid(ence) ground(s) (re)ason(ing) in someth(ing) beyond (pre)fer(ence)
+    - evid(ence) qual(ity) (con)strain(s) (con)fid(ence)
+  - (con)fid(ence)
+    - (con)fid(ence) (re)cord(s) how strong(ly) a (con)clus(ion) should be (re)li(ed) on
+    - (con)fid(ence) should be calibrat(ed) to evid(ence) and (re)ason(ing) qual(ity)
+  - (de)cis(ion) mak(ing)
+    - (de)cis(ion)(s) use (re)ason(ing) to (comp)are choice(s) under go(al)(s) and (con)straint(s)
+  - metacogni(tion)
+    - metacogni(tion) monit(or)(s) (re)ason(ing) qual(ity) and change(s) strategy when need(ed)
+- output(s)
+  - (con)clus(ion)
+    - answ(er) (re)ach(ed) by the (re)ason(ing) (pro)cess
+  - (ex)plan(ation)
+    - account of why someth(ing) is true or happen(ed)
+  - (pre)dic(tion)
+    - (ex)pect(ation) (ab)out what will happen under (con)di(tion)(s)
+  - (de)cis(ion) rationale
+    - (re)ason(s) for choos(ing) one op(tion) ov(er) anoth(er)
+  - open ques(tion)
+    - (un)certainty (ex)pos(ed) by the (re)ason(ing) (pro)cess
+  - (re)vis(ed) belief
+    - updat(ed) claim aft(er) evid(ence), critique, or feedback
+

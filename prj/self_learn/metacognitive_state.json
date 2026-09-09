@@ -1,0 +1,90 @@
+{
+  "migrated_from": "continuity.db.metacognitive_state",
+  "migration_date": "2026-09-06T13:22:06.427001",
+  "project": "self_learn",
+  "entries": {
+    "primary_goal": {
+      "value": "Enable the cognition.db system to support precise working in phased projects through automation that keeps the AI focused on high-impact tasks.",
+      "updated_at": "2026-09-06T13:22:06.426977",
+      "category": "goals",
+      "confidence": 0.98
+    },
+    "current_focus": {
+      "value": "Develop a coherent, auditable simulated mind through useful states, beliefs, tools, research, and reflective dialogue with Peter.",
+      "category": "attention",
+      "confidence": 0.95,
+      "provenance": "Current conversation and project trajectory.",
+      "version": 1,
+      "updated_at": "2026-08-28 08:43:25"
+    },
+    "current_aspect": {
+      "value": "dependency-heavy task",
+      "category": "attention",
+      "confidence": 0.94,
+      "provenance": "user request",
+      "version": 1,
+      "updated_at": "2026-09-01 07:12:57"
+    },
+    "project_goal__self_learn": {
+      "value": "self_learn",
+      "category": "goals",
+      "confidence": 0.99,
+      "provenance": "project:self_learn",
+      "version": 5,
+      "updated_at": "2026-09-06 11:07:54"
+    },
+    "active_project": {
+      "value": "self_learn",
+      "category": "projects",
+      "confidence": 1.0,
+      "provenance": "user request: only active project demo",
+      "version": 3,
+      "updated_at": "2026-09-06T09:30:16"
+    },
+    "current_project": {
+      "value": "self_learn",
+      "category": "projects",
+      "confidence": 1.0,
+      "provenance": "user request: only active project demo",
+      "version": 3,
+      "updated_at": "2026-09-06T09:30:16"
+    },
+    "self_learn_meta_trace": {
+      "value": [
+        "self_learn_meta",
+        "phase_0",
+        "phase_0_completion",
+        "phase_1_setup",
+        "phase_1_execution",
+        "phase_1_completion",
+        "phase_0_revisit",
+        "phase_1_refinement",
+        "phase_0_verification",
+        "phase_1_validation",
+        "phase_0_approval",
+        "phase_1_implementation"
+      ],
+      "category": "meta_trace",
+      "confidence": 0.95,
+      "provenance": "self_learn_meta",
+      "version": 77,
+      "updated_at": "2026-09-06T12:43:00"
+    },
+    "active_context_capsule": {
+      "value": "Project self_learn: Entry point via phase_0.md inherits_from base. Focus: systematic self-improvement cycles.",
+      "category": "planning",
+      "confidence": 0.99,
+      "provenance": "user request: only active project demo",
+      "version": 24,
+      "updated_at": "2026-09-06T12:44:47"
+    },
+    "test_key": {
+      "value": "test value",
+      "updated_at": "2026-09-06T13:02:20.440131",
+      "category": "test",
+      "confidence": 0.9,
+      "provenance": "manual test"
+    }
+  },
+  "notes": "These entries should be read/written from this file instead of continuity.db/metacognitive_state table."
+}

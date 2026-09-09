@@ -1,0 +1,78 @@
+{
+  "description": "Example: Using bg_run to run Pi commands in the background with queueing capabilities",
+  "usage": {
+    "interactive": "Paste this JSON in an interactive Pi session when you see the tool selection prompt",
+    "programmatic": "Use as a template for background task launches in Python or other integrations"
+  },
+  "bg_run_examples": [
+    {
+      "example": "Run a single prompt in background",
+      "json": {
+        "name": "Background pi query",
+        "command": "pi -p \"what files are in the plans folder?\"",
+        "isAgent": true,
+        "description": "Run pi with the specified prompt, capturing telemetry"
+      }
+    },
+    {
+      "example": "Run pi with a plan from file (read-only)",
+      "json": {
+        "name": "Read-only plan analysis",
+        "command": "pi --exclude-tools bash,edit,write -p @plans/plan_0.md",
+        "isAgent": true,
+        "description": "Process plan_0.md as input (read-only mode)"
+      }
+    },
+    {
+      "example": "Run pi with plan file (inspect-only tools)",
+      "json": {
+        "name": "Inspect plan file",
+        "command": "pi --tools read,ls,find,grep,pydoc -p @plans/plan_0.md",
+        "isAgent": true,
+        "description": "Process plan_0.md using only inspection tools"
+      }
+    },
+    {
+      "example": "Run multiple queued prompts sequentially",
+      "json": {
+        "name": "Queued prompt batch",
+        "command": "python3 prj/self_learn/imple/V00_00_01/pi_queue.py run-all",
+        "isAgent": false,
+        "description": "Process all prompts in the queue"
+      }
+    },
+    {
+      "example": "Run with timeout",
+      "json": {
+        "name": "Timed background task",
+        "command": "pi -p \"analyze continuity.db structure\"",
+        "isAgent": true,
+        "timeoutSeconds": 120,
+        "description": "Kill the task after 2 minutes if not completed"
+      }
+    },
+    {
+      "example": "Fork a session and run",
+      "json": {
+        "name": "Fork and process",
+        "command": "pi --fork plans/plan_0.md \"extract key objectives\"",
+        "isAgent": true,
+        "description": "Fork plan_0.md and extract key objectives"
+      }
+    }
+  ],
+  "field_reference": {
+    "name": "Short 2-6 word task name for the footer dock",
+    "command": "Shell command to start in the background",
+    "isAgent": "true only for LLM/agent processes (like child pi -p ...); false for scripts, tests, servers",
+    "description": "Optional human-readable context for the task",
+    "timeoutSeconds": "Optional timeout; task is failed and killed when exceeded",
+    "notifyOnCompletion": "Whether to deliver completion notification (default: true)",
+    "triggerOnCompletion": "Whether to automatically start a follow-up agent turn on completion (default: true for bg_run)"
+  },
+  "related_examples": {
+    "/bg_command_example.md": "Using the /bg CLI command for background tasks",
+    "bg_status_example.json": "Checking status of background tasks",
+    "bg_logs_example.json": "Reading outputs from completed tasks"
+  }
+}

@@ -1,0 +1,188 @@
+(in)fer(ence)
+- (de)fini(tion)
+  - ment(al) step from evid(ence), (pre)mis(s), pattern(s), or observ(ation)(s) to a (con)clus(ion)
+  - the bridge that turn(s) support (in)to a claim
+  - small(er) (un)it (in)side (re)ason(ing) chain(s)
+  - may be certain, probable, plaus(ible), weak, or specula(tive)
+- role in (re)ason(ing)
+  - (con)nect(s) evid(ence) to (con)clus(ion)(s)
+  - (ex)pos(s) why a claim follow(s) or seem(s) to follow
+  - allow(s) (re)ason(ing) to be (in)spect(ed) step by step
+  - help(s) separ(ate) raw fact(s) from (inter)pret(ation)(s)
+  - support(s) (con)fid(ence) calibr(ation) by show(ing) support strength
+- (co)re ele(ment)(s)
+  - (in)put
+    - evid(ence)
+    - observ(ation)
+    - premise
+    - rule
+    - (ex)ample
+    - pattern
+  - oper(ation)
+    - (comp)are
+    - general(ize)
+    - (ex)plain
+    - elimin(ate)
+    - (pre)dict
+    - class(ify)
+    - (ana)log(ize)
+  - output
+    - (con)clus(ion)
+    - (hypo)thesis
+    - (pre)dic(tion)
+    - classific(ation)
+    - (ex)plan(ation)
+    - (de)cis(ion) support
+  - warr(ant)
+    - (re)ason the (in)put support(s) the output
+    - make(s) the (in)fer(ence) audit(able)
+  - (con)fid(ence)
+    - strength assign(ed) to the output
+    - (de)pend(s) on evid(ence) qual(ity) and (in)fer(ence) type
+  - scope
+    - bound(ary) where the (in)fer(ence) apply(s)
+    - (pre)vent(s) (over)generaliz(ation)
+- main type(s)
+  - (de)duc(tive) (in)fer(ence)
+    - (con)clus(ion) necessari(ly) follow(s) if (pre)mis(s) are true
+    - us(ed) for rule(s), (de)fini(tion)(s), mathemat(ic)(s), and form(al) log(ic)
+    - fail(ure) mode is (in)valid struct(ure) or false premise
+  - (in)duc(tive) (in)fer(ence)
+    - (con)clus(ion) generaliz(s) from (ex)ample(s)
+    - (pro)duce(s) probable rath(er) th(an) certain (re)sult(s)
+    - fail(ure) mode is weak sample or hasty generaliz(ation)
+  - (ab)duc(tive) (in)fer(ence)
+    - (con)clus(ion) is the best avail(able) (ex)plan(ation)
+    - us(ed) in (dia)gnosis, (de)bugg(ing), (re)search, and sensemak(ing)
+    - fail(ure) mode is ignor(ing) riv(al) (ex)plan(ation)(s)
+  - (ana)log(ical) (in)fer(ence)
+    - (con)clus(ion) transfer(s) struct(ure) from one case to anoth(er)
+    - use(ful) for learn(ing), (de)sign, and (ex)plan(ation)
+    - fail(ure) mode is hidden (dis)ana(logy)
+  - caus(al) (in)fer(ence)
+    - (con)clus(ion) claim(s) that one fact(or) (in)flu(ence)(s) or (pro)duce(s) anoth(er)
+    - check(s) mechan(ism), tim(ing), (co)rrel(ation), alterna(tive)(s), and (con)found(er)(s)
+    - fail(ure) mode is (con)fus(ing) (co)rrel(ation) with cause
+  - (pro)babilist(ic) (in)fer(ence)
+    - (con)clus(ion) upd(ate)(s) likeli(hood) under (un)certainty
+    - use(s) base rate(s), evid(ence) strength, and (con)dition(al) (pro)babil(ity)
+    - fail(ure) mode is base-rate neglect or ov(er)-updat(ing)
+  - pract(ical) (in)fer(ence)
+    - (con)clus(ion) (con)nect(s) go(al)(s) and (con)straint(s) to ac(tion)
+    - ask(s) what follow(s) for what should be done
+    - fail(ure) mode is ignor(ing) feasibil(ity) or side effect(s)
+- (in)fer(ence) strength
+  - valid
+    - (de)duc(tive) (con)clus(ion) follow(s) by form
+  - sound
+    - (de)duc(tive) (con)clus(ion) follow(s) and (pre)mis(s) are true
+  - strong
+    - non-(de)duc(tive) support make(s) (con)clus(ion) like(ly)
+  - weak
+    - support exist(s) but is (in)complete, (in)direct, or fragile
+  - (de)feat(ed)
+    - new evid(ence) or (co)unterexample (under)mine(s) the (in)fer(ence)
+  - (under)determin(ed)
+    - evid(ence) fit(s) (multi)ple (con)clus(ion)(s)
+  - specula(tive)
+    - (con)clus(ion) (ex)tend(s) beyond avail(able) evid(ence)
+- qual(ity) check(s)
+  - premise check
+    - are the (in)put(s) true or accept(able)
+    - are hidden assump(tion)(s) vis(ible)
+  - (re)lev(ance) check
+    - doe(s) the evid(ence) bear on the (con)clus(ion)
+    - is the (con)nec(tion) real or mere(ly) associat(ed)
+  - warr(ant) check
+    - is the bridge from (in)put to (con)clus(ion) stat(ed)
+    - would anoth(er) person accept the bridge
+  - alterna(tive) check
+    - what else (co)uld (ex)plain the same evid(ence)
+    - what riv(al) (con)clus(ion) (re)main(s) poss(ible)
+  - (co)unterexample check
+    - what case would break the (in)fer(ence)
+    - is the (con)clus(ion) too broad
+  - (con)fid(ence) check
+    - doe(s) certainty match the actu(al) strength of support
+    - should (con)fid(ence) be lower(ed) because of gap(s)
+  - scope check
+    - where doe(s) this (in)fer(ence) apply
+    - where doe(s) it stop (ap)ply(ing)
+- (co)mmon err(or)(s)
+  - hasty generaliz(ation)
+    - too few (ex)ample(s) support a broad (con)clus(ion)
+  - affirm(ing) the (con)sequent
+    - if a then b, b, therefore a
+  - (de)ny(ing) the (ante)cedent
+    - if a then b, not a, therefore not b
+  - (co)rrel(ation) as caus(ation)
+    - treat(ing) associ(ation) as (pro)of of cause
+  - selec(tion) bia(s)
+    - avail(able) (ex)ample(s) are not (re)presenta(tive)
+  - (con)firm(ation) bia(s)
+    - (pre)ferr(ed) (con)clus(ion) guide(s) evid(ence) selec(tion)
+  - equivoc(ation)
+    - key term change(s) mean(ing) dur(ing) (in)fer(ence)
+  - false analogy
+    - surface similar(ity) hide(s) structur(al) differ(ence)
+  - missing base rate
+    - specif(ic) evid(ence) is (inter)pret(ed) without background frequen(cy)
+  - (over)fitt(ing)
+    - (con)clus(ion) fit(s) current cas(s) but fail(s) new cas(s)
+- (im)prove(ment) practice(s)
+  - st(ate) the (in)fer(ence) (ex)plicit(ly)
+    - because x, therefore y
+    - x support(s) y by warr(ant) w
+  - label (in)fer(ence) type
+    - (de)duc(tive)
+    - (in)duc(tive)
+    - (ab)duc(tive)
+    - (ana)log(ical)
+    - caus(al)
+    - (pro)babilist(ic)
+  - (ex)pose assump(tion)(s)
+    - list what must be true for the (in)fer(ence) to work
+    - mark which assump(tion)(s) are (un)certain
+  - test riv(al) (ex)plan(ation)(s)
+    - ask what else would (pre)dict the same evid(ence)
+    - (comp)are (ex)planatory pow(er)
+  - search for (co)unterexample(s)
+    - try to break broad (con)clus(ion)(s)
+    - narrow the scope when (ex)cep(tion)(s) (ap)pear
+  - calibr(ate) (con)fid(ence)
+    - assign low(er) (con)fid(ence) to (in)direct or (in)complete support
+    - upd(ate) aft(er) new evid(ence)
+  - chain careful(ly)
+    - weak (in)fer(ence)(s) (comp)ound through a (re)ason(ing) chain
+    - mark where (un)certainty enter(s)
+- link(s) to oth(er) (con)cept(s)
+  - think(ing)
+    - (in)fer(ence) is a (co)re (co)gni(tive) (pro)cess (in)side think(ing)
+  - (re)ason(ing)
+    - (re)ason(ing) organiz(s) many (in)fer(ence)(s) (in)to an audit(able) chain
+  - evid(ence)
+    - evid(ence) is a main (in)put to (in)fer(ence)
+  - claim
+    - (in)fer(ence) often output(s) or support(s) a claim
+  - (con)fid(ence)
+    - (con)fid(ence) (re)cord(s) the strength of (re)li(ance) on the (in)ferr(ed) output
+  - (ex)plan(ation)
+    - (ab)duc(tive) and caus(al) (in)fer(ence) (pro)duce (ex)plan(ation)(s)
+  - (de)cis(ion) mak(ing)
+    - pract(ical) (in)fer(ence) (con)nect(s) fact(s) and go(al)(s) to ac(tion)(s)
+  - metacogni(tion)
+    - metacogni(tion) monit(or)(s) wheth(er) (in)fer(ence)(s) are valid, strong, scop(ed), and calibrat(ed)
+- output(s)
+  - (con)clus(ion)
+    - state(ment) accept(ed) because of support
+  - (hypo)thesis
+    - poss(ible) (ex)plan(ation) to test
+  - (pre)dic(tion)
+    - (ex)pect(ed) fut(ure) or observ(able) (re)sult
+  - classific(ation)
+    - plac(ing) a case (in)to a category
+  - (im)plic(ation)
+    - what follow(s) if a claim is true
+  - (un)certainty
+    - (ex)pos(ed) gap or riv(al) possibil(ity)
+

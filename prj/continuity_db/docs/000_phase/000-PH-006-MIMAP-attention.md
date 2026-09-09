@@ -1,0 +1,177 @@
+atten(tion)
+- (de)fini(tion)
+  - ment(al) (pro)cess of select(ing), sustain(ing), shift(ing), and allocat(ing) cogni(tive) (re)source(s)
+  - determine(s) what enter(s) focus from sensory, textu(al), social, memory, or task (in)put(s)
+  - act(s) as gate between poss(ible) (in)form(ation) and activ(e) think(ing)
+  - shape(s) what is perceiv(ed), remember(ed), (re)ason(ed) about, and act(ed) on
+- role in think(ing)
+  - select(s) sali(ent) cue(s) for deeper (pro)cess(ing)
+  - filt(er)(s) (ir)relev(ant), low-value, or (dis)tract(ing) (in)put(s)
+  - maintain(s) task goal(s) in work(ing) memory
+  - set(s) prior(ity) among competing claim(s), risk(s), and op(tion)(s)
+  - support(s) (re)ason(ing) by hold(ing) premise(s), evid(ence), and ques(tion)(s) togeth(er)
+  - support(s) learn(ing) by mark(ing) what should be encoded or revis(it)ed
+- (co)re func(tion)(s)
+  - orient(ing)
+    - notice(s) change(s), signal(s), novelty, or task (re)lev(ance)
+    - move(s) focus toward what may matt(er)
+  - select(ion)
+    - choose(s) one target, thread, or ques(tion) for focal (pro)cess(ing)
+    - limit(s) breadth so depth becomes poss(ible)
+  - sustain(ing)
+    - keep(s) focus on a target over time
+    - protect(s) goal from drift, fatigue, and interrup(tion)(s)
+  - shift(ing)
+    - move(s) focus when evid(ence), goal(s), or context change
+    - allow(s) adaptation without los(ing) continuity
+  - divid(ing)
+    - share(s) focus across (multi)ple stream(s) or subtasks
+    - risky when task(s) require high precision or deep (re)ason(ing)
+  - inhibit(ion)
+    - suppress(s) impuls(e), noise, and tempt(ing) but (ir)relev(ant) path(s)
+    - prevent(s) premature ac(tion) and shallow pattern match(ing)
+- main type(s)
+  - select(ive) atten(tion)
+    - focus(s) on one source while ignor(ing) competing source(s)
+    - useful for close read(ing), (de)bugg(ing), and error detect(ion)
+  - sustain(ed) atten(tion)
+    - maintain(s) vigilance or effort across duration
+    - useful for long task(s), review, and monitor(ing)
+  - execut(ive) atten(tion)
+    - control(s) conflict, goal choice, and response inhibit(ion)
+    - support(s) plan follow(ing) and (meta)cogni(tive) control
+  - alternat(ing) atten(tion)
+    - switch(es) between task(s) or frame(s)
+    - useful for (comp)arison, review, and iterate(d) work
+  - divid(ed) atten(tion)
+    - handle(s) concurrent demand(s)
+    - can (re)duce qual(ity) when load exceed(s) capacity
+  - open monitor(ing)
+    - keep(s) broad awareness for weak signal(s)
+    - useful before narrow select(ion) or during (ex)plor(ation)
+- driver(s)
+  - goal(s)
+    - explicit intention(s) set what count(s) as (re)lev(ant)
+    - vague goal(s) cause scatter(ed) atten(tion)
+  - sali(ence)
+    - novelty, intensity, emotion, or surprise pull(s) focus
+    - sali(ent) is not always important
+  - value
+    - reward, cost, risk, and mean(ing) bias allocation
+    - high-value item(s) deserve protected focus
+  - threat
+    - danger cue(s) narrow and accelerate atten(tion)
+    - can help survival but harm breadth and nuance
+  - habit
+    - repeated cue-action pattern(s) preselect focus
+    - habit can either stabilize work or automate (dis)trac(tion)
+  - environment
+    - layout, noise, notification(s), people, and tool(s) shape focus
+    - good environment lower(s) attentional friction
+- relation(s)
+  - percep(tion)
+    - atten(tion) bias(es) what is noticed and how it is (inter)pret(ed)
+    - missed item(s) may never become evid(ence)
+  - memory
+    - focus strengthen(s) encoding and later (re)trieval
+    - memory cue(s) can recapture focus
+  - (re)ason(ing)
+    - focus determine(s) which premise(s), warr(ant)(s), and counterexample(s) are active
+    - poor focus can make good logic operate on bad selection
+  - (in)fer(ence)
+    - selected cue(s) become (in)put for (con)clus(ion)(s)
+    - biased selection can create biased (in)fer(ence)
+  - emotion
+    - emotion assign(s) urgency and sali(ence)
+    - intense emotion can narrow or hijack focus
+  - metacogni(tion)
+    - monitor(s) where atten(tion) is going
+    - ask(s) whether focus match(es) goal and evid(ence)
+- qual(ity) criter(ion)(s)
+  - (re)lev(ance)
+    - focus is on what bears on the current ques(tion)
+  - stability
+    - focus persist(s) long (en)ough for useful work
+  - flex(ibility)
+    - focus can shift when the task or evid(ence require(s)
+  - breadth
+    - enough alterna(tive)(s), context, and weak signal(s) are sampled
+  - depth
+    - selected item(s) receive careful (ana)lysis
+  - proportional(ity)
+    - attentional effort match(es) importance, risk, and uncertainty
+  - recoverability
+    - after interrup(tion), the system can (re)turn to goal, state, and next step
+- (co)mmon failure mode(s)
+  - (dis)trac(tion)
+    - external noise or internal thought pull(s) focus away
+    - fix by remov(ing) cue(s), captur(ing) intrusive note(s), and (re)turn(ing) to goal
+  - tunnel vision
+    - narrow focus exclude(s) critical context or alternative(s)
+    - fix by schedul(ing) breadth check(s)
+  - attentional capture
+    - vivid, recent, or emotional cue(s) dominate selection
+    - fix by ask(ing) what is important but not sali(ent)
+  - overload
+    - too many (in)put(s) exceed work(ing) capacity
+    - fix by chunk(ing), prioritiz(ing), and externaliz(ing)
+  - task switch cost
+    - frequent switch(es) waste time and break context
+    - fix by batch(ing), checkpoint(s), and clear resume note(s)
+  - neglect
+    - low-sali(ence) but high-value item(s) receive too little focus
+    - fix by explicit review list(s) and risk scan(s)
+  - persever(ation)
+    - focus remain(s) stuck after value has drop(ped)
+    - fix by timebox(es), stop rule(s), and metacogni(tive) prompt(s)
+- (im)prove(ment) practice(s)
+  - set intention
+    - state the current ques(tion), desired output, and stop condition
+    - choose one primary focus before start(ing)
+  - reduce noise
+    - close unneeded tab(s), silence notification(s), simplify workspace
+    - make the right cue easy and wrong cue costly
+  - externalize context
+    - write goal, constraint(s), next step, and open question(s)
+    - use checklist(s), outline(s), and mindmap(s)
+  - timebox focus
+    - protect a short block for deep work
+    - review whether to continue, switch, or stop
+  - use attentional checkpoint(s)
+    - ask what am I attend(ing) to
+    - ask whether this match(es) the goal
+    - ask what important signal may be miss(ing)
+  - manage energy
+    - rest, movement, hydration, and task sizing affect focus
+    - place hard task(s) where energy is highest
+  - design recovery
+    - leave breadcrumb(s) before switch(ing)
+    - resume by read(ing) goal, last state, and next action
+- tool(s) and artifact(s)
+  - focus statement
+    - one sentence naming task, scope, and intended output
+  - priority list
+    - ranked item(s) by importance, urgency, risk, or dependency
+  - parking lot
+    - capture non-current thought(s) without follow(ing) them
+  - checklist
+    - keep recurring attentional target(s) visible
+  - kanban or work plan
+    - separate todo, doing, blocked, and done state(s)
+  - timer
+    - create bounded interval(s) for sustain(ed) focus and review
+  - environment cue(s)
+    - visual or physical signal(s) that remind the mind what matters
+- output(s)
+  - selected focus
+    - chosen object, ques(tion), source, or action
+  - filtered context
+    - reduced set of (re)lev(ant) (in)put(s)
+  - priority
+    - order of what to examine or do next
+  - readiness for (re)ason(ing)
+    - premise(s), evid(ence), and goal(s) held in active workspace
+  - interruption note
+    - compact state that allow(s) recovery
+  - action cue
+    - prompt that trigger(s) the next intended step

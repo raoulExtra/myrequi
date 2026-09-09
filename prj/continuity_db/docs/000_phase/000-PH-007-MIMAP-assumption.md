@@ -1,0 +1,150 @@
+assump(tion)
+- (de)fini(tion)
+  - state(ment), belief, or (con)di(tion) tak(en) as true for a purpose
+  - often act(s) as hidden or (ex)plicit premise in (re)ason(ing)
+  - fill(s) gap(s) where evid(ence) is incomplete, unavailable, or too costly to verify
+  - can be useful scaffold or risky source of err(or)
+- role in think(ing)
+  - reduce(s) (un)certainty enough to continue work
+  - make(s) (pro)blem fram(ing), (in)fer(ence), and (de)cis(ion) poss(ible)
+  - guide(s) atten(tion) toward some cue(s) and away from oth(er)(s)
+  - shape(s) which evid(ence) is sought, ignored, or trusted
+  - support(s) plan(s) when time, knowledge, or resource(s) are limit(ed)
+  - need(s) review when risk, cost, or confidence demand(s) it
+- (co)re ele(ment)(s)
+  - claim
+    - what is tak(en) as true
+    - should be stat(ed) clear(ly) enough to challenge
+  - scope
+    - where the assump(tion) apply(s)
+    - prevent(s) (over)generaliz(ation)
+  - reason
+    - why the assump(tion) is being made
+    - may cite evid(ence), habit, domain knowledge, or necessity
+  - source
+    - origin of the assump(tion)
+    - can be memory, authority, model, pattern, or guess
+  - confidence
+    - strength of reliance on the assump(tion)
+    - should track evid(ence) quality and uncertainty
+  - dependency
+    - what conclusion(s), plan(s), or action(s) depend on it
+    - expose(s) consequence(s) if it fail(s)
+  - test
+    - observation, query, experiment, or check that could confirm or weaken it
+- main type(s)
+  - explicit assump(tion)
+    - stated openly in the (re)ason(ing) record
+    - easier to inspect, test, and revise
+  - hidden assump(tion)
+    - unstated premise behind a claim or action
+    - risky because it can control outcome(s) without review
+  - working assump(tion)
+    - temporary claim used to proceed
+    - should carry a review trigger or stop condition
+  - background assump(tion)
+    - broad context belief treated as normal
+    - often inherited from culture, domain, tool, or prior experience
+  - simpl(ify)(ing) assump(tion)
+    - remove(s) complexity to make analysis tractable
+    - useful when limitation(s) are explicit
+  - risk assump(tion)
+    - estimate about harm, likelihood, cost, or safety
+    - deserve(s) stronger evidence and review
+  - value assump(tion)
+    - belief about what matters or should be prioritized
+    - need(s) alignment with goal(s) and stakeholder(s)
+- relation(s)
+  - (re)ason(ing)
+    - assump(tion)(s) act as premise(s) or warrant(s)
+    - weak assump(tion)(s) weaken the chain even when logic is valid
+  - evid(ence)
+    - evid(ence) can support, constrain, or overturn assump(tion)(s)
+    - lack of evid(ence) should not be hidden as certainty
+  - (in)fer(ence)
+    - (in)fer(ence) often depend(s) on assumed bridge(s)
+    - surfac(ing) assump(tion)(s) make(s) the bridge audit(able)
+  - provenance
+    - source tracking show(s) where assump(tion)(s) came from
+    - poor provenance lower(s) confidence
+  - atten(tion)
+    - assump(tion)(s) steer what is noticed
+    - attentional capture can create unexamined assump(tion)(s)
+  - confidence
+    - confidence should be calibrated to support strength
+    - assumption-heavy conclusion(s) require uncertainty marking
+- qual(ity) criter(ion)(s)
+  - clarity
+    - the assump(tion) is understandable and not vague
+  - necessity
+    - it is needed for the task rather than ornamental
+  - plausibil(ity)
+    - it fit(s) available knowledge and context
+  - relevance
+    - it bears on the question or decision
+  - testabil(ity)
+    - there is some way to check, falsify, or revise it
+  - proportional(ity)
+    - confidence and action risk match support level
+  - transparency
+    - dependency(s) and source(s) are visible
+  - reversibil(ity)
+    - plan(s) can adapt if the assump(tion) fail(s)
+- (co)mmon failure mode(s)
+  - hidden premise
+    - conclusion depend(s) on unstated belief
+    - fix by ask(ing) what must be true for this to work
+  - false certainty
+    - assumed claim is treated as proven fact
+    - fix by label(ing) confidence and evid(ence) status
+  - inherited frame
+    - old model or social norm define(s) the problem silently
+    - fix by refram(ing) and seek(ing) alternative(s)
+  - hasty generaliz(ation)
+    - small sample become(s) broad assumption
+    - fix by check(ing) sample size and diversity
+  - confirmation loop
+    - only evid(ence) that fit(s) the assump(tion) is noticed
+    - fix by search(ing) for counterexample(s)
+  - stale assump(tion)
+    - once-valid claim become(s) outdated
+    - fix by review date(s) and freshness check(s)
+  - scope creep
+    - local assump(tion) is applied globally
+    - fix by explicit boundary(s)
+- (im)prove(ment) practice(s)
+  - list assump(tion)(s)
+    - write what is being tak(en) for grant(ed)
+    - separate fact(s), inference(s), and assumption(s)
+  - ask challenge question(s)
+    - what if this is false
+    - what would change my mind
+    - what important assumption is missing
+  - rank by risk
+    - test high-impact or low-confidence assump(tion)(s) first
+    - leave low-risk assumption(s) as working note(s)
+  - seek counterexample(s)
+    - look for case(s) where the claim fail(s)
+    - use disconfirming evidence to calibrate
+  - attach provenance
+    - record source, date, method, and context
+    - distinguish memory, observation, source, and guess
+  - use review trigger(s)
+    - revisit when new evidence arrives
+    - revisit before commitment or irreversible action
+  - maintain fallback(s)
+    - plan what to do if the assump(tion) breaks
+    - reduce brittleness in decision(s)
+- output(s)
+  - assumption list
+    - explicit set of claims being relied on
+  - uncertainty note
+    - confidence, evidence gap, and consequence if false
+  - test plan
+    - concrete check(s) for key assump(tion)(s)
+  - revised claim
+    - conclusion updated after assumption review
+  - decision constraint
+    - boundary placed on action because support is limited
+  - open question
+    - unknown that must be answered to replace assumption with evidence

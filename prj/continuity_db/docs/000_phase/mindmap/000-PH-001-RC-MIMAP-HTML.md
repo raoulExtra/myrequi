@@ -1,0 +1,26 @@
+# 000-PH-001-RC
+
+**ID:** 000-PH-001-RC
+
+**Category:** Requirement Clarification
+
+**Title:** Requirement Clarification for MIMAP HTML Export
+
+**Parent:** `../000-PH-001-MIMAP-thinking.md`
+
+## Purpose
+
+Clarify the requirements for a command that converts `prj/<prj>/docs/000_phase/*.md` MIMAP/mindmap markdown files into standalone `.html` files with preserved hierarchy, morphology links, MIMAP cross-links, and safe filesystem behavior.
+
+## Scope
+
+- Input: `.md` source with MIMAP/mindmap structure.
+- Output: `.html` with matching name under `prj/<prj>/out/` (preserving `docs/` in path unless override given).
+- Mode: `--mimap` selects MIMAP export.
+- All-MIMAP mode (`--all-mimaps <folder>`): regenerates standalone MIMAP outputs; excludes RC/SR/AC support files.
+
+## Related
+
+- `000-PH-001-AC-MIMAP-HTML.md`
+- `000-PH-001-SR-MIMAP-HTML.md`
+- `../000-PH-001-MIMAP-thinking.md`

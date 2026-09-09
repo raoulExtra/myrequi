@@ -1,0 +1,193 @@
+evid(ence)
+- (de)fini(tion)
+  - (in)form(ation) that support(s), challenge(s), or ground(s) a claim
+  - observ(able) or (re)cord(ed) basis for belief, (in)fer(ence), (de)cis(ion), or (ex)plan(ation)
+  - doe(s) not speak alone but gain(s) mean(ing) through (re)lev(ance), (inter)pret(ation), and (re)ason(ing)
+- role in (re)ason(ing)
+  - (pro)vide(s) (in)put for (in)fer(ence)
+  - (con)strain(s) (con)fid(ence)
+  - (dis)tingu(ish)(s) support(ed) claim(s) from guess(s)
+  - help(s) (comp)are riv(al) (ex)plan(ation)(s)
+  - (ex)pos(s) (un)certainty when evid(ence) is missing, weak, or (con)flict(ing)
+- (co)re ele(ment)(s)
+  - claim
+    - state(ment) be(ing) support(ed) or challeng(ed)
+    - must be clear (en)ough for evid(ence) to bear on it
+  - source
+    - origin of the evid(ence)
+    - may be observ(ation), docu(ment), database row, measure(ment), us(er) (re)port, (ex)pert state(ment), or (ex)peri(ment)
+  - (re)lev(ance)
+    - (con)nec(tion) between evid(ence) and claim
+    - (ex)plain(s) why the evid(ence) matt(er)(s)
+  - qual(ity)
+    - (re)liabil(ity), accura(cy), (comp)lete(ness), and fresh(ness) of the evid(ence)
+  - (pro)ven(ance)
+    - trace of where evid(ence) came from and how it was obtain(ed)
+    - support(s) audit and trust
+  - (inter)pret(ation)
+    - mean(ing) assign(ed) to evid(ence)
+    - should be separat(ed) from the raw observ(ation)
+  - (con)fid(ence) (im)pact
+    - how much evid(ence) should ra(ise), low(er), or leave (un)chang(ed) (con)fid(ence)
+  - limit(ation)
+    - known weak(ness), scope bound(ary), bia(s), or (un)certainty in the evid(ence)
+- type(s) of evid(ence)
+  - direct evid(ence)
+    - bear(s) on the claim without many (inter)medi(ate) assump(tion)(s)
+    - usual(ly) strong(er) when source qual(ity) is high
+  - (in)direct evid(ence)
+    - support(s) a claim through (inter)medi(ate) (in)fer(ence)
+    - use(ful) but ne(ed)(s) (ex)plicit warr(ant)
+  - empir(ical) evid(ence)
+    - bas(ed) on observ(ation), measure(ment), (ex)peri(ment), or (ex)peri(ence)
+    - qual(ity) (de)pend(s) on method and (re)peatabil(ity)
+  - document(ary) evid(ence)
+    - bas(ed) on (re)cord(s), file(s), log(s), specific(ation)(s), (re)ceipt(s), or cit(ation)(s)
+    - qual(ity) (de)pend(s) on authentic(ity) and (comp)lete(ness)
+  - testimoni(al) evid(ence)
+    - bas(ed) on a person or agent (re)port
+    - qual(ity) (de)pend(s) on (comp)et(ence), honesty, memory, and (con)text
+  - statist(ical) evid(ence)
+    - bas(ed) on (co)unt(s), rate(s), sample(s), (dis)tribu(tion)(s), or (co)rrel(ation)(s)
+    - qual(ity) (de)pend(s) on sample (de)sign and (ana)lysis
+  - (ex)pert evid(ence)
+    - bas(ed) on specializ(ed) knowledge or author(ity)
+    - qual(ity) (de)pend(s) on domain fit and (in)depend(ence)
+  - nega(tive) evid(ence)
+    - absence of (ex)pect(ed) evid(ence)
+    - use(ful) when the observ(ation) (pro)cess should have found it
+  - (co)unterevid(ence)
+    - evid(ence) that weaken(s) or (contra)dict(s) a claim
+    - essenti(al) for calibr(ation) and (co)rrec(tion)
+- evid(ence) strength
+  - strong
+    - (re)lev(ant), (re)li(able), direct, (re)peat(ed), and hard to (ex)plain away
+  - moder(ate)
+    - (re)lev(ant) and plaus(ible) but (in)complete or part(ly) (in)direct
+  - weak
+    - (un)certain, (in)direct, stale, anecdot(al), or poor(ly) sourc(ed)
+  - (con)flict(ing)
+    - different evid(ence) point(s) to(ward) different (con)clus(ion)(s)
+    - (re)quire(s) (re)concili(ation) or lower(ed) (con)fid(ence)
+  - (in)sufficient
+    - not (en)ough support for the (con)fid(ence) claim(ed)
+  - (de)cis(ive)
+    - sharp(ly) change(s) which (con)clus(ion) is (re)ason(able)
+    - rare and should be treat(ed) careful(ly)
+- qual(ity) check(s)
+  - source check
+    - who or what (pro)duc(ed) the evid(ence)
+    - is the source (comp)etent and trustworthy
+  - (pro)ven(ance) check
+    - can the evid(ence) be trac(ed) back to its origin
+    - is the chain of custody or (re)triev(al) vis(ible)
+  - (re)lev(ance) check
+    - doe(s) it bear on the (ex)act claim
+    - doe(s) it answ(er) the right ques(tion)
+  - (re)liabil(ity) check
+    - would the same method like(ly) (pro)duce the same (re)sult again
+    - are err(or)(s), (in)cen(tive)(s), or (dis)tor(tion)(s) like(ly)
+  - (comp)lete(ness) check
+    - what (im)port(ant) evid(ence) may be missing
+    - is the sample (re)presenta(tive) (en)ough
+  - fresh(ness) check
+    - is the evid(ence) still current
+    - has the situ(ation) chang(ed)
+  - (in)depend(ence) check
+    - do (multi)ple piece(s) of evid(ence) (co)me from (in)dependent source(s)
+    - or are they (co)pi(ed) from the same origin
+  - (co)unterevid(ence) check
+    - what evid(ence) would weaken this claim
+    - has (dis)confirm(ing) evid(ence) been search(ed) for
+- evid(ence) and (con)fid(ence)
+  - (con)fid(ence) should follow evid(ence) qual(ity) and quant(ity)
+  - strong evid(ence) can ra(ise) (con)fid(ence)
+  - weak or (in)direct evid(ence) should limit (con)fid(ence)
+  - (con)flict(ing) evid(ence) should low(er) or qual(ify) (con)fid(ence)
+  - missing evid(ence) should be vis(ible) rath(er) th(an) hidden
+  - (con)fid(ence) may (re)main low even when evid(ence) exist(s) if (re)lev(ance) or source qual(ity) is po(or)
+- evid(ence) and (in)fer(ence)
+  - evid(ence) is (in)put
+  - (in)fer(ence) is the bridge from evid(ence) to (con)clus(ion)
+  - warr(ant) (ex)plain(s) why the evid(ence) support(s) the (con)clus(ion)
+  - evid(ence) without (in)fer(ence) may be (in)ert
+  - (in)fer(ence) without evid(ence) may be specul(ation)
+  - weak evid(ence) can cre(ate) weak (in)fer(ence) even with clear log(ic)
+- evid(ence) and (pro)ven(ance)
+  - (pro)ven(ance) (re)cord(s) origin, path, and (con)text
+  - (pro)ven(ance) make(s) evid(ence) audit(able)
+  - (pro)ven(ance) help(s) (dis)tingu(ish) direct observ(ation) from (co)pi(ed) (re)port
+  - (pro)ven(ance) support(s) lat(er) (co)rrec(tion) when a source change(s) or fail(s)
+- evid(ence) and trust
+  - trust can affect how evid(ence) is weight(ed)
+  - trust should not (re)place (pro)ven(ance) or verific(ation)
+  - trust(ed) source(s) can still be wrong
+  - low-trust source(s) can still (pro)vide use(ful) evid(ence) when (in)dependent(ly) check(ed)
+- evid(ence) in (con)tinu(ity) db
+  - database row(s) can be evid(ence) for current stor(ed) st(ate)
+  - (epi)stem(ic) (re)ceipt(s) can be evid(ence) for change(s) ov(er) time
+  - (pro)ven(ance) (re)cord(s) (ex)plain why a row exist(s)
+  - (con)fid(ence) field(s) (re)cord how strong(ly) the system rely(s) on claim(s)
+  - source (re)fer(ence)(s) (con)nect (re)quire(ment)(s), (con)cept(s), and (de)cis(ion)(s) to support(ing) materi(al)
+  - (re)ad(able) (ex)port(s) make evid(ence) (in)spect(able) outside the database
+- (co)mmon err(or)(s)
+  - cherry pick(ing)
+    - select(ing) on(ly) suppor(tive) evid(ence)
+  - ignor(ing) (co)unterevid(ence)
+    - fai(ling) to search for (dis)confirm(ing) cas(s)
+  - (con)fus(ing) evid(ence) with (inter)pret(ation)
+    - treat(ing) one (ex)plan(ation) as if it were the raw fact
+  - source launder(ing)
+    - (re)peat(ed) (co)py(s) (ap)pear (in)dependent but share one origin
+  - (over)valu(ing) vivid (ex)ample(s)
+    - memor(able) cas(s) (dis)tort judg(ment)
+  - stale evid(ence)
+    - old evid(ence) is us(ed) aft(er) (con)di(tion)(s) chang(ed)
+  - author(ity) (sub)stitu(tion)
+    - source status (re)place(s) actu(al) support
+  - datum(s) without (con)text
+    - numb(er)(s) are us(ed) without method, scope, or mean(ing)
+- (im)prove(ment) practice(s)
+  - separ(ate) observ(ation) from (inter)pret(ation)
+    - (re)cord what was seen separate(ly) from what it me(an)(s)
+  - cite (ex)act source(s)
+    - (in)clude path, row, URL, timestamp, or (ex)cerpt when poss(ible)
+  - seek (co)unterevid(ence)
+    - ask what would make the claim false or weak(er)
+  - (comp)are (in)dependent source(s)
+    - prefer (con)verg(ing) evid(ence) from separ(ate) origin(s)
+  - qual(ify) (con)fid(ence)
+    - match (con)fid(ence) to evid(ence) strength
+  - docu(ment) limit(ation)(s)
+    - st(ate) gap(s), (un)certainty, and scope bound(ary)(s)
+  - upd(ate) when evid(ence) change(s)
+    - revise (con)clus(ion)(s) (in)stead of (de)fend(ing) stale claim(s)
+- link(s) to oth(er) (con)cept(s)
+  - think(ing)
+    - evid(ence) ground(s) think(ing) in (re)al(ity) or (re)cord(s)
+  - (re)ason(ing)
+    - (re)ason(ing) organiz(s) evid(ence) (in)to support for (con)clus(ion)(s)
+  - (in)fer(ence)
+    - (in)fer(ence) move(s) from evid(ence) to claim
+  - (con)fid(ence)
+    - (con)fid(ence) track(s) how strong(ly) evid(ence) support(s) (re)li(ance)
+  - (pro)ven(ance)
+    - (pro)ven(ance) (re)cord(s) where evid(ence) came from
+  - claim
+    - evid(ence) support(s) or challenge(s) a claim
+  - trust
+    - trust affect(s) evid(ence) weight(ing) but should not (re)place check(ing)
+  - (de)cis(ion) mak(ing)
+    - (de)cis(ion)(s) use evid(ence) to (comp)are op(tion)(s), risk(s), and outcome(s)
+- output(s)
+  - support
+    - (re)ason to accept or ra(ise) (con)fid(ence) in a claim
+  - challenge
+    - (re)ason to (re)ject or low(er) (con)fid(ence) in a claim
+  - (un)certainty
+    - vis(ible) gap or (un)resolv(ed) (con)flict
+  - warr(ant) materi(al)
+    - basis for (ex)plain(ing) why an (in)fer(ence) work(s)
+  - audit trail
+    - (re)cord that lat(er) (re)ad(er)(s) can (in)spect
+

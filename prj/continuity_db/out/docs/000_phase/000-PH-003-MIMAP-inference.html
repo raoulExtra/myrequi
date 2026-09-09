@@ -1,0 +1,347 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>000-PH-003-MIMAP-inference</title>
+<style>
+body { font-family: system-ui, sans-serif; line-height: 1.45; margin: 2rem; }
+.mimap-tree, .mimap-tree ul { margin-top: 0.35rem; }
+.mimap-tree li { margin: 0.2rem 0; }
+.morph-link { color: #0645ad; text-decoration: none; border-bottom: 1px dotted #0645ad; }
+.concept-link { margin-left: 0.15rem; color: #0a7f27; text-decoration: none; font-size: 0.85em; }
+.morphology-index { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ddd; }
+code { background: #f6f8fa; padding: 0.1rem 0.25rem; border-radius: 0.25rem; }
+</style>
+</head>
+<body>
+<h1>000-PH-003-MIMAP-inference</h1>
+<ul class="mimap-tree">
+  <li><a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+  <ul>
+    <li><a class="morph-link" href="#morph-de">de</a>fini<a class="morph-link" href="#morph-tion">tion</a>
+    <ul>
+      <li>ment<a class="morph-link" href="#morph-al">al</a> step from evid<a class="morph-link" href="#morph-ence">ence</a>,<a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> <a class="morph-link" href="#morph-pre">pre</a>mis<a class="morph-link" href="#morph-s">s</a>, pattern<a class="morph-link" href="#morph-s">s</a>, or observ<a class="morph-link" href="#morph-ation">ation</a><a class="morph-link" href="#morph-s">s</a> to a <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a></li>
+      <li>the bridge that turn<a class="morph-link" href="#morph-s">s</a> support <a class="morph-link" href="#morph-in">in</a>to a claim</li>
+      <li>small<a class="morph-link" href="#morph-er">er</a> <a class="morph-link" href="#morph-un">un</a>it <a class="morph-link" href="#morph-in">in</a>side <a class="morph-link" href="#morph-re">re</a>ason<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-002-MIMAP-reasoning.html" title="Open linked MIMAP for reasoning">↗</a> chain<a class="morph-link" href="#morph-s">s</a></li>
+      <li>may be certain, probable, plaus<a class="morph-link" href="#morph-ible">ible</a>, weak, or specula<a class="morph-link" href="#morph-tive">tive</a></li>
+    </ul></li>
+    <li>role in <a class="morph-link" href="#morph-re">re</a>ason<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-002-MIMAP-reasoning.html" title="Open linked MIMAP for reasoning">↗</a>
+    <ul>
+      <li><a class="morph-link" href="#morph-con">con</a>nect<a class="morph-link" href="#morph-s">s</a> evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> to <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a><a class="morph-link" href="#morph-s">s</a></li>
+      <li><a class="morph-link" href="#morph-ex">ex</a>pos<a class="morph-link" href="#morph-s">s</a> why a claim follow<a class="morph-link" href="#morph-s">s</a> or seem<a class="morph-link" href="#morph-s">s</a> to follow</li>
+      <li>allow<a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-re">re</a>ason<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-002-MIMAP-reasoning.html" title="Open linked MIMAP for reasoning">↗</a> to be <a class="morph-link" href="#morph-in">in</a>spect<a class="morph-link" href="#morph-ed">ed</a> step by step</li>
+      <li>help<a class="morph-link" href="#morph-s">s</a> separ<a class="morph-link" href="#morph-ate">ate</a> raw fact<a class="morph-link" href="#morph-s">s</a> from <a class="morph-link" href="#morph-inter">inter</a>pret<a class="morph-link" href="#morph-ation">ation</a><a class="morph-link" href="#morph-s">s</a></li>
+      <li>support<a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a> calibr<a class="morph-link" href="#morph-ation">ation</a> by show<a class="morph-link" href="#morph-ing">ing</a> support strength</li>
+    </ul></li>
+    <li><a class="morph-link" href="#morph-co">co</a>re ele<a class="morph-link" href="#morph-ment">ment</a><a class="morph-link" href="#morph-s">s</a>
+    <ul>
+      <li><a class="morph-link" href="#morph-in">in</a>put
+      <ul>
+        <li>evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a></li>
+        <li>observ<a class="morph-link" href="#morph-ation">ation</a></li>
+        <li>premise</li>
+        <li>rule</li>
+        <li><a class="morph-link" href="#morph-ex">ex</a>ample</li>
+        <li>pattern</li>
+      </ul></li>
+      <li>oper<a class="morph-link" href="#morph-ation">ation</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-comp">comp</a>are</li>
+        <li>general<a class="morph-link" href="#morph-ize">ize</a></li>
+        <li><a class="morph-link" href="#morph-ex">ex</a>plain</li>
+        <li>elimin<a class="morph-link" href="#morph-ate">ate</a></li>
+        <li><a class="morph-link" href="#morph-pre">pre</a>dict</li>
+        <li>class<a class="morph-link" href="#morph-ify">ify</a></li>
+        <li><a class="morph-link" href="#morph-ana">ana</a>log<a class="morph-link" href="#morph-ize">ize</a></li>
+      </ul></li>
+      <li>output
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a></li>
+        <li><a class="morph-link" href="#morph-hypo">hypo</a>thesis</li>
+        <li><a class="morph-link" href="#morph-pre">pre</a>dic<a class="morph-link" href="#morph-tion">tion</a></li>
+        <li>classific<a class="morph-link" href="#morph-ation">ation</a></li>
+        <li><a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a></li>
+        <li><a class="morph-link" href="#morph-de">de</a>cis<a class="morph-link" href="#morph-ion">ion</a> support</li>
+      </ul></li>
+      <li>warr<a class="morph-link" href="#morph-ant">ant</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-re">re</a>ason the <a class="morph-link" href="#morph-in">in</a>put support<a class="morph-link" href="#morph-s">s</a> the output</li>
+        <li>make<a class="morph-link" href="#morph-s">s</a> the <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> audit<a class="morph-link" href="#morph-able">able</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li>strength assign<a class="morph-link" href="#morph-ed">ed</a> to the output</li>
+        <li><a class="morph-link" href="#morph-de">de</a>pend<a class="morph-link" href="#morph-s">s</a> on evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> qual<a class="morph-link" href="#morph-ity">ity</a> and <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> type</li>
+      </ul></li>
+      <li>scope
+      <ul>
+        <li>bound<a class="morph-link" href="#morph-ary">ary</a> where the <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> apply<a class="morph-link" href="#morph-s">s</a></li>
+        <li><a class="morph-link" href="#morph-pre">pre</a>vent<a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-over">over</a>generaliz<a class="morph-link" href="#morph-ation">ation</a></li>
+      </ul></li>
+    </ul></li>
+    <li>main type<a class="morph-link" href="#morph-s">s</a>
+    <ul>
+      <li><a class="morph-link" href="#morph-de">de</a>duc<a class="morph-link" href="#morph-tive">tive</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> necessari<a class="morph-link" href="#morph-ly">ly</a> follow<a class="morph-link" href="#morph-s">s</a> if <a class="morph-link" href="#morph-pre">pre</a>mis<a class="morph-link" href="#morph-s">s</a> are true</li>
+        <li>us<a class="morph-link" href="#morph-ed">ed</a> for rule<a class="morph-link" href="#morph-s">s</a>, <a class="morph-link" href="#morph-de">de</a>fini<a class="morph-link" href="#morph-tion">tion</a><a class="morph-link" href="#morph-s">s</a>, mathemat<a class="morph-link" href="#morph-ic">ic</a><a class="morph-link" href="#morph-s">s</a>, and form<a class="morph-link" href="#morph-al">al</a> log<a class="morph-link" href="#morph-ic">ic</a></li>
+        <li>fail<a class="morph-link" href="#morph-ure">ure</a> mode is <a class="morph-link" href="#morph-in">in</a>valid struct<a class="morph-link" href="#morph-ure">ure</a> or false premise</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-in">in</a>duc<a class="morph-link" href="#morph-tive">tive</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> generaliz<a class="morph-link" href="#morph-s">s</a> from <a class="morph-link" href="#morph-ex">ex</a>ample<a class="morph-link" href="#morph-s">s</a></li>
+        <li><a class="morph-link" href="#morph-pro">pro</a>duce<a class="morph-link" href="#morph-s">s</a> probable rath<a class="morph-link" href="#morph-er">er</a> th<a class="morph-link" href="#morph-an">an</a> certain <a class="morph-link" href="#morph-re">re</a>sult<a class="morph-link" href="#morph-s">s</a></li>
+        <li>fail<a class="morph-link" href="#morph-ure">ure</a> mode is weak sample or hasty generaliz<a class="morph-link" href="#morph-ation">ation</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-ab">ab</a>duc<a class="morph-link" href="#morph-tive">tive</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> is the best avail<a class="morph-link" href="#morph-able">able</a> <a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a></li>
+        <li>us<a class="morph-link" href="#morph-ed">ed</a> in <a class="morph-link" href="#morph-dia">dia</a>gnosis, <a class="morph-link" href="#morph-de">de</a>bugg<a class="morph-link" href="#morph-ing">ing</a>, <a class="morph-link" href="#morph-re">re</a>search, and sensemak<a class="morph-link" href="#morph-ing">ing</a></li>
+        <li>fail<a class="morph-link" href="#morph-ure">ure</a> mode is ignor<a class="morph-link" href="#morph-ing">ing</a> riv<a class="morph-link" href="#morph-al">al</a> <a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a><a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-ana">ana</a>log<a class="morph-link" href="#morph-ical">ical</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> transfer<a class="morph-link" href="#morph-s">s</a> struct<a class="morph-link" href="#morph-ure">ure</a> from one case to anoth<a class="morph-link" href="#morph-er">er</a></li>
+        <li>use<a class="morph-link" href="#morph-ful">ful</a> for learn<a class="morph-link" href="#morph-ing">ing</a>, <a class="morph-link" href="#morph-de">de</a>sign, and <a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a></li>
+        <li>fail<a class="morph-link" href="#morph-ure">ure</a> mode is hidden <a class="morph-link" href="#morph-dis">dis</a>ana<a class="morph-link" href="#morph-logy">logy</a></li>
+      </ul></li>
+      <li>caus<a class="morph-link" href="#morph-al">al</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> claim<a class="morph-link" href="#morph-s">s</a> that one fact<a class="morph-link" href="#morph-or">or</a> <a class="morph-link" href="#morph-in">in</a>flu<a class="morph-link" href="#morph-ence">ence</a><a class="morph-link" href="#morph-s">s</a> or <a class="morph-link" href="#morph-pro">pro</a>duce<a class="morph-link" href="#morph-s">s</a> anoth<a class="morph-link" href="#morph-er">er</a></li>
+        <li>check<a class="morph-link" href="#morph-s">s</a> mechan<a class="morph-link" href="#morph-ism">ism</a>, tim<a class="morph-link" href="#morph-ing">ing</a>, <a class="morph-link" href="#morph-co">co</a>rrel<a class="morph-link" href="#morph-ation">ation</a>, alterna<a class="morph-link" href="#morph-tive">tive</a><a class="morph-link" href="#morph-s">s</a>, and <a class="morph-link" href="#morph-con">con</a>found<a class="morph-link" href="#morph-er">er</a><a class="morph-link" href="#morph-s">s</a></li>
+        <li>fail<a class="morph-link" href="#morph-ure">ure</a> mode is <a class="morph-link" href="#morph-con">con</a>fus<a class="morph-link" href="#morph-ing">ing</a> <a class="morph-link" href="#morph-co">co</a>rrel<a class="morph-link" href="#morph-ation">ation</a> with cause</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-pro">pro</a>babilist<a class="morph-link" href="#morph-ic">ic</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> upd<a class="morph-link" href="#morph-ate">ate</a><a class="morph-link" href="#morph-s">s</a> likeli<a class="morph-link" href="#morph-hood">hood</a> under <a class="morph-link" href="#morph-un">un</a>certainty</li>
+        <li>use<a class="morph-link" href="#morph-s">s</a> base rate<a class="morph-link" href="#morph-s">s</a>, evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> strength, and <a class="morph-link" href="#morph-con">con</a>dition<a class="morph-link" href="#morph-al">al</a> <a class="morph-link" href="#morph-pro">pro</a>babil<a class="morph-link" href="#morph-ity">ity</a></li>
+        <li>fail<a class="morph-link" href="#morph-ure">ure</a> mode is base-rate neglect or ov<a class="morph-link" href="#morph-er">er</a>-updat<a class="morph-link" href="#morph-ing">ing</a></li>
+      </ul></li>
+      <li>pract<a class="morph-link" href="#morph-ical">ical</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> <a class="morph-link" href="#morph-con">con</a>nect<a class="morph-link" href="#morph-s">s</a> go<a class="morph-link" href="#morph-al">al</a><a class="morph-link" href="#morph-s">s</a> and <a class="morph-link" href="#morph-con">con</a>straint<a class="morph-link" href="#morph-s">s</a> to ac<a class="morph-link" href="#morph-tion">tion</a></li>
+        <li>ask<a class="morph-link" href="#morph-s">s</a> what follow<a class="morph-link" href="#morph-s">s</a> for what should be done</li>
+        <li>fail<a class="morph-link" href="#morph-ure">ure</a> mode is ignor<a class="morph-link" href="#morph-ing">ing</a> feasibil<a class="morph-link" href="#morph-ity">ity</a> or side effect<a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+    </ul></li>
+    <li><a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> strength
+    <ul>
+      <li>valid
+      <ul>
+        <li><a class="morph-link" href="#morph-de">de</a>duc<a class="morph-link" href="#morph-tive">tive</a> <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> follow<a class="morph-link" href="#morph-s">s</a> by form</li>
+      </ul></li>
+      <li>sound
+      <ul>
+        <li><a class="morph-link" href="#morph-de">de</a>duc<a class="morph-link" href="#morph-tive">tive</a> <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> follow<a class="morph-link" href="#morph-s">s</a> and <a class="morph-link" href="#morph-pre">pre</a>mis<a class="morph-link" href="#morph-s">s</a> are true</li>
+      </ul></li>
+      <li>strong
+      <ul>
+        <li>non-<a class="morph-link" href="#morph-de">de</a>duc<a class="morph-link" href="#morph-tive">tive</a> support make<a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> like<a class="morph-link" href="#morph-ly">ly</a></li>
+      </ul></li>
+      <li>weak
+      <ul>
+        <li>support exist<a class="morph-link" href="#morph-s">s</a> but is <a class="morph-link" href="#morph-in">in</a>complete, <a class="morph-link" href="#morph-in">in</a>direct, or fragile</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-de">de</a>feat<a class="morph-link" href="#morph-ed">ed</a>
+      <ul>
+        <li>new evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> or <a class="morph-link" href="#morph-co">co</a>unterexample <a class="morph-link" href="#morph-under">under</a>mine<a class="morph-link" href="#morph-s">s</a> the <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-under">under</a>determin<a class="morph-link" href="#morph-ed">ed</a>
+      <ul>
+        <li>evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> fit<a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-multi">multi</a>ple <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a><a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+      <li>specula<a class="morph-link" href="#morph-tive">tive</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> <a class="morph-link" href="#morph-ex">ex</a>tend<a class="morph-link" href="#morph-s">s</a> beyond avail<a class="morph-link" href="#morph-able">able</a> evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a></li>
+      </ul></li>
+    </ul></li>
+    <li>qual<a class="morph-link" href="#morph-ity">ity</a> check<a class="morph-link" href="#morph-s">s</a>
+    <ul>
+      <li>premise check
+      <ul>
+        <li>are the <a class="morph-link" href="#morph-in">in</a>put<a class="morph-link" href="#morph-s">s</a> true or accept<a class="morph-link" href="#morph-able">able</a></li>
+        <li>are hidden assump<a class="morph-link" href="#morph-tion">tion</a><a class="morph-link" href="#morph-s">s</a> vis<a class="morph-link" href="#morph-ible">ible</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-re">re</a>lev<a class="morph-link" href="#morph-ance">ance</a> check
+      <ul>
+        <li>doe<a class="morph-link" href="#morph-s">s</a> the evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> bear on the <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a></li>
+        <li>is the <a class="morph-link" href="#morph-con">con</a>nec<a class="morph-link" href="#morph-tion">tion</a> real or mere<a class="morph-link" href="#morph-ly">ly</a> associat<a class="morph-link" href="#morph-ed">ed</a></li>
+      </ul></li>
+      <li>warr<a class="morph-link" href="#morph-ant">ant</a> check
+      <ul>
+        <li>is the bridge from <a class="morph-link" href="#morph-in">in</a>put to <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> stat<a class="morph-link" href="#morph-ed">ed</a></li>
+        <li>would anoth<a class="morph-link" href="#morph-er">er</a> person accept the bridge</li>
+      </ul></li>
+      <li>alterna<a class="morph-link" href="#morph-tive">tive</a> check
+      <ul>
+        <li>what else <a class="morph-link" href="#morph-co">co</a>uld <a class="morph-link" href="#morph-ex">ex</a>plain the same evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a></li>
+        <li>what riv<a class="morph-link" href="#morph-al">al</a> <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> <a class="morph-link" href="#morph-re">re</a>main<a class="morph-link" href="#morph-s">s</a> poss<a class="morph-link" href="#morph-ible">ible</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-co">co</a>unterexample check
+      <ul>
+        <li>what case would break the <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a></li>
+        <li>is the <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> too broad</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a> check
+      <ul>
+        <li>doe<a class="morph-link" href="#morph-s">s</a> certainty match the actu<a class="morph-link" href="#morph-al">al</a> strength of support</li>
+        <li>should <a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a> be lower<a class="morph-link" href="#morph-ed">ed</a> because of gap<a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+      <li>scope check
+      <ul>
+        <li>where doe<a class="morph-link" href="#morph-s">s</a> this <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> apply</li>
+        <li>where doe<a class="morph-link" href="#morph-s">s</a> it stop <a class="morph-link" href="#morph-ap">ap</a>ply<a class="morph-link" href="#morph-ing">ing</a></li>
+      </ul></li>
+    </ul></li>
+    <li><a class="morph-link" href="#morph-co">co</a>mmon err<a class="morph-link" href="#morph-or">or</a><a class="morph-link" href="#morph-s">s</a>
+    <ul>
+      <li>hasty generaliz<a class="morph-link" href="#morph-ation">ation</a>
+      <ul>
+        <li>too few <a class="morph-link" href="#morph-ex">ex</a>ample<a class="morph-link" href="#morph-s">s</a> support a broad <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a></li>
+      </ul></li>
+      <li>affirm<a class="morph-link" href="#morph-ing">ing</a> the <a class="morph-link" href="#morph-con">con</a>sequent
+      <ul>
+        <li>if a then b, b, therefore a</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-de">de</a>ny<a class="morph-link" href="#morph-ing">ing</a> the <a class="morph-link" href="#morph-ante">ante</a>cedent
+      <ul>
+        <li>if a then b, not a, therefore not b</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-co">co</a>rrel<a class="morph-link" href="#morph-ation">ation</a> as caus<a class="morph-link" href="#morph-ation">ation</a>
+      <ul>
+        <li>treat<a class="morph-link" href="#morph-ing">ing</a> associ<a class="morph-link" href="#morph-ation">ation</a> as <a class="morph-link" href="#morph-pro">pro</a>of of cause</li>
+      </ul></li>
+      <li>selec<a class="morph-link" href="#morph-tion">tion</a> bia<a class="morph-link" href="#morph-s">s</a>
+      <ul>
+        <li>avail<a class="morph-link" href="#morph-able">able</a> <a class="morph-link" href="#morph-ex">ex</a>ample<a class="morph-link" href="#morph-s">s</a> are not <a class="morph-link" href="#morph-re">re</a>presenta<a class="morph-link" href="#morph-tive">tive</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-con">con</a>firm<a class="morph-link" href="#morph-ation">ation</a> bia<a class="morph-link" href="#morph-s">s</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-pre">pre</a>ferr<a class="morph-link" href="#morph-ed">ed</a> <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> guide<a class="morph-link" href="#morph-s">s</a> evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> selec<a class="morph-link" href="#morph-tion">tion</a></li>
+      </ul></li>
+      <li>equivoc<a class="morph-link" href="#morph-ation">ation</a>
+      <ul>
+        <li>key term change<a class="morph-link" href="#morph-s">s</a> mean<a class="morph-link" href="#morph-ing">ing</a> dur<a class="morph-link" href="#morph-ing">ing</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a></li>
+      </ul></li>
+      <li>false analogy
+      <ul>
+        <li>surface similar<a class="morph-link" href="#morph-ity">ity</a> hide<a class="morph-link" href="#morph-s">s</a> structur<a class="morph-link" href="#morph-al">al</a> differ<a class="morph-link" href="#morph-ence">ence</a></li>
+      </ul></li>
+      <li>missing base rate
+      <ul>
+        <li>specif<a class="morph-link" href="#morph-ic">ic</a> evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> is <a class="morph-link" href="#morph-inter">inter</a>pret<a class="morph-link" href="#morph-ed">ed</a> without background frequen<a class="morph-link" href="#morph-cy">cy</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-over">over</a>fitt<a class="morph-link" href="#morph-ing">ing</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a> fit<a class="morph-link" href="#morph-s">s</a> current cas<a class="morph-link" href="#morph-s">s</a> but fail<a class="morph-link" href="#morph-s">s</a> new cas<a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+    </ul></li>
+    <li><a class="morph-link" href="#morph-im">im</a>prove<a class="morph-link" href="#morph-ment">ment</a> practice<a class="morph-link" href="#morph-s">s</a>
+    <ul>
+      <li>st<a class="morph-link" href="#morph-ate">ate</a> the <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> <a class="morph-link" href="#morph-ex">ex</a>plicit<a class="morph-link" href="#morph-ly">ly</a>
+      <ul>
+        <li>because x, therefore y</li>
+        <li>x support<a class="morph-link" href="#morph-s">s</a> y by warr<a class="morph-link" href="#morph-ant">ant</a> w</li>
+      </ul></li>
+      <li>label <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> type
+      <ul>
+        <li><a class="morph-link" href="#morph-de">de</a>duc<a class="morph-link" href="#morph-tive">tive</a></li>
+        <li><a class="morph-link" href="#morph-in">in</a>duc<a class="morph-link" href="#morph-tive">tive</a></li>
+        <li><a class="morph-link" href="#morph-ab">ab</a>duc<a class="morph-link" href="#morph-tive">tive</a></li>
+        <li><a class="morph-link" href="#morph-ana">ana</a>log<a class="morph-link" href="#morph-ical">ical</a></li>
+        <li>caus<a class="morph-link" href="#morph-al">al</a></li>
+        <li><a class="morph-link" href="#morph-pro">pro</a>babilist<a class="morph-link" href="#morph-ic">ic</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-ex">ex</a>pose assump<a class="morph-link" href="#morph-tion">tion</a><a class="morph-link" href="#morph-s">s</a>
+      <ul>
+        <li>list what must be true for the <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> to work</li>
+        <li>mark which assump<a class="morph-link" href="#morph-tion">tion</a><a class="morph-link" href="#morph-s">s</a> are <a class="morph-link" href="#morph-un">un</a>certain</li>
+      </ul></li>
+      <li>test riv<a class="morph-link" href="#morph-al">al</a> <a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a><a class="morph-link" href="#morph-s">s</a>
+      <ul>
+        <li>ask what else would <a class="morph-link" href="#morph-pre">pre</a>dict the same evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a></li>
+        <li><a class="morph-link" href="#morph-comp">comp</a>are <a class="morph-link" href="#morph-ex">ex</a>planatory pow<a class="morph-link" href="#morph-er">er</a></li>
+      </ul></li>
+      <li>search for <a class="morph-link" href="#morph-co">co</a>unterexample<a class="morph-link" href="#morph-s">s</a>
+      <ul>
+        <li>try to break broad <a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a><a class="morph-link" href="#morph-s">s</a></li>
+        <li>narrow the scope when <a class="morph-link" href="#morph-ex">ex</a>cep<a class="morph-link" href="#morph-tion">tion</a><a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-ap">ap</a>pear</li>
+      </ul></li>
+      <li>calibr<a class="morph-link" href="#morph-ate">ate</a> <a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li>assign low<a class="morph-link" href="#morph-er">er</a> <a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a> to <a class="morph-link" href="#morph-in">in</a>direct or <a class="morph-link" href="#morph-in">in</a>complete support</li>
+        <li>upd<a class="morph-link" href="#morph-ate">ate</a> aft<a class="morph-link" href="#morph-er">er</a> new evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a></li>
+      </ul></li>
+      <li>chain careful<a class="morph-link" href="#morph-ly">ly</a>
+      <ul>
+        <li>weak <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a><a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-comp">comp</a>ound through a <a class="morph-link" href="#morph-re">re</a>ason<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-002-MIMAP-reasoning.html" title="Open linked MIMAP for reasoning">↗</a> chain</li>
+        <li>mark where <a class="morph-link" href="#morph-un">un</a>certainty enter<a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+    </ul></li>
+    <li>link<a class="morph-link" href="#morph-s">s</a> to oth<a class="morph-link" href="#morph-er">er</a> <a class="morph-link" href="#morph-con">con</a>cept<a class="morph-link" href="#morph-s">s</a>
+    <ul>
+      <li>think<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-001-MIMAP-thinking.html" title="Open linked MIMAP for thinking">↗</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> is a <a class="morph-link" href="#morph-co">co</a>re <a class="morph-link" href="#morph-co">co</a>gni<a class="morph-link" href="#morph-tive">tive</a> <a class="morph-link" href="#morph-pro">pro</a>cess <a class="morph-link" href="#morph-in">in</a>side think<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-001-MIMAP-thinking.html" title="Open linked MIMAP for thinking">↗</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-re">re</a>ason<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-002-MIMAP-reasoning.html" title="Open linked MIMAP for reasoning">↗</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-re">re</a>ason<a class="morph-link" href="#morph-ing">ing</a><a class="concept-link" href="000-PH-002-MIMAP-reasoning.html" title="Open linked MIMAP for reasoning">↗</a> organiz<a class="morph-link" href="#morph-s">s</a> many <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a><a class="morph-link" href="#morph-s">s</a> <a class="morph-link" href="#morph-in">in</a>to an audit<a class="morph-link" href="#morph-able">able</a> chain</li>
+      </ul></li>
+      <li>evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a>
+      <ul>
+        <li>evid<a class="morph-link" href="#morph-ence">ence</a><a class="concept-link" href="000-PH-004-MIMAP-evidence.html" title="Open linked MIMAP for evidence">↗</a> is a main <a class="morph-link" href="#morph-in">in</a>put to <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a></li>
+      </ul></li>
+      <li>claim
+      <ul>
+        <li><a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> often output<a class="morph-link" href="#morph-s">s</a> or support<a class="morph-link" href="#morph-s">s</a> a claim</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-con">con</a>fid<a class="morph-link" href="#morph-ence">ence</a> <a class="morph-link" href="#morph-re">re</a>cord<a class="morph-link" href="#morph-s">s</a> the strength of <a class="morph-link" href="#morph-re">re</a>li<a class="morph-link" href="#morph-ance">ance</a> on the <a class="morph-link" href="#morph-in">in</a>ferr<a class="morph-link" href="#morph-ed">ed</a> output</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-ab">ab</a>duc<a class="morph-link" href="#morph-tive">tive</a> and caus<a class="morph-link" href="#morph-al">al</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> <a class="morph-link" href="#morph-pro">pro</a>duce <a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a><a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-de">de</a>cis<a class="morph-link" href="#morph-ion">ion</a> mak<a class="morph-link" href="#morph-ing">ing</a>
+      <ul>
+        <li>pract<a class="morph-link" href="#morph-ical">ical</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a> <a class="morph-link" href="#morph-con">con</a>nect<a class="morph-link" href="#morph-s">s</a> fact<a class="morph-link" href="#morph-s">s</a> and go<a class="morph-link" href="#morph-al">al</a><a class="morph-link" href="#morph-s">s</a> to ac<a class="morph-link" href="#morph-tion">tion</a><a class="morph-link" href="#morph-s">s</a></li>
+      </ul></li>
+      <li>metacogni<a class="morph-link" href="#morph-tion">tion</a>
+      <ul>
+        <li>metacogni<a class="morph-link" href="#morph-tion">tion</a> monit<a class="morph-link" href="#morph-or">or</a><a class="morph-link" href="#morph-s">s</a> wheth<a class="morph-link" href="#morph-er">er</a> <a class="morph-link" href="#morph-in">in</a>fer<a class="morph-link" href="#morph-ence">ence</a><a class="morph-link" href="#morph-s">s</a> are valid, strong, scop<a class="morph-link" href="#morph-ed">ed</a>, and calibrat<a class="morph-link" href="#morph-ed">ed</a></li>
+      </ul></li>
+    </ul></li>
+    <li>output<a class="morph-link" href="#morph-s">s</a>
+    <ul>
+      <li><a class="morph-link" href="#morph-con">con</a>clus<a class="morph-link" href="#morph-ion">ion</a>
+      <ul>
+        <li>state<a class="morph-link" href="#morph-ment">ment</a> accept<a class="morph-link" href="#morph-ed">ed</a> because of support</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-hypo">hypo</a>thesis
+      <ul>
+        <li>poss<a class="morph-link" href="#morph-ible">ible</a> <a class="morph-link" href="#morph-ex">ex</a>plan<a class="morph-link" href="#morph-ation">ation</a> to test</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-pre">pre</a>dic<a class="morph-link" href="#morph-tion">tion</a>
+      <ul>
+        <li><a class="morph-link" href="#morph-ex">ex</a>pect<a class="morph-link" href="#morph-ed">ed</a> fut<a class="morph-link" href="#morph-ure">ure</a> or observ<a class="morph-link" href="#morph-able">able</a> <a class="morph-link" href="#morph-re">re</a>sult</li>
+      </ul></li>
+      <li>classific<a class="morph-link" href="#morph-ation">ation</a>
+      <ul>
+        <li>plac<a class="morph-link" href="#morph-ing">ing</a> a case <a class="morph-link" href="#morph-in">in</a>to a category</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-im">im</a>plic<a class="morph-link" href="#morph-ation">ation</a>
+      <ul>
+        <li>what follow<a class="morph-link" href="#morph-s">s</a> if a claim is true</li>
+      </ul></li>
+      <li><a class="morph-link" href="#morph-un">un</a>certainty
+      <ul>
+        <li><a class="morph-link" href="#morph-ex">ex</a>pos<a class="morph-link" href="#morph-ed">ed</a> gap or riv<a class="morph-link" href="#morph-al">al</a> possibil<a class="morph-link" href="#morph-ity">ity</a></li>
+      </ul></li>
+    </ul></li>
+  </ul></li>
+</ul>
+<section class="morphology-index"><h2>Morphology Links</h2><ul><li id="morph-ab"><code>ab</code></li><li id="morph-able"><code>able</code></li><li id="morph-al"><code>al</code></li><li id="morph-an"><code>an</code></li><li id="morph-ana"><code>ana</code></li><li id="morph-ance"><code>ance</code></li><li id="morph-ant"><code>ant</code></li><li id="morph-ante"><code>ante</code></li><li id="morph-ap"><code>ap</code></li><li id="morph-ary"><code>ary</code></li><li id="morph-ate"><code>ate</code></li><li id="morph-ation"><code>ation</code></li><li id="morph-co"><code>co</code></li><li id="morph-comp"><code>comp</code></li><li id="morph-con"><code>con</code></li><li id="morph-cy"><code>cy</code></li><li id="morph-de"><code>de</code></li><li id="morph-dia"><code>dia</code></li><li id="morph-dis"><code>dis</code></li><li id="morph-ed"><code>ed</code></li><li id="morph-ence"><code>ence</code></li><li id="morph-er"><code>er</code></li><li id="morph-ex"><code>ex</code></li><li id="morph-ful"><code>ful</code></li><li id="morph-hood"><code>hood</code></li><li id="morph-hypo"><code>hypo</code></li><li id="morph-ible"><code>ible</code></li><li id="morph-ic"><code>ic</code></li><li id="morph-ical"><code>ical</code></li><li id="morph-ify"><code>ify</code></li><li id="morph-im"><code>im</code></li><li id="morph-in"><code>in</code></li><li id="morph-ing"><code>ing</code></li><li id="morph-inter"><code>inter</code></li><li id="morph-ion"><code>ion</code></li><li id="morph-ism"><code>ism</code></li><li id="morph-ity"><code>ity</code></li><li id="morph-ize"><code>ize</code></li><li id="morph-logy"><code>logy</code></li><li id="morph-ly"><code>ly</code></li><li id="morph-ment"><code>ment</code></li><li id="morph-multi"><code>multi</code></li><li id="morph-or"><code>or</code></li><li id="morph-over"><code>over</code></li><li id="morph-pre"><code>pre</code></li><li id="morph-pro"><code>pro</code></li><li id="morph-re"><code>re</code></li><li id="morph-s"><code>s</code></li><li id="morph-tion"><code>tion</code></li><li id="morph-tive"><code>tive</code></li><li id="morph-un"><code>un</code></li><li id="morph-under"><code>under</code></li><li id="morph-ure"><code>ure</code></li></ul></section>
+</body>
+</html>

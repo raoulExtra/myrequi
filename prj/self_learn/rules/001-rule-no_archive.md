@@ -1,0 +1,1 @@
+exclude folder /home/peter/myrequi/myrequi/archive from any reading!!
