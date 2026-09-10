@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 
 
-ROOT = Path(__file__).resolve().parents[3]
+ROOT = Path(__file__).resolve().parents[7]
 SCRIPT = ROOT / 'prj_tool.py'
 
 
