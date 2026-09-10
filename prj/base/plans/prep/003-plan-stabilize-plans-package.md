@@ -43,8 +43,10 @@ tmp/done/provider-error-20260910T102151Z.log
 ```
 
 The runner SHALL create `tmp/done/` when needed, preserve the original file
-contents, and start fresh active logs for the new masterplan. The archive
-operation SHALL be recorded in the new `tmp/plan-execution.log`. Never
+contents, and start fresh active logs for the new masterplan. After a logfile
+has been moved successfully into `tmp/done/`, the previous active logfile
+MUST no longer exist at its original `tmp/` path. The archive operation SHALL
+be recorded in the new `tmp/plan-execution.log`. Never
 overwrite an existing archive; add a numeric suffix if necessary.
 
 ## IMPORTANT: user-provided end condition
