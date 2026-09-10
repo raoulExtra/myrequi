@@ -151,7 +151,7 @@ def _check_once(con: sqlite3.Connection, pi_session: Any, pid: str = None, route
                     print(f"[watch] route not found or disabled: {route_name}")
                     continue
                 if router is None:
-                    from input_action_router import InputActionRouter
+                    from route.input_action_router import InputActionRouter
                     router = InputActionRouter(DB_PATH, pid=pid)
                 result = router.execute_routing_decision(decision, routearg or route_name, pid=pid)
                 action_result = result.get("action_result") if isinstance(result, dict) else None
@@ -197,7 +197,7 @@ def cmd_add(args) -> None:
 
 
 def cmd_start(args) -> None:
-    from input_action_router import InputActionRouter
+    from route.input_action_router import InputActionRouter
 
     db_path = Path(args.db)
     router = InputActionRouter(db_path, pid=args.pid)

@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 import mode_command
 import pi_session
-from input_action_router import InputActionRouter
+from route.input_action_router import InputActionRouter
 
 
 class PiSessionBridgeTests(unittest.TestCase):
@@ -226,7 +226,7 @@ class PiSessionBridgeTests(unittest.TestCase):
         finally:
             mode_command.run_mode_command(["route", "off"], db_path=Path("continuity.db"))
 
-    @patch("input_action_router.time.sleep", lambda *_: None)
+    @patch("route.input_action_router.time.sleep", lambda *_: None)
     def test_context_info_agent_tool_uses_bridge_when_available(self):
         router = InputActionRouter(Path("continuity.db"))
         decision = {"route_name": "context_info", "route_type": "agent_tool", "handler": "context_info"}

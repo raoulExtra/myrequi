@@ -24,7 +24,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from input_action_audit import (
+from route.input_action_audit import (
     action_error,
     action_warning,
     importance_reason,
@@ -33,11 +33,11 @@ from input_action_audit import (
     record_route_usage,
     summarize_action_result,
 )
-from input_action_bridge import PiBridgeClient
-from input_action_database import ensure_router_schema
-from input_action_execution import execute_agent_tool, execute_context_info_tool
-from input_action_output import extract_session_text, format_plain_result
-from input_action_matching import (
+from route.input_action_bridge import PiBridgeClient
+from route.input_action_database import ensure_router_schema
+from route.input_action_execution import execute_agent_tool, execute_context_info_tool
+from route.input_action_output import extract_session_text, format_plain_result
+from route.input_action_matching import (
     build_routing_indexes,
     literal_prefix,
     match_json_pattern,
@@ -45,7 +45,7 @@ from input_action_matching import (
     pattern_prefixes,
     route_candidates_for_text,
 )
-from input_action_parsing import parse_input
+from route.input_action_parsing import parse_input
 
 U_ACTION = "uaction"
 

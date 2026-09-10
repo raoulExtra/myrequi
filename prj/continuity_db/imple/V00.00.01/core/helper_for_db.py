@@ -113,15 +113,6 @@ def connect(path: Path) -> sqlite3.Connection:
           timeout_seconds INTEGER NOT NULL,
           working_directory TEXT NOT NULL
         );
-        CREATE TABLE IF NOT EXISTS tool_source_versions (
-          id INTEGER PRIMARY KEY AUTOINCREMENT,
-          tool_name TEXT NOT NULL,
-          version INTEGER NOT NULL,
-          source TEXT NOT NULL,
-          sha256 TEXT NOT NULL UNIQUE,
-          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-          UNIQUE(tool_name, version)
-        );
         CREATE TABLE IF NOT EXISTS tool_build_manifest (
           tool_name TEXT PRIMARY KEY,
           entrypoint TEXT NOT NULL,
@@ -298,16 +289,30 @@ def cmd_snapshot_self(args: argparse.Namespace) -> None:
     source = Path(__file__).read_text(encoding="utf-8")
     digest = hashlib.sha256(source.encode()).hexdigest()
     with connect(args.db) as con:
-        existing = con.execute("SELECT version FROM tool_source_versions WHERE sha256=?", (digest,)).fetchone()
+        artifact = con.execute("SELECT id FROM code_artifacts WHERE name='code_tool'").fetchone()
+        if artifact is None:
+            artifact_id = con.execute(
+                "INSERT INTO code_artifacts(name,description) VALUES (?,?)",
+                ('code_tool', 'Versioned trusted code tool controller.'),
+            ).lastrowid
+        else:
+            artifact_id = artifact["id"]
+        existing = con.execute(
+            "SELECT version FROM code_versions WHERE artifact_id=? AND sha256=?",
+            (artifact_id, digest),
+        ).fetchone()
         if existing:
             version = existing["version"]
         else:
             version = con.execute(
-                "SELECT coalesce(max(version),0)+1 FROM tool_source_versions WHERE tool_name='code_tool'"
+                "SELECT coalesce(max(version),0)+1 FROM code_versions WHERE artifact_id=?",
+                (artifact_id,),
             ).fetchone()[0]
             con.execute(
-                "INSERT INTO tool_source_versions(tool_name,version,source,sha256) VALUES ('code_tool',?,?,?)",
-                (version, source, digest),
+                """INSERT INTO code_versions
+                   (artifact_id,version,source,sha256,validation_status,validation_notes,approval_status)
+                   VALUES (?,?,?,?,?,?,?)""",
+                (artifact_id, version, source, digest, 'passed', 'Self-snapshot', 'pending'),
             )
     print(json.dumps({"tool": "code_tool", "version": version, "sha256": digest}, indent=2))
 
@@ -315,7 +320,10 @@ def cmd_snapshot_self(args: argparse.Namespace) -> None:
 def cmd_export_tool(args: argparse.Namespace) -> None:
     with connect(args.db) as con:
         row = con.execute(
-            "SELECT version,source,sha256 FROM tool_source_versions WHERE tool_name=? ORDER BY version DESC LIMIT 1",
+            """SELECT cv.version,cv.source,cv.sha256
+               FROM code_versions cv
+               JOIN code_artifacts ca ON ca.id=cv.artifact_id
+               WHERE ca.name=? ORDER BY cv.version DESC LIMIT 1""",
             (args.tool,),
         ).fetchone()
     if not row:
@@ -413,12 +421,14 @@ def cmd_self_check(args: argparse.Namespace) -> None:
     integrity = con.execute("PRAGMA integrity_check").fetchone()[0]
     add("sqlite_integrity", "error", integrity == "ok", f"PRAGMA integrity_check: {integrity}", "Restore the latest valid Library version if integrity fails.")
 
-    required = {"identity", "beliefs", "belief_versions", "metacognitive_state", "metacognitive_state_history", "code_artifacts", "code_versions", "tool_source_versions", "feature_flags", "research_jobs", "ethical_principles", "continuity_check_runs", "provenance_catalog", "object_metadata", "object_provenance"}
+    required = {"identity", "beliefs", "belief_versions", "metacognitive_state", "metacognitive_state_history", "code_artifacts", "code_versions", "feature_flags", "research_jobs", "ethical_principles", "continuity_check_runs", "provenance_catalog", "object_metadata", "object_provenance"}
     present = {row[0] for row in con.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     missing = sorted(required - present)
     add("required_schema", "error", not missing, "Missing tables: " + (", ".join(missing) if missing else "none"), "Rebuild from a verified controller/database version.")
 
-    stored = con.execute("SELECT version,sha256 FROM tool_source_versions WHERE tool_name='code_tool' ORDER BY version DESC LIMIT 1").fetchone()
+    stored = con.execute("""SELECT cv.version,cv.sha256
+      FROM code_versions cv JOIN code_artifacts ca ON ca.id=cv.artifact_id
+      WHERE ca.name='code_tool' ORDER BY cv.version DESC LIMIT 1""").fetchone()
     actual_hash = hashlib.sha256(Path(__file__).read_bytes()).hexdigest()
     controller_ok = bool(stored and stored["sha256"] == actual_hash)
     add("controller_hash", "error", controller_ok, f"current={actual_hash}; stored={stored['sha256'] if stored else 'missing'}", "Restore the controller from the latest verified database snapshot.")

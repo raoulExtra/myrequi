@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 
 import mode_command
-from input_action_router import InputActionRouter
+from route.input_action_router import InputActionRouter
 
 
 class RouteModeCommandTests(unittest.TestCase):

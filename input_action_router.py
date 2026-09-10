@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Compatibility wrapper for prj/continuity_db/imple/V00.00.01/core/input_action_router.py."""
+"""Compatibility wrapper for prj/continuity_db/imple/V00.00.01/core/route/input_action_router.py."""
 
 import importlib.util
 import sys
 from pathlib import Path
 
 _CORE_DIR = Path(__file__).resolve().parent / "prj" / "continuity_db" / "imple" / "V00.00.01" / "core"
-_CORE_FILE = _CORE_DIR / "input_action_router.py"
+_CORE_FILE = _CORE_DIR / "route" / "input_action_router.py"
 if str(_CORE_DIR) not in sys.path:
     sys.path.insert(0, str(_CORE_DIR))
 _spec = importlib.util.spec_from_file_location("_continuity_core_input_action_router", _CORE_FILE)

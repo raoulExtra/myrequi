@@ -29,7 +29,15 @@ from .schema import (
 )
 from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, SCHEMA_CATALOG_ALL_VIEW_SQL, TAG_SEARCH_VIEW_SQL, CONCEPT_SEARCH_VIEW_SQL, DECISION_OVERVIEW_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL, REASONING_QUALITY_VIEWS_SQL, MODEL_IDENTITY_VIEW_SQL
 
-ROOT = Path(__file__).resolve().parent.parent
+_MODULE_PATH = Path(__file__).resolve()
+ROOT = next(
+    (parent for parent in (_MODULE_PATH.parent, *_MODULE_PATH.parents)
+     if (parent / "continuity.db").is_file()
+     and (parent / "README.md").is_file()),
+    None,
+)
+if ROOT is None:
+    raise RuntimeError("Could not locate repository root containing continuity.db")
 DB_PATH = ROOT / "continuity.db"
 
 PRIMARY_PROVENANCE_LIMIT = """
