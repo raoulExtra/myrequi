@@ -54,25 +54,20 @@ overwrite an existing archive; add a numeric suffix if necessary.
 At masterplan initialization, the runner SHALL require a non-empty end
 condition supplied by the user. The end condition is part of the masterplan
 state and SHALL be recorded in `tmp/plan-execution.log` before Step 1.1.
-Derive a nice 2 word title (nice_title_prefix) for git serving as commit comment nice_title_prefix:<comment> 
+Derive a nice compact 3 word title (nice_title_prefix) for git serving as commit comment improve|fix|remove|extend:nice_title_prefix:<comment> 
 
 ### This masterplan's end criterion
 
-For this execution, the user-defined end condition is the completion of all
-outstanding items below:
+For this execution, the user-defined end condition is the completion of the
+following **Research Audit Integrity** requirements:
 
-1. Push all commits created by this masterplan to the configured remote.
-2. Synchronize the runtime provider log filename with the plan:
-   `tmp/provider-error.log`.
-3. Complete the optional `llm-guard` content-guard adapter, provenance/denial
-   handling, and mocked unit tests.
-4. Complete the executable plans-package runner, including sequential plans,
-   pytest and Git gates, comparable logging, log rotation, provider retry
-   handling, context compaction handling, and end-condition termination.
-5. Review and resolve the outstanding repository changes, including the
-   research-extension files and test-generated database state.
-6. Provide the requested UAT workflow baseline and verify the organized test
-   suite remains green.
+1. Add an immutable research-audit table recording `research_job_id`, source
+   URL, content hash, policy version, scanner/provider, allow/deny decision,
+   denial reason, timestamp, and provenance metadata.
+2. Never store retrieved raw content in the audit record.
+3. Add indexes and tests proving that trusted sources can still be denied,
+   rejected content cannot enter accepted research, every accepted source has
+   an audit receipt, and audit records are queryable by research job.
 
 The runner SHALL evaluate every item against repository evidence. The plan is
 not complete merely because the plan document describes the behavior; required
