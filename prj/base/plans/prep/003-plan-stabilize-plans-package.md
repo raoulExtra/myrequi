@@ -118,7 +118,9 @@ Context budget constraint:
 
 - Before starting each step, and during long-running execution, check the
   current context usage through the available context-information route.
-- If context usage exceeds 50%, execute `/compact` before continuing.
+- If context usage reaches or exceeds 30%, execute `/compact` before
+  continuing. This plan already compacted at the 30% threshold; do not wait
+  for 50% usage.
 - After compaction, re-read the active step state and continue from the last
   committed checkpoint.
 
