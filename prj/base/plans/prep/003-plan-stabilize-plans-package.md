@@ -54,6 +54,7 @@ overwrite an existing archive; add a numeric suffix if necessary.
 At masterplan initialization, the runner SHALL require a non-empty end
 condition supplied by the user. The end condition is part of the masterplan
 state and SHALL be recorded in `tmp/plan-execution.log` before Step 1.1.
+Derive a nice 2 word title (nice_title_prefix) for git serving as commit comment nice_title_prefix:<comment> 
 
 ### This masterplan's end criterion
 
@@ -137,7 +138,10 @@ Before each step, the plan runner SHALL automatically:
 2. Write failing tests first and append the exact pytest command/output.
 3. Implement the smallest change that makes the tests pass.
 4. Refactor only with the safety net green and append the refactor note.
-5. Append and run `git add` and `git commit` with a clear imperative message.
+5. Append and run `git add` and `git commit` with a clear imperative
+   message prefixed with `PLAN-003:` (for example,
+   `PLAN-003: Add sequential plan runner`). The prefix SHALL appear in the
+   commit subject and in the corresponding execution-log entry.
 
 No human approval is required. The runner SHALL execute the complete ordered
 plan automatically, not stop after a convenient milestone. It SHALL stop only
