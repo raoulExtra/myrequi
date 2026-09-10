@@ -13,10 +13,21 @@ Examples:
 from __future__ import annotations
 
 import argparse
+import importlib.util
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_BASE_DIR = ROOT / "prj"
+DB_HELPER_PATH = ROOT / "prj/continuity_db/imple/V00.00.01/core/helper_for_db.py"
+
+
+def _db_helper():
+    spec = importlib.util.spec_from_file_location("continuity_db_helper", DB_HELPER_PATH)
+    if spec is None or spec.loader is None:
+        raise ImportError(f"cannot load database helper: {DB_HELPER_PATH}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def project_dir(project: str, base_dir: Path = DEFAULT_BASE_DIR) -> Path:
@@ -350,16 +361,16 @@ def detect_session_id() -> str:
 
 
 def sync_active_model(auto_add: bool = False, session_id: str | None = None) -> tuple[str, str, str]:
-    """Sync active model to DB, using session ID from JSONL context."""
-    import sqlite3, json, pathlib
-    settings_path = pathlib.Path("/home/peter/.pi/agent/settings.json")
-    models_store_path = pathlib.Path("/home/peter/.pi/agent/models-store.json")
+    """Load model settings and delegate all database writes to the DB helper."""
+    import json
+    settings_path = Path("/home/peter/.pi/agent/settings.json")
+    models_store_path = Path("/home/peter/.pi/agent/models-store.json")
     settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
     model = settings.get("defaultModel", "unknown")
     model_info = None
     if models_store_path.exists():
         store = json.loads(models_store_path.read_text())
-        for _provider, block in store.items():
+        for block in store.values():
             if isinstance(block, dict):
                 for entry in block.get("models", []):
                     if entry.get("id") == model:
@@ -368,53 +379,21 @@ def sync_active_model(auto_add: bool = False, session_id: str | None = None) -> 
             if model_info:
                 break
     sid = session_id or detect_session_id()
-    db_path = Path(__file__).resolve().parent / "continuity.db"
-    con = sqlite3.connect(str(db_path))
-    cur = con.cursor()
-    cur.execute("SELECT object_key FROM object_metadata WHERE object_type='ai_model' AND object_key=?", (model,))
-    exists = cur.fetchone()
-    if exists:
-        cur.execute("UPDATE ai_model_details SET is_active = 1 WHERE model_key = ?", (model,))
-        cur.execute("UPDATE ai_model_details SET is_active = 0 WHERE model_key != ?", (model,))
-        cur.execute("INSERT INTO model_session_link (model_key, session_id, is_active, context_window_tokens, provider, source_json) VALUES (?, ?, 1, ?, ?, ?)",
-                    (model, sid, model_info.get("contextWindow") if model_info else None,
-                     model_info.get("provider") if model_info else "unknown",
-                     json.dumps({"settings": str(settings_path), "store": str(models_store_path)})))
-        con.commit()
-        con.close()
-        return model, sid, "synced"
-    if not auto_add:
-        con.close()
-        return model, sid, "missing"
-    # auto-add
-    tags = json.dumps([("provider:" + model_info.get("provider", "unknown")) if model_info else "provider:unknown",
-                       ("context:" + str(model_info.get("contextWindow", 0))) if model_info else "context:0", "tier:active"]) if model_info else "[]"
-    cur.execute("INSERT INTO object_metadata (object_type, object_key, sensitivity, review_status, tags_json) VALUES (?, ?, ?, ?, ?)",
-                ("ai_model", model, "internal", "unreviewed", tags))
-    cur.execute("INSERT INTO ai_model_details (model_key, version, architecture, context_window_tokens, training_cutoff, performance_json, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
-                (model, model_info.get("version") if model_info else "latest",
-                 model_info.get("name") if model_info else "unknown",
-                 model_info.get("contextWindow") if model_info else None, None,
-                 json.dumps({"cost": model_info.get("cost") if model_info else {}, "notes": "Auto-added from settings.json"})))
-    cur.execute("INSERT INTO model_session_link (model_key, session_id, is_active, context_window_tokens, provider, source_json) VALUES (?, ?, 1, ?, ?, ?)",
-                (model, sid, model_info.get("contextWindow") if model_info else None,
-                 model_info.get("provider") if model_info else "unknown",
-                 json.dumps({"settings": str(settings_path), "store": str(models_store_path)})))
-    con.commit()
-    con.close()
-    return model, sid, "auto_added"
+    helper = _db_helper()
+    return helper.sync_active_model(
+        Path(__file__).resolve().parent / "continuity.db",
+        model,
+        sid,
+        model_info=model_info,
+        auto_add=auto_add,
+        source_json={"settings": str(settings_path), "store": str(models_store_path)},
+    )
 
 
 def end_session(session_id: str | None = None) -> None:
-    """Close the active model link for a session."""
-    import sqlite3
+    """Delegate closing the model link to the DB helper."""
     sid = session_id or detect_session_id()
-    db_path = Path(__file__).resolve().parent / "continuity.db"
-    con = sqlite3.connect(str(db_path))
-    cur = con.cursor()
-    cur.execute("UPDATE model_session_link SET is_active = 0, ended_at = CURRENT_TIMESTAMP WHERE session_id = ? AND is_active = 1", (sid,))
-    con.commit()
-    con.close()
+    _db_helper().end_model_session(Path(__file__).resolve().parent / "continuity.db", sid)
     print(f"Closed active model link for session {sid}")
 
 

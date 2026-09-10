@@ -45,6 +45,87 @@ def get_version():
     return __version__
 
 
+def sync_active_model(
+    db_path: Path,
+    model: str,
+    session_id: str,
+    model_info: dict | None = None,
+    auto_add: bool = False,
+    source_json: dict | None = None,
+) -> tuple[str, str, str]:
+    """Record the active model and its session link in the continuity database."""
+    con = sqlite3.connect(str(db_path))
+    try:
+        cur = con.cursor()
+        exists = cur.execute(
+            "SELECT object_key FROM object_metadata "
+            "WHERE object_type='ai_model' AND object_key=?",
+            (model,),
+        ).fetchone()
+        if exists:
+            cur.execute("UPDATE ai_model_details SET is_active = 1 WHERE model_key = ?", (model,))
+            cur.execute("UPDATE ai_model_details SET is_active = 0 WHERE model_key != ?", (model,))
+            cur.execute(
+                "INSERT INTO model_session_link "
+                "(model_key, session_id, is_active, context_window_tokens, provider, source_json) "
+                "VALUES (?, ?, 1, ?, ?, ?)",
+                (model, session_id, model_info.get("contextWindow") if model_info else None,
+                 model_info.get("provider") if model_info else "unknown",
+                 json.dumps(source_json if source_json is not None else model_info or {})),
+            )
+            con.commit()
+            return model, session_id, "synced"
+        if not auto_add:
+            return model, session_id, "missing"
+
+        tags = json.dumps([
+            "provider:" + model_info.get("provider", "unknown") if model_info else "provider:unknown",
+            "context:" + str(model_info.get("contextWindow", 0)) if model_info else "context:0",
+            "tier:active",
+        ]) if model_info else "[]"
+        cur.execute(
+            "INSERT INTO object_metadata "
+            "(object_type, object_key, sensitivity, review_status, tags_json) VALUES (?, ?, ?, ?, ?)",
+            ("ai_model", model, "internal", "unreviewed", tags),
+        )
+        cur.execute(
+            "INSERT INTO ai_model_details "
+            "(model_key, version, architecture, context_window_tokens, training_cutoff, performance_json, is_active) "
+            "VALUES (?, ?, ?, ?, ?, ?, 1)",
+            (model, model_info.get("version") if model_info else "latest",
+             model_info.get("name") if model_info else "unknown",
+             model_info.get("contextWindow") if model_info else None, None,
+             json.dumps({"cost": model_info.get("cost") if model_info else {},
+                         "notes": "Auto-added from settings.json"})),
+        )
+        cur.execute(
+            "INSERT INTO model_session_link "
+            "(model_key, session_id, is_active, context_window_tokens, provider, source_json) "
+            "VALUES (?, ?, 1, ?, ?, ?)",
+            (model, session_id, model_info.get("contextWindow") if model_info else None,
+             model_info.get("provider") if model_info else "unknown",
+             json.dumps(source_json if source_json is not None else model_info or {})),
+        )
+        con.commit()
+        return model, session_id, "auto_added"
+    finally:
+        con.close()
+
+
+def end_model_session(db_path: Path, session_id: str) -> None:
+    """Close active model links for a session."""
+    con = sqlite3.connect(str(db_path))
+    try:
+        con.execute(
+            "UPDATE model_session_link SET is_active = 0, ended_at = CURRENT_TIMESTAMP "
+            "WHERE session_id = ? AND is_active = 1",
+            (session_id,),
+        )
+        con.commit()
+    finally:
+        con.close()
+
+
 ALLOWED_IMPORTS = {
     "collections", "datetime", "decimal", "fractions", "functools",
     "itertools", "json", "math", "random", "re", "statistics", "string", "sys",
