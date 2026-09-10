@@ -4,6 +4,12 @@ from pathlib import Path
 import pi_session
 
 
+def test_runtime_provider_error_log_uses_plan_filename():
+    target = getattr(pi_session, "_module", pi_session)
+
+    assert target.PROVIDER_ERROR_LOG.name == "provider-error.log"
+
+
 def test_send_prompt_retries_provider_error_and_issues_continue(monkeypatch, tmp_path: Path):
     calls = []
     waits = []

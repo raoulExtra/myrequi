@@ -12,7 +12,7 @@ from typing import Any, Dict, Optional
 from prj.continuity_db.plans.provider_retry import request_with_retry
 
 BRIDGE = Path.home() / ".pi/agent/npm/node_modules/@vanillagreen/pi-session-bridge/bin/pi-bridge.js"
-PROVIDER_ERROR_LOG = Path(__file__).resolve().parents[5] / "tmp" / "provider_error.log"
+PROVIDER_ERROR_LOG = Path(__file__).resolve().parents[5] / "tmp" / "provider-error.log"
 __version__ = '0.0.0-placeholder'
 
 
