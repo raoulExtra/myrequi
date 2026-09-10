@@ -10,8 +10,8 @@ from contextlib import redirect_stdout
 from pathlib import Path
 import sys
 
-ROOT = Path(__file__).resolve().parents[1]
-REPO_ROOT = Path(__file__).resolve().parents[5]
+ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = Path(__file__).resolve().parents[7]
 sys.path.insert(0, str(ROOT))
 
 from metacognitive_state_reader import fetch_metacognitive_state, summarize_metacognitive_state, main
