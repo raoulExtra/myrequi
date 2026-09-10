@@ -35,6 +35,7 @@ from input_action_audit import (
 )
 from input_action_bridge import PiBridgeClient
 from input_action_database import ensure_router_schema
+from input_action_execution import execute_agent_tool, execute_context_info_tool
 from input_action_output import extract_session_text, format_plain_result
 from input_action_matching import (
     build_routing_indexes,
@@ -1508,29 +1509,8 @@ class InputActionRouter:
         return {"status": "executed_control", "command": command_template}
 
     def _execute_agent_tool(self, decision: Dict[str, Any]) -> Any:
-        handler = decision.get("handler")
-        if handler == "context_info":
-            return self._execute_context_info_tool(decision)
-        if handler == "controlled_tag_assign":
-            groups = (decision.get("parameters") or {}).get("groups") or []
-            if len(groups) != 3:
-                return {"status": "rejected", "reason": "controlled tag route requires object type, object key, and existing tag"}
-            from helper_for_db import _controlled_tag_assign
-            try:
-                with sqlite3.connect(self.db_path) as con:
-                    con.row_factory = sqlite3.Row
-                    result = _controlled_tag_assign(con, groups[0], groups[1], groups[2])
-            except ValueError as error:
-                return {
-                    "status": "rejected",
-                    "code": getattr(error, "code", "tagging_not_possible"),
-                    "message": str(error),
-                    "details": getattr(error, "details", {}),
-                }
-            return result
-
-        # Integration with agent_tool_routes
-        return {"status": "executed_agent", "handler": handler}
+        """Compatibility wrapper for agent-tool execution."""
+        return execute_agent_tool(decision, self.db_path, self)
 
     def _bridge_binary(self) -> Optional[Path]:
         return self._bridge_client.binary()
@@ -1548,68 +1528,8 @@ class InputActionRouter:
         return self._bridge_client.extract_tool_text(history_response, tool_name)
 
     def _execute_context_info_tool(self, decision: Dict[str, Any]) -> Any:
-        pid = self._select_bridge_pid()
-        if pid is None:
-            return {
-                "status": "executed_agent",
-                "handler": "context_info",
-                "available": False,
-                "error": "No active pi-session-bridge target found",
-            }
-
-        try:
-            commands_response = self._bridge_request(pid, {"type": "get_commands"})
-            commands = (((commands_response or {}).get("data") or {}).get("commands") or [])
-            command_names = {cmd.get("name") for cmd in commands if isinstance(cmd, dict)}
-            has_context_info = "context_info" in command_names
-
-            # Try the direct slash route first when the command is present.
-            send_response = self._bridge_request(pid, {"type": "send", "message": "/context_info"})
-
-            result_text = None
-            for _ in range(5):
-                history_response = self._bridge_request(
-                    pid,
-                    {"type": "history", "limit": 20, "event": "tool_execution_end"},
-                )
-                result_text = self._extract_tool_text(history_response, "context_info")
-                if result_text:
-                    break
-                time.sleep(0.25)
-
-            if result_text:
-                return {
-                    "status": "executed_agent",
-                    "handler": "context_info",
-                    "available": has_context_info,
-                    "pid": pid,
-                    "bridge": send_response,
-                    "result": result_text,
-                }
-
-            bridge_data = (send_response or {}).get("data") if isinstance(send_response, dict) else {}
-            slash_error = bridge_data.get("slashDispatchError") if isinstance(bridge_data, dict) else None
-            slash_fallback = bridge_data.get("slashDispatchFallback") if isinstance(bridge_data, dict) else None
-            detail = "context_info tool result was not observed in bridge history"
-            if slash_error or slash_fallback:
-                detail += f"; slashDispatchFallback={slash_fallback}; slashDispatchError={slash_error}"
-            return {
-                "status": "unavailable",
-                "handler": "context_info",
-                "available": False,
-                "pid": pid,
-                "bridge": send_response,
-                "warning": detail,
-                "result": detail,
-            }
-        except Exception as exc:
-            return {
-                "status": "executed_agent",
-                "handler": "context_info",
-                "available": False,
-                "pid": pid,
-                "error": str(exc),
-            }
+        """Compatibility wrapper for context-info execution."""
+        return execute_context_info_tool(decision, self)
 
     def _format_plain_result(self, result: Dict[str, Any]) -> List[str]:
         """Delegate result formatting to the output module."""
