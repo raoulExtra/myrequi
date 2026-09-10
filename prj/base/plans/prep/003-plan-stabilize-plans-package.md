@@ -47,6 +47,26 @@ contents, and start fresh active logs for the new masterplan. The archive
 operation SHALL be recorded in the new `tmp/plan-execution.log`. Never
 overwrite an existing archive; add a numeric suffix if necessary.
 
+## IMPORTANT: user-provided end condition
+
+At masterplan initialization, the runner SHALL require a non-empty end
+condition supplied by the user. The end condition is part of the masterplan
+state and SHALL be recorded in `tmp/plan-execution.log` before Step 1.1.
+
+After every logical step, the runner SHALL evaluate the end condition. When it
+is fulfilled, the runner SHALL:
+
+1. Record `END_CONDITION_MET`, the condition, evidence, and timestamp in
+   `tmp/plan-execution.log`.
+2. Stop the plan immediately, without starting another step.
+3. Run the final required status check and commit any completed step before
+   termination.
+4. Report the completed condition and terminal commit in the final summary.
+
+The runner SHALL NOT invent, weaken, or replace the user-provided condition.
+If no end condition is supplied, initialization SHALL stop with a logged
+configuration error and SHALL NOT execute implementation steps.
+
 The runner SHALL create the workspace `tmp` directory when needed and append
 step summaries, pytest commands/results, refactor notes, git commands, commit
 IDs, and failures to the execution logfile. The logfile is runtime evidence
