@@ -1,19 +1,15 @@
-import unittest
 import tempfile
-import os
-import sys
+import unittest
+from pathlib import Path
 
-# Add the parent directory to the path to import the module
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
-from filesystem_extraction import extract_sections
+from ..filesystem_extraction import extract_sections
 
 class TestFilesystemExtraction(unittest.TestCase):
     
     def setUp(self):
         # Create a temporary configuration file for testing
         self.temp_dir = tempfile.TemporaryDirectory()
-        self.config_file = os.path.join(self.temp_dir.name, "test_config.conf")
+        self.config_file = Path(self.temp_dir.name) / "test_config.conf"
         
         # Sample config content
         config_content = """
@@ -35,8 +31,7 @@ enabled = true
 ttl = 3600
 """
         
-        with open(self.config_file, 'w') as f:
-            f.write(config_content)
+        self.config_file.write_text(config_content, encoding="utf-8")
     
     def tearDown(self):
         self.temp_dir.cleanup()
@@ -100,6 +95,10 @@ ttl = 3600
         # Should return empty string
         self.assertEqual(result.strip(), '')
     
+    def test_extract_sections_missing_file(self):
+        with self.assertRaises(FileNotFoundError):
+            extract_sections(self.temp_dir.name + "/missing.conf", [], [])
+
     def test_extract_sections_empty_patterns(self):
         """Test with empty patterns (should return all content)"""
         result = extract_sections(
