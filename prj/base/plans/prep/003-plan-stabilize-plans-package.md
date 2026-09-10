@@ -22,10 +22,32 @@ Execution log:
 
 `tmp/plan-execution.log`
 
+Provider error log:
+
+`tmp/provider_error.log`
+
 The runner SHALL create the workspace `tmp` directory when needed and append
 step summaries, pytest commands/results, refactor notes, git commands, commit
-IDs, and failures to this logfile. The logfile is runtime evidence and SHALL
-not be committed.
+IDs, and failures to the execution logfile. The logfile is runtime evidence
+and SHALL not be committed.
+
+If an LLM request returns an error, the runner SHALL append a timestamped
+record containing the plan step, provider, request purpose, error, retry number,
+and outcome to `tmp/provider_error.log`. It SHALL wait exactly two seconds,
+retry the request once, and then issue the `continue` command automatically.
+The retry and continue action SHALL also be recorded with timestamps. If the
+retry still fails, `continue` SHALL resume the failure handler, which stops the
+current step and preserves both logs for diagnosis; it SHALL not silently skip
+the failed behavior.
+
+Provider retry policy:
+
+- LLM provider errors are transport/provider failures, not test failures.
+- Retry exactly once after a two-second delay.
+- After the retry attempt, issue `continue` automatically.
+- Do not retry indefinitely or treat an error response as valid content.
+- Record all provider-error, wait, retry, and continue events in
+  `tmp/provider_error.log` using ISO-8601 timestamps.
 
 Context budget constraint:
 
