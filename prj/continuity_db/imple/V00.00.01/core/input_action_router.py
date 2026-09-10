@@ -182,15 +182,7 @@ class InputActionRouter:
                 recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        # Migrate older evidence_ledger rows created before explicit actors.
-        for ddl in (
-            "ALTER TABLE evidence_ledger ADD COLUMN source_actor TEXT NOT NULL DEFAULT 'unknown'",
-            "ALTER TABLE evidence_ledger ADD COLUMN provenance_json TEXT NOT NULL DEFAULT ''",
-        ):
-            try:
-                cur.execute(ddl)
-            except sqlite3.OperationalError:
-                pass
+        self._migrate_evidence_ledger(cur)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS hypothesis_evidence (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -222,6 +214,18 @@ class InputActionRouter:
         self._seed_promotion_routes()
         self.seed_patterns_from_routes()
         self.setup_views()
+
+    @staticmethod
+    def _migrate_evidence_ledger(cur: sqlite3.Cursor) -> None:
+        """Add provenance columns required by the scientific evidence layer."""
+        for ddl in (
+            "ALTER TABLE evidence_ledger ADD COLUMN source_actor TEXT NOT NULL DEFAULT 'unknown'",
+            "ALTER TABLE evidence_ledger ADD COLUMN provenance_json TEXT NOT NULL DEFAULT ''",
+        ):
+            try:
+                cur.execute(ddl)
+            except sqlite3.OperationalError:
+                pass
 
     def _seed_science_routes(self):
         """Install built-in scientific-method commands if absent."""
@@ -879,6 +883,16 @@ class InputActionRouter:
             }
         ]
 
+    def _parse_input(self, input_text: str, input_type: str) -> Tuple[Any, str]:
+        """Parse structured input when requested and return normalized text."""
+        parsed_input = None
+        if input_type in ["json", "structured"]:
+            try:
+                parsed_input = json.loads(input_text)
+            except json.JSONDecodeError:
+                pass
+        return parsed_input, input_text.strip()
+
     def match_input_to_route(self, input_text: str, input_type: str = "text") -> Dict[str, Any]:
         """Match input against routing patterns and determine action.
         
@@ -889,15 +903,7 @@ class InputActionRouter:
         Returns:
             Dictionary with routing decision details
         """
-        # Parse input text as JSON if possible
-        parsed_input = None
-        if input_type in ["json", "structured"]:
-            try:
-                parsed_input = json.loads(input_text)
-            except json.JSONDecodeError:
-                pass
-
-        normalized_text = input_text.strip()
+        parsed_input, normalized_text = self._parse_input(input_text, input_type)
 
         route_mode_match = self._match_route_mode_command(normalized_text)
         if route_mode_match:
