@@ -75,7 +75,7 @@ def _mimap_term_from_filename(path: Path) -> str | None:
 
 
 def is_mimap_source(path: Path) -> bool:
-    """Return true for canonical standalone MIMAP files, not RC/SR/AC docs."""
+    """Return true for canonical standalone MIMAP files, not CREQ/SREQ/AC docs."""
     return _mimap_term_from_filename(path) is not None
 
 

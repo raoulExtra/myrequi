@@ -27,6 +27,18 @@ All project-wide conventions are stored in this file:
 - **Beliefs**: Store persistent claims in `beliefs` table with confidence scores
 - **Decisions**: Record important choices in `decisions` table with rationale
 
+## Import / Export Scope
+
+For each project under `prj/<project>/`, all folders are potentially relevant for DB ↔ filesystem import/export because they may contain canonical docs, implementation, tests, plans, patterns, assets, or evidence.
+
+Exception: `out/` is generated/export output by default.
+
+Rules:
+- Treat `out/` files as derived artifacts, not canonical import sources.
+- Do not import from `out/` unless an explicit force/recovery mode is requested.
+- Prefer importing canonical source folders such as `docs/`, `imple/`, `plans/`, `patterns_for/`, `assets/`, and project root files.
+- If an artifact is copied from DB to filesystem only for presentation, mark it as generated/derived and keep DB provenance as the authority.
+
 ## Updating Conventions
 
 To add or modify a convention:

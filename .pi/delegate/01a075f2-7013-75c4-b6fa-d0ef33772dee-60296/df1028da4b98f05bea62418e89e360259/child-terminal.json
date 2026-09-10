@@ -1,0 +1,10 @@
+{
+  "schema_version": "pi-background-tasks.delegate-child-terminal.v1",
+  "task_id": "df1028da4b98f05bea62418e89e360259",
+  "launch_nonce": "00c10ad52264076de89c9845387763ea",
+  "code": "child_result_invalid",
+  "message": "the delegate child stopped with reason \"error\", so its answer is incomplete and is not committed as a result; the complete assistant message remains in the child transcript",
+  "turns": 19,
+  "tool_calls": 17,
+  "spilled_artifacts": []
+}

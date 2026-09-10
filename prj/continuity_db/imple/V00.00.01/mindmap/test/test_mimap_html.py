@@ -90,7 +90,7 @@ class MimapHtmlTests(unittest.TestCase):
             source.write_text("(in)fer(ence)\n", encoding="utf-8")
             (docs / "000-PH-001-MIMAP-thinking.md").write_text("think(ing)\n", encoding="utf-8")
             (docs / "000-PH-002-MIMAP-reasoning.md").write_text("(re)ason(ing)\n", encoding="utf-8")
-            (docs / "000-PH-001-RC-MIMAP-HTML.md").write_text("requirement\n", encoding="utf-8")
+            (docs / "000-PH-001-CREQ-MIMAP-HTML.md").write_text("requirement\n", encoding="utf-8")
 
             links = build_concept_link_map(source, default_output_path(source))
 
@@ -157,7 +157,7 @@ class MimapHtmlTests(unittest.TestCase):
             thinking.write_text("think(ing)\n- uses (re)ason(ing) and (in)fer(ence)\n", encoding="utf-8")
             reasoning.write_text("(re)ason(ing)\n- part of think(ing) and uses (in)fer(ence)\n", encoding="utf-8")
             inference.write_text("(in)fer(ence)\n- part of (re)ason(ing)\n", encoding="utf-8")
-            (docs / "000-PH-001-RC-MIMAP-HTML.md").write_text("requirement\n", encoding="utf-8")
+            (docs / "000-PH-001-CREQ-MIMAP-HTML.md").write_text("requirement\n", encoding="utf-8")
 
             outputs = export_all_mimaps(docs, overwrite=True)
 
@@ -168,7 +168,7 @@ class MimapHtmlTests(unittest.TestCase):
             self.assertIn('href="000-PH-003-MIMAP-inference.html"', thinking_html)
             self.assertIn('href="000-PH-001-MIMAP-thinking.html"', reasoning_html)
             self.assertIn('href="000-PH-003-MIMAP-inference.html"', reasoning_html)
-            self.assertFalse(default_output_path(docs / "000-PH-001-RC-MIMAP-HTML.md").exists())
+            self.assertFalse(default_output_path(docs / "000-PH-001-CREQ-MIMAP-HTML.md").exists())
 
     def test_cli_all_mimaps_regenerates_folder(self):
         with tempfile.TemporaryDirectory() as tmp:

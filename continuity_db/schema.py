@@ -60,6 +60,8 @@ TABLE_CONTRACT_ROWS = [
     ("v_component_influence_presets", "derived", "derived", "component_influence_presets,component_influence_modes", "Named preset rows for each influence mode."),
     ("v_core_model", "derived", "derived", "beliefs,convictions,continuity_requirements,work_plans,work_plan_steps,reasoning_episodes,epistemic_receipts,metacognitive_state", "Compact four-layer summary of the engine's tightened model."),
     ("v_memory_index", "derived", "derived", "v_recall_all", "Compatibility recall alias over the full recall surface."),
+    ("workspace_table_stats", "current", "mutable", "beliefs,concepts,decisions,open_questions,reasoning_episodes,work_plans", "Fast-maintained row counts for the core analysis tables."),
+    ("v_workspace_table_stats", "derived", "derived", "workspace_table_stats", "Readable summary over fast-maintained workspace table counts."),
     ("v_recall_all", "derived", "derived", "v_items,syntheses,synthesis_conflicts", "Unfiltered recall view spanning raw items and synthesized interpretations."),
     ("v_schema_catalog_all", "derived", "derived", "sqlite_master", "Readable catalog of tables and views for discovery and entry-point searches."),
     ("v_schema_catalog", "derived", "derived", "sqlite_master,object_epistemic_tags", "Canonical-only catalog of tables and views for discovery and entry-point searches."),

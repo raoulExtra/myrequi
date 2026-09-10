@@ -1,0 +1,18 @@
+{
+  "id": "bb4bb08b9",
+  "name": "List files in plans directory",
+  "command": "ls -la /home/peter/xmyrequi/myrequi/plans/",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-103131-103131/bb4bb08b9.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788690178738,
+  "endTime": 1788690178748,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 103214,
+  "bytesWritten": 211,
+  "isAgent": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true
+}

@@ -1,0 +1,5 @@
+total 24
+drwxr-xr-x  3 peter peter  4096 Sep  6 12:15 .
+drwxr-xr-x 12 peter peter  4096 Sep  6 12:15 ..
+drwxr-xr-x  2 peter peter  4096 Sep  6 12:15 done
+-rw-r--r--  1 peter peter 10306 Sep  6 07:48 gen_plan.py

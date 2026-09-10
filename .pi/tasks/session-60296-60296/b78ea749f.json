@@ -1,0 +1,42 @@
+{
+  "id": "b78ea749f",
+  "name": "Ask about user_name value",
+  "command": "pi -p \"do you know user_name value?\"",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-60296-60296/b78ea749f.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788684383342,
+  "endTime": 1788684398394,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 66862,
+  "bytesWritten": 5035,
+  "isAgent": true,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true,
+  "contextUsage": {
+    "tokens": 11200,
+    "contextWindow": 256000,
+    "percent": 4.375
+  },
+  "tokenUsage": {
+    "input": 94416,
+    "output": 1205,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "totalTokens": 95621,
+    "costTotal": 0
+  },
+  "toolUsage": {
+    "total": 9,
+    "failed": 1,
+    "byName": {
+      "memory_search": 1,
+      "memory_read": 2,
+      "read": 2,
+      "bash": 4
+    }
+  },
+  "model": "cohere/north-mini-code:free"
+}

@@ -1,0 +1,10 @@
+{
+  "schema_version": "pi-background-tasks.delegate-child-terminal.v1",
+  "task_id": "da8e243fdde9db23da7cdc5d49682f60c",
+  "launch_nonce": "21d1153303a51e3d881fb0176c826375",
+  "code": "child_exited_without_commit",
+  "message": "the delegate child shut down before committing a result",
+  "turns": 1,
+  "tool_calls": 0,
+  "spilled_artifacts": []
+}

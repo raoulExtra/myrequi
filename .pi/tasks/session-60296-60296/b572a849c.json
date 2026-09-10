@@ -1,0 +1,18 @@
+{
+  "id": "b572a849c",
+  "name": "simple-date-query",
+  "command": "date '+%Y-%m-%d'",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-60296-60296/b572a849c.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788685710717,
+  "endTime": 1788685710729,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 75284,
+  "bytesWritten": 11,
+  "isAgent": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true
+}

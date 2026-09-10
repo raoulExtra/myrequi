@@ -29,6 +29,48 @@ FROM epistemic_receipts
 ORDER BY recorded_at DESC, receipt_id DESC
 """
 
+MODEL_IDENTITY_VIEW_SQL = """
+CREATE VIEW v_model_identity AS
+SELECT
+    model_key,
+    provider,
+    CASE
+        WHEN instr(model_key, '/') > 0 THEN model_key
+        ELSE provider || '/' || model_key
+    END AS model_ref,
+    MAX(is_active) AS isActive
+FROM active_model_state
+GROUP BY model_key, provider
+ORDER BY isActive DESC, provider, model_key
+"""
+
+AI_MODEL_VIEW_SQL = """
+CREATE VIEW v_ai_model AS
+SELECT
+    d.id,
+    d.model_key,
+    d.version,
+    d.architecture,
+    d.context_window_tokens,
+    d.training_cutoff,
+    d.performance_json,
+    d.created_at,
+    d.updated_at,
+    d.is_active,
+    COALESCE(
+        (SELECT provider FROM active_model_state WHERE model_key = d.model_key AND provider IS NOT NULL ORDER BY id DESC LIMIT 1),
+        (SELECT provider FROM model_session_link WHERE model_key = d.model_key AND provider IS NOT NULL ORDER BY id DESC LIMIT 1),
+        'unknown'
+    ) AS provider,
+    COALESCE(
+        (SELECT provider FROM active_model_state WHERE model_key = d.model_key AND provider IS NOT NULL ORDER BY id DESC LIMIT 1),
+        (SELECT provider FROM model_session_link WHERE model_key = d.model_key AND provider IS NOT NULL ORDER BY id DESC LIMIT 1),
+        'unknown'
+    ) || '/' || d.model_key AS provider_model
+FROM ai_model_details d
+ORDER BY d.is_active DESC, provider_model
+"""
+
 TAG_SEARCH_VIEW_SQL = """
 CREATE VIEW v_tag_search AS
 SELECT

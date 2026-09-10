@@ -1,0 +1,13 @@
+digraph TermsAbbrev {
+  rankdir=LR;
+  node [shape=box];
+  "requirements_glossary_terms" [label="Glossary Terms"];
+  "concepts" [label="Concepts"];
+  "abbrev_mappings" [label="Abbrev Mappings", color=blue];
+  "epistemic_tags" [label="Flavor Tags\n(abbrev_short/fsys/1letter)", color=green];
+  "object_epistemic_tags" [label="Link Object+Tag", shape=oval];
+  "requirements_glossary_terms" -> "abbrev_mappings" [label="term_ref"];
+  "concepts" -> "abbrev_mappings" [label="term_ref"];
+  "abbrev_mappings" -> "object_epistemic_tags" [label="object_key"];
+  "epistemic_tags" -> "object_epistemic_tags" [label="tag_key"];
+}

@@ -82,6 +82,38 @@ def ensure_memory_index_view(cur):
                statement || ' ' || rationale || ' ' || acceptance_summary, confidence, current_version, updated_at
         FROM continuity_requirements
         WHERE status='active'
+        UNION ALL SELECT 'requirements_glossary_term', term_key,
+               term || COALESCE(' (' || phase || ')', ''),
+               definition
+                 || COALESCE(' Why it matters: ' || why_it_matters, '')
+                 || COALESCE(' Prompt: ' || elegant_prompt, '')
+                 || COALESCE(' Example: ' || good_example, '')
+                 || COALESCE(' Anti-pattern: ' || anti_pattern, ''),
+               confidence, NULL, created_at
+        FROM requirements_glossary_terms
+        WHERE status='active'
+        UNION ALL SELECT 'policy', policy_key, policy_key,
+               description, NULL, NULL, updated_at
+        FROM memory_access_policy
+        UNION ALL SELECT 'policy', trigger, trigger,
+               description, enabled, NULL, NULL
+        FROM recording_policy
+        WHERE enabled=1
+        UNION ALL SELECT 'tag', tag_key, label,
+               description, NULL, NULL, created_at
+        FROM epistemic_tags
+        UNION ALL SELECT 'route', route_name, route_name || ' ' || input_pattern,
+               command_template || COALESCE(' ' || scope, ''), enabled, NULL, NULL
+        FROM control_command_routes
+        WHERE enabled=1
+        UNION ALL SELECT 'route', route_name, route_name || ' ' || input_pattern,
+               invocation_template || COALESCE(' ' || argument_description, ''), enabled, NULL, created_at
+        FROM tool_routes
+        WHERE enabled=1
+        UNION ALL SELECT 'route', route_name, route_name || ' ' || input_pattern,
+               handler || COALESCE(' ' || required_capability, '') || COALESCE(' ' || output_contract, ''), enabled, NULL, created_at
+        FROM agent_tool_routes
+        WHERE enabled=1
         UNION ALL SELECT 'concept', concept_key, name,
                description, confidence, NULL, updated_at
         FROM concepts
@@ -111,6 +143,9 @@ def ensure_memory_index_view(cur):
         UNION ALL SELECT 'project', project_name, display_name,
                description || ' ' || CASE WHEN local_active=1 THEN 'active' ELSE 'inactive' END, NULL, NULL, created_at
         FROM projects
+        UNION ALL SELECT 'database_metadata', metadata_key, metadata_key,
+               metadata_value || COALESCE(' ' || description, ''), NULL, NULL, updated_at
+        FROM database_metadata
         UNION ALL SELECT 'code_artifact', ca.name, ca.name,
                ca.description || COALESCE(' ' || cv.approval_status, ''), NULL, cv.version, ca.updated_at
         FROM code_artifacts ca
@@ -160,6 +195,10 @@ SOURCE_LAYER = {
     'concept': 'semantic',
     'concept_search': 'semantic',
     'continuity_requirement': 'semantic',
+    'requirements_glossary_term': 'semantic',
+    'policy': 'procedural',
+    'tag': 'semantic',
+    'route': 'procedural',
     'ethical_conflict_rule': 'semantic',
     'ethical_principle': 'semantic',
     'synthesis': 'semantic',
@@ -170,6 +209,7 @@ SOURCE_LAYER = {
     'work_plan': 'procedural',
     'work_plan_step': 'procedural',
     'project': 'procedural',
+    'database_metadata': 'procedural',
     'research_job': 'procedural',
     'metacognitive_state': 'metacognitive',
 }
@@ -187,6 +227,33 @@ LAYER_PRIORITY = {
 }
 
 
+def lookup_domain_priority(query_tokens, row):
+    """Prioritize explicit term/concept lookups without making them global boosts."""
+    source_type = str(row.get('source_type') or '')
+    searchable = ' '.join(
+        str(row.get(field) or '')
+        for field in ('title', 'body', 'source_key')
+    ).lower()
+    if 'term' in query_tokens and source_type == 'requirements_glossary_term':
+        if any(token != 'term' and token in searchable for token in query_tokens):
+            return 2
+    if 'concept' in query_tokens and source_type in ('concept', 'concept_search'):
+        if any(token != 'concept' and token in searchable for token in query_tokens):
+            return 2
+    if 'convention' in query_tokens and source_type == 'metacognitive_state':
+        if 'convention' in searchable:
+            return 2
+    if 'policy' in query_tokens and source_type == 'policy':
+        return 2
+    if 'tag' in query_tokens and source_type == 'tag':
+        if any(token != 'tag' and token in searchable for token in query_tokens):
+            return 2
+    if 'route' in query_tokens and source_type == 'route':
+        if any(token != 'route' and token in searchable for token in query_tokens):
+            return 2
+    return 0
+
+
 def recency_bonus(recorded_at):
     if not recorded_at:
         return 0.0
@@ -199,6 +266,22 @@ def recency_bonus(recorded_at):
         stamp = stamp.replace(tzinfo=timezone.utc)
     age_seconds = max(0.0, (now - stamp).total_seconds())
     return max(0.0, 1.0 - min(age_seconds / (60.0 * 60.0 * 24.0 * 90.0), 1.0))
+
+
+def retrieval_trace(query_tokens, row):
+    fields = {
+        'title': str(row.get('title') or '').lower(),
+        'body': str(row.get('body') or '').lower(),
+        'condition': str(row.get('condition') or '').lower(),
+        'source_key': str(row.get('source_key') or '').lower(),
+        'source_type': str(row.get('source_type') or '').lower(),
+    }
+    matches = {}
+    for token in dict.fromkeys(query_tokens):
+        locations = [name for name, value in fields.items() if token in value]
+        if locations:
+            matches[token] = locations
+    return matches
 
 
 def score_hit(query_tokens, row):
@@ -244,31 +327,21 @@ def score_hit(query_tokens, row):
 
 
 def load_memory_rows(cur):
-    try:
-        rows = cur.execute(
-            '''
-            select p.memory_layer, p.source_type, p.source_key, p.title, p.body,
-                   COALESCE(mc.condition, '') as condition, p.confidence, p.version, p.recorded_at
-            from v_memory_packet p
-            left join memory_conditions mc
-              on mc.source_type = p.source_type and mc.source_key = p.source_key
-            '''
-        ).fetchall()
-        return [dict(r) for r in rows]
-    except sqlite3.OperationalError:
-        rows = cur.execute(
-            '''
-            select i.source_type, i.source_key, i.title, i.body,
-                   COALESCE(mc.condition, '') as condition, i.confidence, i.version, i.recorded_at
-            from v_memory_index i
-            left join memory_conditions mc
-              on mc.source_type = i.source_type and mc.source_key = i.source_key
-            '''
-        ).fetchall()
-        return [
-            {**dict(r), 'memory_layer': layer_for_source(r['source_type'])}
-            for r in rows
-        ]
+    # Use the rebuilt index directly so newly indexed sources, such as glossary
+    # terms, are not hidden by a stale compatibility view.
+    rows = cur.execute(
+        '''
+        select i.source_type, i.source_key, i.title, i.body,
+               COALESCE(mc.condition, '') as condition, i.confidence, i.version, i.recorded_at
+        from v_memory_index i
+        left join memory_conditions mc
+          on mc.source_type = i.source_type and mc.source_key = i.source_key
+        '''
+    ).fetchall()
+    return [
+        {**dict(r), 'memory_layer': layer_for_source(r['source_type'])}
+        for r in rows
+    ]
 
 
 def load_writeback_policy(cur):
@@ -354,6 +427,7 @@ def retrieve_memory(query, db_path=DB_PATH, limit=5, layer=None):
                 scored.append((score, row))
         scored.sort(
             key=lambda item: (
+                lookup_domain_priority(qtokens, item[1]),
                 item[0],
                 layer_priority(item[1].get('memory_layer') or layer_for_source(item[1].get('source_type'))),
                 float(item[1].get('confidence') or 0.0),
@@ -362,9 +436,11 @@ def retrieve_memory(query, db_path=DB_PATH, limit=5, layer=None):
             reverse=True,
         )
         hits = []
-        for score, row in scored[:limit]:
+        for rank, (score, row) in enumerate(scored[:limit], start=1):
             row = dict(row)
             row['score'] = round(score, 3)
+            row['rank'] = rank
+            row['retrieval_trace'] = retrieval_trace(qtokens, row)
             # Derive visible confidence for procedural/code rows
             if row.get('source_type') in ('code_artifact', 'code_version'):
                 bt = str(row.get('body') or '').lower()
@@ -381,6 +457,9 @@ def retrieve_memory(query, db_path=DB_PATH, limit=5, layer=None):
             'query': query,
             'layer': requested_layer,
             'hit_count': len(hits),
+            'candidate_count': len(scored),
+            'limit': limit,
+            'retrieval_stopped_at_limit': len(scored) > limit,
             'hits': hits,
             'working_packet': build_working_packet(
                 query,
@@ -545,12 +624,21 @@ def format_memory_recall(packet):
             meta.append(f"at={recorded_at}")
         lines.append(f"{idx}. {title}")
         lines.append(f"   {' | '.join(str(x) for x in meta)}")
+        trace = hit.get('retrieval_trace') or {}
+        if trace:
+            matched = ', '.join(f"{token}→{'+'.join(fields)}" for token, fields in trace.items())
+            lines.append(f"   matched: {matched}")
         body = _one_line(hit.get('body'), 240)
         if body:
             lines.append(f"   {body}")
         condition = _one_line(hit.get('condition'), 180)
         if condition:
             lines.append(f"   condition: {condition}")
+
+    candidates = packet.get('candidate_count')
+    if candidates is not None:
+        stopped = 'yes' if packet.get('retrieval_stopped_at_limit') else 'no'
+        lines.append(f"Candidates considered: {candidates}; stopped at limit: {stopped}")
 
     working_packet = packet.get('working_packet') or {}
     sections = working_packet.get('sections') or {}

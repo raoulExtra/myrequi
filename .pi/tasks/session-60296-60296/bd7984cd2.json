@@ -1,0 +1,42 @@
+{
+  "id": "bd7984cd2",
+  "name": "Check user_name without file access",
+  "command": "pi -p \"no file access: do you know the user_name ?\"",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-60296-60296/bd7984cd2.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788684503166,
+  "endTime": 1788684520748,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 67987,
+  "bytesWritten": 2595,
+  "isAgent": true,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true,
+  "contextUsage": {
+    "tokens": 8498,
+    "contextWindow": 256000,
+    "percent": 3.31953125
+  },
+  "tokenUsage": {
+    "input": 40924,
+    "output": 591,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "totalTokens": 41515,
+    "costTotal": 0
+  },
+  "toolUsage": {
+    "total": 4,
+    "failed": 0,
+    "byName": {
+      "memory_status": 1,
+      "memory_search": 1,
+      "read": 1,
+      "bash": 1
+    }
+  },
+  "model": "cohere/north-mini-code:free"
+}

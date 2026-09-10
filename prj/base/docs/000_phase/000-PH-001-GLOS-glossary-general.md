@@ -21,6 +21,12 @@ Base terms for all project documentation.
 **Definition:** The authoritative, approved version of a document or term.
 **Why it matters:** Prevents confusion from outdated or competing versions.
 
+### core requirement
+**Phase:** Specify
+**Definition:** A primary requirement that defines an essential project capability, constraint, policy, or quality and serves as a traceable parent for more detailed requirements or acceptance criteria.
+**Why it matters:** Keeps foundational obligations explicit, referencable, and separate from implementation details.
+**Abbreviation:** CREQ
+
 ### filespace
 **Phase:** Frame
 **Definition:** A structured directory hierarchy organizing project files.
@@ -41,6 +47,12 @@ Base terms for all project documentation.
 **Definition:** A documented condition, capability, or quality that must be satisfied to address a need or obligation.
 **Why it matters:** Creates an agreed, assessable statement without confusing it with implementation details.
 **Source:** Continuity Database — requirements table
+
+### subrequirement
+**Phase:** Specify
+**Definition:** A child requirement that refines, constrains, or decomposes a core requirement into a smaller traceable obligation.
+**Why it matters:** Lets complex requirements be split into focused, testable parts while preserving parent-child traceability.
+**Abbreviation:** SREQ
 
 ### source of truth
 **Phase:** Frame

@@ -27,7 +27,7 @@ from .schema import (
     TABLE_CONTRACT_ROWS,
     COMPONENT_INFLUENCE_SCHEMA_SQL,
 )
-from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, SCHEMA_CATALOG_ALL_VIEW_SQL, TAG_SEARCH_VIEW_SQL, CONCEPT_SEARCH_VIEW_SQL, DECISION_OVERVIEW_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL, REASONING_QUALITY_VIEWS_SQL
+from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, SCHEMA_CATALOG_ALL_VIEW_SQL, TAG_SEARCH_VIEW_SQL, CONCEPT_SEARCH_VIEW_SQL, DECISION_OVERVIEW_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL, REASONING_QUALITY_VIEWS_SQL, MODEL_IDENTITY_VIEW_SQL
 
 ROOT = Path(__file__).resolve().parent.parent
 DB_PATH = ROOT / "continuity.db"
@@ -208,8 +208,206 @@ def seed_morphology_concept_provenance(cur):
         ensure_primary_object_provenance(cur, 'concept', key)
 
 
+def _metadata_defaults_for_object(cur, object_type, object_key):
+    sensitivity = 'internal'
+    review_status = 'reviewed'
+    provenance_key = 'database_state'
+    note = 'Backfilled metadata and primary provenance from existing continuity.db object.'
+
+    if object_type == 'metacognitive_state':
+        row = cur.execute(
+            "select provenance from metacognitive_state where state_key=?",
+            (object_key,),
+        ).fetchone()
+        provenance_text = str(row[0] if row else '').lower()
+        if 'user request' in provenance_text or 'peter' in provenance_text:
+            provenance_key = 'peter'
+            note = 'Backfilled metadata; primary provenance inferred from metacognitive_state.provenance citing user/Peter request.'
+    elif object_type == 'code_artifact':
+        row = cur.execute(
+            """
+            select cv.validation_status, cv.approval_status
+            from code_artifacts ca
+            join code_versions cv on cv.artifact_id=ca.id and cv.version=ca.active_version
+            where ca.id=?
+            """,
+            (object_key,),
+        ).fetchone()
+        if row and row[0] == 'passed' and row[1] == 'approved':
+            review_status = 'verified'
+            note = 'Backfilled metadata and primary provenance from approved active code artifact version.'
+    elif object_type == 'belief':
+        note = 'Backfilled metadata and primary provenance from belief history / epistemic receipt where available.'
+    elif object_type == 'decision':
+        note = 'Backfilled metadata and primary provenance from decision record / epistemic receipt where available.'
+    elif object_type == 'ethical_principle':
+        note = 'Backfilled metadata and primary provenance from active ethical principle record.'
+    elif object_type == 'identity':
+        note = 'Backfilled metadata and primary provenance from identity state row.'
+    elif object_type == 'research_job':
+        note = 'Backfilled metadata and primary provenance from research job record.'
+
+    return sensitivity, review_status, provenance_key, note
+
+
+def backfill_missing_object_metadata(cur):
+    """Backfill metadata for important DB objects, using Peter provenance when strongly indicated."""
+    rows = cur.execute(
+        """
+        WITH important AS (
+          SELECT 'identity' object_type,key object_key FROM identity
+          UNION ALL SELECT 'belief',CAST(id AS TEXT) FROM beliefs
+          UNION ALL SELECT 'decision',CAST(id AS TEXT) FROM decisions
+          UNION ALL SELECT 'metacognitive_state',state_key FROM metacognitive_state
+          UNION ALL SELECT 'research_job',CAST(id AS TEXT) FROM research_jobs
+          UNION ALL SELECT 'code_artifact',CAST(id AS TEXT) FROM code_artifacts
+          UNION ALL SELECT 'ethical_principle',CAST(id AS TEXT) FROM ethical_principles
+        )
+        SELECT x.object_type, x.object_key
+        FROM important x
+        LEFT JOIN object_metadata m
+          ON m.object_type=x.object_type AND m.object_key=x.object_key
+        WHERE m.id IS NULL
+        ORDER BY x.object_type, x.object_key
+        """
+    ).fetchall()
+    for object_type, object_key in rows:
+        sensitivity, review_status, provenance_key, note = _metadata_defaults_for_object(cur, object_type, object_key)
+        metadata_id = cur.execute(
+            """
+            insert into object_metadata(object_type, object_key, sensitivity, review_status, tags_json, last_reviewed_at)
+            values(?,?,?,?,?,CURRENT_TIMESTAMP)
+            """,
+            (object_type, object_key, sensitivity, review_status, '[]'),
+        ).lastrowid
+        cur.execute(
+            "insert into object_provenance(metadata_id, provenance_key, role, note) values(?,?,?,?)",
+            (metadata_id, provenance_key, 'primary', note),
+        )
+
+
+def backfill_missing_primary_object_provenance(cur):
+    """Ensure every object_metadata row has one primary provenance row."""
+    rows = cur.execute(
+        """
+        select m.id
+        from object_metadata m
+        left join object_provenance p
+          on p.metadata_id = m.id and p.role='primary'
+        group by m.id
+        having count(p.id) = 0
+        """
+    ).fetchall()
+    for (metadata_id,) in rows:
+        cur.execute(
+            "insert into object_provenance(metadata_id, provenance_key, role, note) values(?,?,?,?)",
+            (metadata_id, 'database_state', 'primary', 'Backfilled primary provenance for existing object metadata.'),
+        )
+
+
 def ensure_indexes(cur):
     cur.execute(PRIMARY_PROVENANCE_LIMIT)
+    for sql in [
+        "CREATE INDEX IF NOT EXISTS idx_beliefs_status_updated_at ON beliefs(status, updated_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_concepts_status_updated_at ON concepts(status, updated_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_decisions_status_created_at ON decisions(status, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_open_questions_status_created_at ON open_questions(status, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_reasoning_episodes_status_created_at ON reasoning_episodes(status, created_at DESC)",
+        "CREATE INDEX IF NOT EXISTS idx_work_plans_status_updated_at ON work_plans(status, updated_at DESC)",
+    ]:
+        cur.execute(sql)
+
+
+def create_workspace_table_stats(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS workspace_table_stats (
+            table_name TEXT PRIMARY KEY,
+            row_count INTEGER NOT NULL DEFAULT 0 CHECK(row_count >= 0),
+            last_changed_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    tables = ['beliefs', 'concepts', 'decisions', 'open_questions', 'reasoning_episodes', 'work_plans']
+    for table in tables:
+        cur.execute(
+            """
+            INSERT INTO workspace_table_stats(table_name, row_count, last_changed_at)
+            VALUES(?, (SELECT COUNT(*) FROM {table}), CURRENT_TIMESTAMP)
+            ON CONFLICT(table_name) DO UPDATE SET
+                row_count=excluded.row_count,
+                last_changed_at=excluded.last_changed_at
+            """.format(table=table),
+            (table,),
+        )
+        for action, delta in [('INSERT', 1), ('DELETE', -1), ('UPDATE', 0)]:
+            trigger_name = f'workspace_table_stats_{table}_{action.lower()}'
+            cur.execute(f'DROP TRIGGER IF EXISTS {trigger_name}')
+            if delta == 0:
+                trigger_sql = f"""
+                CREATE TRIGGER IF NOT EXISTS {trigger_name}
+                AFTER UPDATE ON {table}
+                BEGIN
+                    UPDATE workspace_table_stats
+                    SET last_changed_at=CURRENT_TIMESTAMP
+                    WHERE table_name='{table}';
+                END
+                """
+            elif delta > 0:
+                trigger_sql = f"""
+                CREATE TRIGGER IF NOT EXISTS {trigger_name}
+                AFTER INSERT ON {table}
+                BEGIN
+                    INSERT INTO workspace_table_stats(table_name, row_count, last_changed_at)
+                    VALUES('{table}', 1, CURRENT_TIMESTAMP)
+                    ON CONFLICT(table_name) DO UPDATE SET
+                        row_count=row_count + 1,
+                        last_changed_at=CURRENT_TIMESTAMP;
+                END
+                """
+            else:
+                trigger_sql = f"""
+                CREATE TRIGGER IF NOT EXISTS {trigger_name}
+                AFTER DELETE ON {table}
+                BEGIN
+                    INSERT INTO workspace_table_stats(table_name, row_count, last_changed_at)
+                    VALUES('{table}', 0, CURRENT_TIMESTAMP)
+                    ON CONFLICT(table_name) DO UPDATE SET
+                        row_count=CASE WHEN row_count > 0 THEN row_count - 1 ELSE 0 END,
+                        last_changed_at=CURRENT_TIMESTAMP;
+                END
+                """
+            cur.execute(trigger_sql)
+    cur.execute("DROP VIEW IF EXISTS v_workspace_table_stats")
+    cur.execute("CREATE VIEW v_workspace_table_stats AS SELECT table_name, row_count, last_changed_at FROM workspace_table_stats ORDER BY table_name")
+
+
+def create_provenance_context_views(cur):
+    cur.execute("DROP VIEW IF EXISTS v_provenance_catalog")
+    cur.execute("CREATE VIEW v_provenance_catalog AS SELECT * FROM provenance_catalog ORDER BY provenance_key")
+    cur.execute("DROP VIEW IF EXISTS v_object_provenance")
+    cur.execute("""
+        CREATE VIEW v_object_provenance AS
+        SELECT m.object_type,m.object_key,m.sensitivity,m.review_status,m.tags_json,p.provenance_key,c.label,p.role,p.note,m.last_reviewed_at,m.review_due_at
+        FROM object_metadata m JOIN object_provenance p ON p.metadata_id=m.id JOIN provenance_catalog c ON c.provenance_key=p.provenance_key
+        ORDER BY m.object_type,m.object_key,CASE p.role WHEN 'primary' THEN 0 ELSE 1 END,p.provenance_key
+    """)
+    cur.execute("DROP VIEW IF EXISTS v_receipt_provenance_snapshots")
+    cur.execute("""
+        CREATE VIEW v_receipt_provenance_snapshots AS
+         SELECT m.object_type,m.object_key,
+                json_group_array(json_object('provenance_key',p.provenance_key,'role',p.role,'note',p.note)) AS provenance_json
+         FROM object_metadata m JOIN object_provenance p ON p.metadata_id=m.id
+         GROUP BY m.object_type,m.object_key
+    """)
+    cur.execute("DROP VIEW IF EXISTS v_object_project_context")
+    cur.execute("""
+        CREATE VIEW v_object_project_context AS
+         SELECT po.object_type,po.object_key,p.project_name FROM project_objects po JOIN projects p ON p.id=po.project_id
+         UNION
+         SELECT 'continuity_requirement',CAST(pr.requirement_id AS TEXT),p.project_name
+         FROM project_requirements pr JOIN projects p ON p.id=pr.project_id
+    """)
 
 
 def create_interpretive_layer_tables(cur):
@@ -1022,6 +1220,11 @@ def create_core_model_view(cur):
     cur.execute(CORE_MODEL_VIEW_SQL)
 
 
+def create_model_identity_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_model_identity")
+    cur.execute(MODEL_IDENTITY_VIEW_SQL)
+
+
 def create_ethics_map_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_ethics_principles_map")
     cur.execute(ETHICS_MAP_VIEW_SQL)
@@ -1133,6 +1336,26 @@ def seed_scientist_mode(cur):
             """
             INSERT INTO metacognitive_state(state_key, category, value, confidence, provenance, version)
             VALUES('active_role_mode', 'roles', 'general', 1.0, 'system', 1)
+            """
+        )
+
+
+def seed_route_mode(cur):
+    cur.execute(
+        """
+        INSERT INTO feature_flags(feature_key, enabled, switchable, scope, updated_by)
+        VALUES('route_mode', 0, 1, 'Route-recognition mode for matching routes in normal chat input.', 'system')
+        ON CONFLICT(feature_key) DO UPDATE SET
+            switchable=excluded.switchable,
+            scope=excluded.scope
+        """
+    )
+    row = cur.execute("select 1 from metacognitive_state where state_key='active_route_mode'").fetchone()
+    if not row:
+        cur.execute(
+            """
+            INSERT INTO metacognitive_state(state_key, category, value, confidence, provenance, version)
+            VALUES('active_route_mode', 'modes', 'general', 1.0, 'system', 1)
             """
         )
 
@@ -1625,6 +1848,9 @@ def seed_scientist_mode_routes(cur):
         ('scientist_on', r'^(mode\s+scientist\s+on|scientist\s+on)$', "python3 mode_command.py scientist on --db continuity.db", 'Enable scientist mode and switch the active role state to scientist.'),
         ('scientist_off', r'^(mode\s+scientist\s+off|scientist\s+off)$', "python3 mode_command.py scientist off --db continuity.db", 'Disable scientist mode and reset the active role state to general.'),
         ('scientist_status', r'^(mode\s+scientist\s+status|scientist\s+status)$', "python3 mode_command.py scientist status --db continuity.db", 'Show scientist mode and active role state.'),
+        ('route_on', r'^(?:mode\s+)?route(?:\s+mode)?\s+on$', "python3 mode_command.py route on --db continuity.db", 'Enable route-recognition mode so normal chat can match routes.'),
+        ('route_off', r'^(?:mode\s+)?route(?:\s+mode)?\s+off$', "python3 mode_command.py route off --db continuity.db", 'Disable route-recognition mode so normal chat is treated as plain chat.'),
+        ('route_status', r'^(?:mode\s+)?route(?:\s+mode)?\s+status$', "python3 mode_command.py route status --db continuity.db", 'Show route-recognition mode status.'),
         ('scientist_analyse', r'^scientist\s+analyse\s+.+$', "python3 scientist_command.py analyse <topic-or-file> --db continuity.db", 'Create a scientist Markdown analysis for a topic or file.'),
         ('memory_recall', r'^(memory\s+recall\s+.+|recall\s+.+)$', "python3 memory_command.py recall <query> --db continuity.db", 'Recall the most relevant stored memory-like items for a query.'),
         ('plan_status', r'^plan\s+status$', "python3 plan_command.py status --db continuity.db", 'Show the current primary goal, active plans, steps, and blockers.'),
@@ -1654,9 +1880,38 @@ def seed_session_prompt_routes(cur):
     routes = [
         (
             'session_prompt',
-            r'^session\s+prompt\s+(.+)$',
+            r'^(?:session\s+prompt|p)\s+(.+)$',
             'python3 pi_session.py <prompt>',
             'Prompt the live Pi session bridge and return the bridge state plus send response.',
+        ),
+        (
+            'session_latest_answer',
+            r'^(?:pi_session\.latest_assistant_text|latest\s+answer|latest\s+assistant\s+text)(?:\s*\(\s*pid\s*=\s*"?([^\)"\']+)"?\s*\))?$',
+            'python3 -c "import pi_session; print(pi_session.latest_assistant_text(pid=<pid>))"',
+            'Return the latest assistant text from the live Pi session bridge.',
+        ),
+    ]
+    cur.executemany(
+        """
+        INSERT INTO control_command_routes(route_name,input_pattern,command_template,scope)
+        VALUES(?,?,?,?)
+        ON CONFLICT(route_name) DO UPDATE SET
+            input_pattern=excluded.input_pattern,
+            command_template=excluded.command_template,
+            scope=excluded.scope,
+            enabled=1
+        """,
+        routes,
+    )
+
+
+def seed_session_model_routes(cur):
+    routes = [
+        (
+            'session_model_set',
+            r'^(?:/model:set|set\s+model)\s+([^\s]+)$',
+            'pi-bridge set-model <provider> <model_id>',
+            'Switch the active model for the current Pi session via /model:set.',
         ),
     ]
     cur.executemany(
@@ -1704,6 +1959,48 @@ def create_scientist_mode_triggers(cur):
           VALUES('mode','Scientist mode disabled by '||NEW.updated_by||' and role state reset to general.','active');
           INSERT INTO metacognitive_state(state_key,category,value,confidence,provenance,version)
           VALUES('active_role_mode','roles','general',1.0,NEW.updated_by,1)
+          ON CONFLICT(state_key) DO UPDATE SET
+            value='general',
+            confidence=1.0,
+            provenance=excluded.provenance,
+            version=metacognitive_state.version+1,
+            updated_at=CURRENT_TIMESTAMP;
+        END;
+        """
+    )
+
+
+def create_route_mode_triggers(cur):
+    for name in ['route_mode_enable', 'route_mode_disable']:
+        drop_trigger(cur, name)
+    cur.executescript(
+        """
+        CREATE TRIGGER route_mode_enable AFTER UPDATE OF enabled ON feature_flags
+        WHEN NEW.feature_key='route_mode' AND OLD.enabled=0 AND NEW.enabled=1
+        BEGIN
+          INSERT INTO feature_flag_events(feature_key,previous_enabled,new_enabled,changed_by,reason)
+          VALUES(NEW.feature_key,OLD.enabled,NEW.enabled,NEW.updated_by,'Route mode command');
+          INSERT INTO journal(category,summary,status)
+          VALUES('mode','Route recognition enabled by '||NEW.updated_by||' for normal chat routing.','active');
+          INSERT INTO metacognitive_state(state_key,category,value,confidence,provenance,version)
+          VALUES('active_route_mode','modes','routes',1.0,NEW.updated_by,1)
+          ON CONFLICT(state_key) DO UPDATE SET
+            value='routes',
+            confidence=1.0,
+            provenance=excluded.provenance,
+            version=metacognitive_state.version+1,
+            updated_at=CURRENT_TIMESTAMP;
+        END;
+
+        CREATE TRIGGER route_mode_disable AFTER UPDATE OF enabled ON feature_flags
+        WHEN NEW.feature_key='route_mode' AND OLD.enabled=1 AND NEW.enabled=0
+        BEGIN
+          INSERT INTO feature_flag_events(feature_key,previous_enabled,new_enabled,changed_by,reason)
+          VALUES(NEW.feature_key,OLD.enabled,NEW.enabled,NEW.updated_by,'Route mode command');
+          INSERT INTO journal(category,summary,status)
+          VALUES('mode','Route recognition disabled by '||NEW.updated_by||' and chat returns to normal handling.','active');
+          INSERT INTO metacognitive_state(state_key,category,value,confidence,provenance,version)
+          VALUES('active_route_mode','modes','general',1.0,NEW.updated_by,1)
           ON CONFLICT(state_key) DO UPDATE SET
             value='general',
             confidence=1.0,
@@ -2005,6 +2302,12 @@ def validate(conn):
     scientist_role = cur.execute("select value from metacognitive_state where state_key='active_role_mode'").fetchone()
     if not scientist_role:
         issues.append(("scientist_mode_role_state", scientist_role, ('general', 'scientist')))
+    route_flag = cur.execute("select enabled from feature_flags where feature_key='route_mode'").fetchone()
+    if not route_flag or route_flag[0] not in (0, 1):
+        issues.append(("route_mode_flag", route_flag, (0, 1)))
+    route_role = cur.execute("select value from metacognitive_state where state_key='active_route_mode'").fetchone()
+    if not route_role:
+        issues.append(("route_mode_role_state", route_role, ('general', 'routes')))
 
     mistake_policy = cur.execute("select enabled, description from recording_policy where trigger='mistake_discovered'").fetchone()
     if mistake_policy != (1, 'Record when a mistake, omission, or missed link is discovered.'):
@@ -2093,6 +2396,26 @@ def validate(conn):
         issues.append(("component_influence_history_view_missing", ["v_component_influence_history missing"], []))
     if cur.execute("select 1 from sqlite_master where type='view' and name='v_component_influence_modes'").fetchone() is None:
         issues.append(("component_influence_modes_view_missing", ["v_component_influence_modes missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='table' and name='workspace_table_stats'").fetchone() is None:
+        issues.append(("workspace_table_stats_missing", ["workspace_table_stats missing"], []))
+    else:
+        if cur.execute("select 1 from sqlite_master where type='view' and name='v_workspace_table_stats'").fetchone() is None:
+            issues.append(("v_workspace_table_stats_missing", ["v_workspace_table_stats missing"], []))
+        stat_mismatch = cur.execute("""
+            select s.table_name, s.row_count, counts.actual_count
+            from workspace_table_stats s
+            join (
+                select 'beliefs' as table_name, count(*) as actual_count from beliefs
+                union all select 'concepts', count(*) from concepts
+                union all select 'decisions', count(*) from decisions
+                union all select 'open_questions', count(*) from open_questions
+                union all select 'reasoning_episodes', count(*) from reasoning_episodes
+                union all select 'work_plans', count(*) from work_plans
+            ) counts on counts.table_name = s.table_name
+            where s.row_count <> counts.actual_count
+        """).fetchall()
+        if stat_mismatch:
+            issues.append(("workspace_table_stats_mismatch", stat_mismatch[:10], len(stat_mismatch)))
     if cur.execute("select 1 from sqlite_master where type='table' and name='component_influence_history'").fetchone() is None:
         issues.append(("component_influence_history_missing", ["component_influence_history missing"], []))
     influence_mode_keys = {row[0] for row in cur.execute("select mode_key from component_influence_modes")}
@@ -2137,6 +2460,9 @@ def validate(conn):
     route_count = cur.execute("select count(*) from control_command_routes where route_name in ('scientist_on','scientist_off','scientist_status','scientist_analyse')").fetchone()[0]
     if route_count != 4:
         issues.append(("scientist_routes", route_count, 4))
+    route_mode_count = cur.execute("select count(*) from control_command_routes where route_name in ('route_on','route_off','route_status')").fetchone()[0]
+    if route_mode_count != 3:
+        issues.append(("route_mode_routes", route_mode_count, 3))
 
     scientist_req = cur.execute("select count(*) from continuity_requirements where requirement_key in ('CDB-13.5','CDB-13.6') and status='active'").fetchone()[0]
     if scientist_req != 2:
@@ -2274,11 +2600,14 @@ def apply_migration():
     add_open_question_flow_columns(cur)
     create_interpretive_layer_tables(cur)
     create_memory_conditions_table(cur)
+    create_provenance_context_views(cur)
     create_component_influence_tables(cur)
     create_argument_claims_table(cur)
     create_contract_map(cur)
+    create_workspace_table_stats(cur)
     seed_fairness_action_check(cur)
     seed_scientist_mode(cur)
+    seed_route_mode(cur)
     seed_discovery_concept(cur)
     seed_plan_concept(cur)
     seed_discovery_plan_links(cur)
@@ -2330,6 +2659,8 @@ def apply_migration():
     seed_evolved_baseline_demo_work_plan(cur)
     seed_mistake_recording_policy(cur)
     seed_morphology_concept_provenance(cur)
+    backfill_missing_object_metadata(cur)
+    backfill_missing_primary_object_provenance(cur)
     seed_memory_mvp_requirements(cur)
     seed_goal_mission_taxonomy_concepts(cur)
     seed_requirements_glossary_taxonomy_terms(cur)
@@ -2342,9 +2673,11 @@ def apply_migration():
     seed_interpretive_layer(cur)
     seed_scientist_mode_routes(cur)
     seed_session_prompt_routes(cur)
+    seed_session_model_routes(cur)
     seed_canonical_tag(cur)
     create_storage_map_view(cur)
     create_core_model_view(cur)
+    create_model_identity_view(cur)
     create_frame_views(cur)
     create_problem_solving_patterns_view(cur)
     create_problem_understanding_patterns_view(cur)
@@ -2374,6 +2707,7 @@ def apply_migration():
     create_decision_history_triggers(cur)
     create_open_question_flow_triggers(cur)
     create_scientist_mode_triggers(cur)
+    create_route_mode_triggers(cur)
     create_history_enforcement(cur)
     create_version_triggers(cur)
     for trigger_name in [

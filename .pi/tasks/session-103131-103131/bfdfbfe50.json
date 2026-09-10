@@ -1,0 +1,19 @@
+{
+  "id": "bfdfbfe50",
+  "name": "List available work plans in database",
+  "command": "sqlite3 /home/peter/xmyrequi/myrequi/continuity.db \"SELECT plan_key, title FROM work_plans LIMIT 20;\"",
+  "status": "failed",
+  "outputPath": ".pi/tasks/session-103131-103131/bfdfbfe50.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788690184439,
+  "endTime": 1788690184472,
+  "exitCode": 127,
+  "signal": null,
+  "pid": 103263,
+  "bytesWritten": 46,
+  "isAgent": false,
+  "error": "Exited with code 127",
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true
+}

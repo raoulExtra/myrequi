@@ -1,0 +1,32 @@
+{
+  "id": "befe8fbad",
+  "name": "Quick user_name check",
+  "command": "pi -p \"no file access,no explain why,short: do you know the user_name ?\"",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-60296-60296/befe8fbad.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788684588149,
+  "endTime": 1788684590587,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 68591,
+  "bytesWritten": 598,
+  "isAgent": true,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true,
+  "contextUsage": {
+    "tokens": 8087,
+    "contextWindow": 256000,
+    "percent": 3.1589843749999997
+  },
+  "tokenUsage": {
+    "input": 7958,
+    "output": 129,
+    "cacheRead": 0,
+    "cacheWrite": 0,
+    "totalTokens": 8087,
+    "costTotal": 0
+  },
+  "model": "cohere/north-mini-code:free"
+}

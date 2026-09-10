@@ -6,6 +6,21 @@ convictions, decisions, questions, observations, plans,
 syntheses, metacognitive state, requirements, and
 policies.
 
+## System Context
+
+This project maintains a continuous input action router (`input_action_router.py`) that uses JSON pattern matching to route user inputs to appropriate actions based on predefined routing patterns. The system integrates with `continuity.db` (SQLite) for persistent state management, including:
+
+- **Control commands**: decision-making, memory recall, workflow planning, and tool execution
+- **Agent tools**: context inspection, file operations, and code execution
+- **Pattern matching**: JSON path, value, and regex-based intent classification
+
+The current session involves processing user input through the router, recording actions in the database, and maintaining a loop-based planning state. The system tracks:
+- Routing decisions and their outcomes
+- Open questions and reasoning episodes
+- Planned workflows and active loops
+
+A project-local Pi extension at `.pi/extensions/model-set.ts` also registers `/model:set ...` for switching the active model in the current session via `pi.setModel(...)`. Use `/reload` or restart Pi to load it into an already-running session.
+
 `thinker/thinker.db` is a smaller companion database
 for layered concept work.
 
@@ -161,7 +176,7 @@ supporting metadata.
 - `scientist_command.py` — evidence-oriented analysis
   output
 - `mode_command.py` — role/mode switching
-- `code_tool.py` — trusted snippet execution backed by
+- `helper_for_db.py` — trusted snippet execution backed by
   the DB
 
 ## What this DB might allow

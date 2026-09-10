@@ -1,0 +1,18 @@
+{
+  "id": "b42f73b9c",
+  "name": "List files in done directory",
+  "command": "ls -la /home/peter/xmyrequi/myrequi/plans/done/",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-103131-103131/b42f73b9c.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788690187508,
+  "endTime": 1788690187515,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 103298,
+  "bytesWritten": 736,
+  "isAgent": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true
+}

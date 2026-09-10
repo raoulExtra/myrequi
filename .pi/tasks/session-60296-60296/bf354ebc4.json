@@ -1,0 +1,18 @@
+{
+  "id": "bf354ebc4",
+  "name": "Run starter-md content",
+  "command": "ls -la | grep -i starter",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-60296-60296/bf354ebc4.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788684077008,
+  "endTime": 1788684077021,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 65140,
+  "bytesWritten": 58,
+  "isAgent": true,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true
+}

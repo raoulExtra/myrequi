@@ -75,6 +75,8 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('v_lean_thinking_patterns', 'derived', 'derived'),
             ('v_meaningful_sentences', 'derived', 'derived'),
             ('v_memory_index', 'derived', 'derived'),
+            ('workspace_table_stats', 'current', 'mutable'),
+            ('v_workspace_table_stats', 'derived', 'derived'),
             ('v_recall_all', 'derived', 'derived'),
             ('v_schema_catalog_all', 'derived', 'derived'),
             ('v_schema_catalog', 'derived', 'derived'),
@@ -138,6 +140,19 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertIn('synthesis_input', concepts)
         self.assertIn('synthesis_conflict', concepts)
         self.assertGreaterEqual(len(rows), 10)
+
+    def test_workspace_table_stats_track_core_tables(self):
+        conn = hardening.connect()
+        try:
+            rows = conn.execute(
+                "select table_name, row_count from workspace_table_stats order by table_name"
+            ).fetchall()
+        finally:
+            conn.close()
+
+        expected = {'beliefs', 'concepts', 'decisions', 'open_questions', 'reasoning_episodes', 'work_plans'}
+        self.assertEqual({row[0] for row in rows}, expected)
+        self.assertTrue(all(row[1] >= 0 for row in rows))
 
     def test_core_model_view_summarizes_four_layers(self):
         conn = hardening.connect()

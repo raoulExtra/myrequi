@@ -1181,6 +1181,17 @@ class InputActionRouter:
                 error_message = action_result.get("message", message)
                 success = False
 
+            pi_agent_warning = self._pi_agent_route_warning(decision)
+            if pi_agent_warning:
+                if isinstance(action_result, dict):
+                    action_result.setdefault("warning", pi_agent_warning)
+                else:
+                    action_result = {
+                        "status": "warning",
+                        "result": action_result,
+                        "warning": pi_agent_warning,
+                    }
+
             action_error = self._action_error(action_result)
             if action_error:
                 error_message = error_message or action_error
@@ -1233,6 +1244,43 @@ class InputActionRouter:
             "receipt_recorded": bool(receipt_reason),
             "receipt_reason": receipt_reason,
         }
+
+    def _pi_agent_route_warning(self, decision: Dict[str, Any]) -> Optional[str]:
+        """Warn when a Pi-agent-related route runs without an active bridge."""
+        route_type = decision.get("route_type")
+        route_name = decision.get("route_name")
+        table_by_type = {
+            "agent_tool": "agent_tool_routes",
+            "control_command": "control_command_routes",
+        }
+        route_table = table_by_type.get(route_type)
+        if not route_table or not isinstance(route_name, str) or not route_name:
+            return None
+
+        tagged = self.conn.execute(
+            """SELECT 1 FROM object_epistemic_tags
+               WHERE object_type='route'
+                 AND object_key=?
+                 AND tag_key='epistemic:pi_agent_related'
+               LIMIT 1""",
+            (f"{route_table}:{route_name}",),
+        ).fetchone()
+        if not tagged:
+            return None
+        pi_agent = self.conn.execute(
+            "SELECT enabled FROM feature_flags WHERE feature_key='pi_agent' LIMIT 1"
+        ).fetchone()
+        if pi_agent and not pi_agent["enabled"]:
+            return (
+                "Warning: pi agent should be active for this route; "
+                "run 'pi_agent on' first."
+            )
+        if self._select_bridge_pid() is not None:
+            return None
+        return (
+            "Warning: pi agent should be active for this route; "
+            "no active Pi session bridge was found in the current setting."
+        )
 
     def _execute_memory_recall(self, decision: Dict[str, Any]) -> Dict[str, Any]:
         packet = decision.get("recall_packet") or {}
@@ -1544,6 +1592,25 @@ class InputActionRouter:
         route_name = decision.get("route_name")
         params = decision.get("parameters", {})
         input_text = params.get("input_text", "")
+        if route_name in {"pi_agent_on", "pi_agent_off", "pi_agent_status"}:
+            if route_name != "pi_agent_status":
+                enabled = 1 if route_name == "pi_agent_on" else 0
+                self.conn.execute(
+                    "UPDATE feature_flags SET enabled=?, updated_by='Peter', updated_at=CURRENT_TIMESTAMP WHERE feature_key='pi_agent'",
+                    (enabled,),
+                )
+                self.conn.commit()
+            state = self.conn.execute(
+                "SELECT feature_key, enabled, switchable, scope, updated_by, updated_at FROM feature_flags WHERE feature_key='pi_agent' LIMIT 1"
+            ).fetchone()
+            return {
+                "status": "executed_control",
+                "command": command_template,
+                "term": "pi agent",
+                "enabled": bool(state["enabled"]) if state else False,
+                "state": "on" if state and state["enabled"] else "off",
+                "result": f"pi agent is {'on' if state and state['enabled'] else 'off'}",
+            }
         if route_name and str(route_name).startswith(("hypothesis_", "evidence_")):
             return self._execute_science_command(str(route_name), params, input_text)
         if route_name and str(route_name).startswith("promotion_"):
@@ -1831,6 +1898,23 @@ class InputActionRouter:
         handler = decision.get("handler")
         if handler == "context_info":
             return self._execute_context_info_tool(decision)
+        if handler == "controlled_tag_assign":
+            groups = (decision.get("parameters") or {}).get("groups") or []
+            if len(groups) != 3:
+                return {"status": "rejected", "reason": "controlled tag route requires object type, object key, and existing tag"}
+            from helper_for_db import _controlled_tag_assign
+            try:
+                with sqlite3.connect(self.db_path) as con:
+                    con.row_factory = sqlite3.Row
+                    result = _controlled_tag_assign(con, groups[0], groups[1], groups[2])
+            except ValueError as error:
+                return {
+                    "status": "rejected",
+                    "code": getattr(error, "code", "tagging_not_possible"),
+                    "message": str(error),
+                    "details": getattr(error, "details", {}),
+                }
+            return result
 
         # Integration with agent_tool_routes
         return {"status": "executed_agent", "handler": handler}

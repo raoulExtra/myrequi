@@ -1,0 +1,18 @@
+{
+  "id": "b7139aa07",
+  "name": "Query work plans from database",
+  "command": "python3 -c \"import sqlite3; conn = sqlite3.connect('/home/peter/xmyrequi/myrequi/continuity.db'); cursor = conn.execute('SELECT plan_key, title FROM work_plans'); print('\\n'.join([f'{r[0]}: {r[1]}' for r in cursor.fetchall()]))\"",
+  "status": "completed",
+  "outputPath": ".pi/tasks/session-103131-103131/b7139aa07.output",
+  "cwd": "/home/peter/xmyrequi/myrequi",
+  "startTime": 1788690186018,
+  "endTime": 1788690186090,
+  "exitCode": 0,
+  "signal": null,
+  "pid": 103287,
+  "bytesWritten": 2025,
+  "isAgent": false,
+  "notified": true,
+  "notifyOnCompletion": true,
+  "triggerOnCompletion": true
+}

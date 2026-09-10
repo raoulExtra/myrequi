@@ -131,7 +131,9 @@ def _extract_assistant_text(history: Dict[str, Any], since: Optional[str] = None
 
 
 def latest_assistant_text(pid: Optional[str] = None, limit: int = 50, since: Optional[str] = None) -> Optional[str]:
-    history = get_session_history(pid=pid, limit=limit, since=since)
+    # Read completed messages so tool-call/update snapshots cannot hide the
+    # latest assistant answer or cause an incomplete snapshot to be selected.
+    history = get_session_history(pid=pid, limit=limit, since=since, event="message_end")
     return _extract_assistant_text(history or {}, since=since)
 
 

@@ -22,6 +22,16 @@ from pathlib import Path
 
 DEFAULT_DB = Path(__file__).resolve().parents[5] / "continuity.db"
 __version__ = "0.0.0-placeholder"
+SYSTEM_MESSAGES = (
+    ("tagging.unknown_tag", "tagging", "error", "Tagging rejected: tag does not exist.", "Unknown tag feedback.", 0),
+    ("tagging.unknown_object", "tagging", "error", "Tagging rejected: object does not exist or is not active.", "Unknown object feedback.", 0),
+    ("tagging.incompatible_combination", "tagging", "warning", "Tagging rejected: this object and tag combination is not allowed.", "Incompatible object-tag combination feedback.", 0),
+    ("tagging.tag_combination_blocked", "tagging", "warning", "Tagging rejected: tag combination is frozen.", "Tag freeze feedback.", 0),
+    ("tagging.data_freeze_blocked", "freeze", "warning", "Tagging rejected: data_freeze blocks tagging changes on this object.", "Data freeze feedback.", 0),
+    ("tagging.row_freeze_blocked", "freeze", "warning", "Tagging rejected: row_freeze blocks tagging changes on this database row.", "Row freeze feedback.", 0),
+    ("tagging.invalid_row_key", "tagging", "error", "Tagging rejected: row key must be table:key_column=value.", "Invalid row key feedback.", 0),
+    ("review.human_review_required", "review", "warning", "Human review is required before this change can proceed.", "Human review feedback.", 1),
+)
 PLACEHOLDER_SOURCE = (
     "#!/usr/bin/env python3\n"
     "\"\"\"Placeholder source for a route-linked Python script.\"\"\"\n\n"
@@ -51,6 +61,22 @@ def connect(path: Path) -> sqlite3.Connection:
     con.execute("PRAGMA foreign_keys=ON")
     con.executescript(
         """
+        CREATE TABLE IF NOT EXISTS system_messages (
+          message_key TEXT PRIMARY KEY,
+          category TEXT NOT NULL,
+          severity TEXT NOT NULL DEFAULT 'info'
+            CHECK(severity IN ('info','warning','error','critical')),
+          template TEXT NOT NULL,
+          description TEXT NOT NULL,
+          enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
+          requires_receipt INTEGER NOT NULL DEFAULT 0 CHECK(requires_receipt IN (0,1)),
+          source TEXT,
+          version INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_system_messages_category
+          ON system_messages(category, enabled);
         CREATE TABLE IF NOT EXISTS code_artifacts (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL UNIQUE,
@@ -260,7 +286,11 @@ def source_from_args(args: argparse.Namespace) -> str:
 
 
 def cmd_init(args: argparse.Namespace) -> None:
-    connect(args.db).close()
+    with connect(args.db) as con:
+        con.executemany(
+            "INSERT OR IGNORE INTO system_messages(message_key,category,severity,template,description,requires_receipt) VALUES (?,?,?,?,?,?)",
+            SYSTEM_MESSAGES,
+        )
     print(f"initialized {args.db}")
 
 
@@ -461,6 +491,123 @@ def cmd_self_check(args: argparse.Namespace) -> None:
     print(json.dumps({"run_id": run_id, "status": status, "summary": summary, "checks": items}, indent=2))
 
 
+CONTROLLED_TAG_OBJECT_TABLES = {
+    "concept": ("concepts", "concept_key"),
+    "glossary_term": ("requirements_glossary_terms", "term_key"),
+    "tag": ("epistemic_tags", "tag_key"),
+}
+CONTROLLED_TAG_ROUTE_TABLES = (
+    ("agent_tool_routes", "route_name"),
+    ("control_command_routes", "route_name"),
+    ("tool_routes", "route_name"),
+)
+CONTROLLED_TAG_OBJECT_TYPES = frozenset(("concept", "glossary_term", "route", "file", "tag", "row"))
+
+
+def _tagging_rejection(code, message, object_type=None, object_key=None, tag_key=None):
+    error = ValueError(message)
+    error.code = code
+    error.details = {"object_type": object_type, "object_key": object_key, "requested_tag": tag_key}
+    return error
+
+
+def _controlled_tag_assign(con, object_type, object_key, tag_key, note="Controlled tag assignment"):
+    """Assign one existing tag to one validated object; never create tags."""
+    if object_type not in CONTROLLED_TAG_OBJECT_TYPES:
+        raise ValueError(f"object type is not allowlisted: {object_type}")
+    if object_type != "row" and not re.fullmatch(r"[A-Za-z0-9_./-]+", object_key or ""):
+        raise _tagging_rejection("invalid_object_key", "object key contains disallowed characters", object_type, object_key, tag_key)
+    if not re.fullmatch(r"[A-Za-z0-9_:-]+", tag_key or ""):
+        raise ValueError("tag key contains disallowed characters")
+    tag = con.execute("SELECT tag_key FROM epistemic_tags WHERE tag_key=?", (tag_key,)).fetchone()
+    if not tag:
+        raise _tagging_rejection("unknown_tag", f"tag does not exist: {tag_key}", object_type, object_key, tag_key)
+    if tag_key.startswith("progress_") and object_type in ("tag", "row"):
+        raise _tagging_rejection("incompatible_combination", "progress tags cannot be assigned to tag definitions", object_type, object_key, tag_key)
+    if tag_key == "tag_freeze" and object_type != "tag":
+        raise _tagging_rejection("incompatible_combination", "tag_freeze can only be assigned to a tag definition", object_type, object_key, tag_key)
+    if tag_key == "row_freeze" and object_type != "row":
+        raise _tagging_rejection("incompatible_combination", "row_freeze can only be assigned to a database row", object_type, object_key, tag_key)
+
+    if object_type in CONTROLLED_TAG_OBJECT_TABLES and object_type != "row":
+        table, key_column = CONTROLLED_TAG_OBJECT_TABLES[object_type]
+        exists = con.execute(f"SELECT 1 FROM {table} WHERE {key_column}=? LIMIT 1", (object_key,)).fetchone()
+    elif object_type == "row":
+        row_key = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*):([A-Za-z_][A-Za-z0-9_]*)=([A-Za-z0-9_.:/-]+)", object_key or "")
+        if not row_key:
+            raise _tagging_rejection("invalid_row_key", "row key must be table:key_column=value", object_type, object_key, tag_key)
+        table, key_column, key_value = row_key.groups()
+        table_exists = con.execute("SELECT 1 FROM sqlite_master WHERE type='table' AND name=? AND name NOT LIKE 'sqlite_%' LIMIT 1", (table,)).fetchone()
+        column_exists = any(r[1] == key_column for r in con.execute(f"PRAGMA table_info([{table}])")) if table_exists else False
+        exists = con.execute(f"SELECT 1 FROM [{table}] WHERE [{key_column}]=? LIMIT 1", (key_value,)).fetchone() if table_exists and column_exists else None
+    elif object_type == "route":
+        exists = None
+        for table, key_column in CONTROLLED_TAG_ROUTE_TABLES:
+            if con.execute(f"SELECT 1 FROM {table} WHERE {key_column}=? AND enabled=1 LIMIT 1", (object_key,)).fetchone():
+                exists = True
+                break
+    else:  # file
+        path = (Path.cwd() / object_key).resolve()
+        root = Path.cwd().resolve()
+        exists = path.exists() and path.is_file() and (path == root or root in path.parents)
+    if not exists:
+        raise _tagging_rejection("unknown_object", f"object does not exist or is not active: {object_type}:{object_key}", object_type, object_key, tag_key)
+    if con.execute("SELECT 1 FROM object_epistemic_tags WHERE object_type=? AND object_key=? AND tag_key='tag_freeze' LIMIT 1", (object_type, object_key)).fetchone() and tag_key != "tag_freeze":
+        raise _tagging_rejection("tag_combination_blocked", "tag_freeze blocks changes to this object's tag combination", object_type, object_key, tag_key)
+    if con.execute("SELECT 1 FROM object_epistemic_tags WHERE object_type=? AND object_key=? AND tag_key='data_freeze' LIMIT 1", (object_type, object_key)).fetchone() and tag_key != "data_freeze":
+        raise _tagging_rejection("data_freeze_blocked", "data_freeze blocks tagging changes on this object", object_type, object_key, tag_key)
+    if con.execute("SELECT 1 FROM object_epistemic_tags WHERE object_type=? AND object_key=? AND tag_key='row_freeze' LIMIT 1", (object_type, object_key)).fetchone() and tag_key != "row_freeze":
+        raise _tagging_rejection("row_freeze_blocked", "row_freeze blocks tagging changes on this database row", object_type, object_key, tag_key)
+
+    needs_receipt = bool(tag_key == "needs_epi_receipt" or con.execute(
+        "SELECT 1 FROM object_epistemic_tags WHERE object_type=? AND object_key=? AND tag_key='needs_epi_receipt' LIMIT 1",
+        (object_type, object_key),
+    ).fetchone())
+    old_progress = []
+    if tag_key.startswith("progress_"):
+        old_progress = con.execute(
+            "SELECT id,tag_key FROM object_epistemic_tags WHERE object_type=? AND object_key=? AND tag_key LIKE 'progress_%' AND tag_key<>?",
+            (object_type, object_key, tag_key),
+        ).fetchall()
+        for old_id, old_tag in old_progress:
+            con.execute("DELETE FROM object_epistemic_tags WHERE id=?", (old_id,))
+            if needs_receipt:
+                provenance = json.dumps({"origin": "controlled_tag_assign", "object_type": object_type, "object_key": object_key, "tag_key": old_tag, "replaced_by": tag_key})
+                con.execute(
+                    "INSERT INTO epistemic_receipts (object_type,object_key,change_summary,provenance_json,provenance_complete,confidence,session_key,project_name,effect,receipt_kind) VALUES (?,?,?,?,?,?,?,?,?,?)",
+                    ("tag_assignment", str(old_id), f"Removed superseded {old_tag} from {object_type}:{object_key}", provenance, 1, 1.0, "controlled_tag_assign", "continuity_db", "retired", "object"),
+                )
+
+    existing = con.execute(
+        "SELECT id FROM object_epistemic_tags WHERE object_type=? AND object_key=? AND tag_key=? LIMIT 1",
+        (object_type, object_key, tag_key),
+    ).fetchone()
+    if existing:
+        return {"status": "already_present", "object_type": object_type, "object_key": object_key, "tag_key": tag_key, "tag_id": existing[0], "removed_progress_tags": [r[1] for r in old_progress]}
+    con.execute(
+        "INSERT INTO object_epistemic_tags (object_type,object_key,tag_key,note) VALUES (?,?,?,?)",
+        (object_type, object_key, tag_key, note),
+    )
+    tag_id = con.execute("SELECT last_insert_rowid()").fetchone()[0]
+    if needs_receipt:
+        provenance = json.dumps({"origin": "controlled_tag_assign", "object_type": object_type, "object_key": object_key, "tag_key": tag_key, "replaced_progress_tags": [r[1] for r in old_progress]})
+        con.execute(
+            "INSERT INTO epistemic_receipts (object_type,object_key,change_summary,provenance_json,provenance_complete,confidence,session_key,project_name,effect,receipt_kind) VALUES (?,?,?,?,?,?,?,?,?,?)",
+            ("tag_assignment", str(tag_id), f"Assigned {tag_key} to {object_type}:{object_key}", provenance, 1, 1.0, "controlled_tag_assign", "continuity_db", "new", "object"),
+        )
+    return {"status": "assigned", "object_type": object_type, "object_key": object_key, "tag_key": tag_key, "tag_id": tag_id, "removed_progress_tags": [r[1] for r in old_progress], "epistemic_receipt_created": needs_receipt}
+
+
+def cmd_controlled_tag_assign(args: argparse.Namespace) -> None:
+    try:
+        with connect(args.db) as con:
+            result = _controlled_tag_assign(con, args.object_type, args.object_key, args.tag_key, args.note)
+    except ValueError as error:
+        print(json.dumps({"status": "rejected", "code": getattr(error, "code", "tagging_not_possible"), "message": str(error), "details": getattr(error, "details", {})}, indent=2, sort_keys=True))
+        return
+    print(json.dumps(result, indent=2, sort_keys=True))
+
+
 def cmd_create(args: argparse.Namespace) -> None:
     source = source_from_args(args)
     problems = validate(source)
@@ -527,6 +674,32 @@ def cmd_show(args: argparse.Namespace) -> None:
         row = latest(con, args.name)
         print(f"# {row['name']} v{row['version']} sha256={row['sha256']} approval={row['approval_status']}")
         print(row["source"], end="" if row["source"].endswith("\n") else "\n")
+
+
+def cmd_recall(args: argparse.Namespace) -> None:
+    """Recall memory directly through helper_for_db.py.
+
+    This wraps the continuity memory API so GPT/tool routes do not need to know
+    or call memory_command.py separately for common lookup tasks.
+    """
+    try:
+        import memory_command
+    except ImportError as exc:
+        raise SystemExit(f"cannot import memory_command.py: {exc}") from exc
+
+    query = " ".join(args.query).strip()
+    if not query:
+        raise SystemExit("recall query must not be empty")
+    packet = memory_command.retrieve_memory(
+        query,
+        db_path=args.db,
+        limit=args.limit,
+        layer=args.layer,
+    )
+    if args.format == "json":
+        print(json.dumps(packet))
+    else:
+        print(memory_command.format_memory_recall(packet))
 
 
 def cmd_version_info(args: argparse.Namespace) -> None:
@@ -761,6 +934,13 @@ def parser() -> argparse.ArgumentParser:
     es = sub.add_parser("ethics-set"); es.add_argument("mode", choices=("on", "off")); es.add_argument("--by", default="Peter"); es.add_argument("--reason", default="Explicit command")
     es.set_defaults(func=cmd_ethics_set)
     sc = sub.add_parser("self-check"); sc.add_argument("--stale-days", type=int, default=30); sc.set_defaults(func=cmd_self_check)
+    ta = sub.add_parser("controlled-tag-assign")
+    ta.add_argument("object_type", choices=sorted(CONTROLLED_TAG_OBJECT_TYPES))
+    ta.add_argument("object_key")
+    ta.add_argument("tag_key")
+    ta.add_argument("--note", default="Controlled tag assignment")
+    ta.set_defaults(func=cmd_controlled_tag_assign)
+
     c = sub.add_parser("create")
     c.add_argument("name"); c.add_argument("--description", default="")
     source = c.add_mutually_exclusive_group(required=True)
@@ -777,6 +957,12 @@ def parser() -> argparse.ArgumentParser:
     a.set_defaults(func=cmd_approve)
     sub.add_parser("list").set_defaults(func=cmd_list)
     s = sub.add_parser("show"); s.add_argument("name"); s.set_defaults(func=cmd_show)
+    m = sub.add_parser("recall", help="recall continuity memory by term or phrase")
+    m.add_argument("query", nargs="+")
+    m.add_argument("--limit", type=int, default=10)
+    m.add_argument("--layer", choices=["episodic", "semantic", "procedural", "metacognitive"])
+    m.add_argument("--format", choices=["pretty", "json"], default="pretty")
+    m.set_defaults(func=cmd_recall)
     v = sub.add_parser("verify-version"); v.add_argument("name"); v.set_defaults(func=cmd_version_info)
     rv = sub.add_parser("route-version"); rv.add_argument("name"); rv.set_defaults(func=cmd_version_info)
     r = sub.add_parser("run"); r.add_argument("name"); r.add_argument("--timeout", type=int, default=5); r.add_argument("program_args", nargs="*")

@@ -6,6 +6,12 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DB_PATH = ROOT / 'continuity.db'
+__version__ = '0.0.0-placeholder'
+
+
+def get_version():
+    return __version__
+
 
 THINKING_PROJECT_OBJECT_TYPE = 'concept'
 THINKING_PROJECT_OBJECT_KEY = 'thinking_project'

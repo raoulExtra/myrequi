@@ -257,11 +257,14 @@ def project_tags_for(project: str, base_dir: Path = DEFAULT_BASE_DIR) -> list[st
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("action", choices=["init", "list", "phases", "show", "parents", "subdirs", "tags"])
+    parser.add_argument("action", choices=["init", "list", "phases", "show", "parents", "subdirs", "tags", "context", "model"])
     parser.add_argument("project", help="Project directory name, e.g. demo")
     parser.add_argument("phase", nargs="?", help="Phase name for show")
     parser.add_argument("--base-dir", default=str(DEFAULT_BASE_DIR), help="Project filespace root")
     parser.add_argument("--max-depth", type=int, default=3, help="Max depth for tree listing")
+    parser.add_argument("--auto-add", action="store_true", help="Auto-add model to DB if missing")
+    parser.add_argument("--session-id", default=None, help="Override session id (from JSONL context)")
+    parser.add_argument("--end-session", action="store_true", help="Close session's active model link")
     args = parser.parse_args()
 
     base_dir = Path(args.base_dir)
@@ -304,7 +307,115 @@ def main() -> int:
             print(item)
         return 0
 
+    if args.action == "context":
+        for line in session_context_lines():
+            print(line)
+        return 0
+
+    if args.action == "model":
+        if args.end_session:
+            sid = args.session_id or detect_session_id()
+            end_session(sid)
+            return 0
+        model, sid, status = sync_active_model(args.auto_add, args.session_id)
+        print(f"  session_id: {sid}")
+        print(f"  model: {model}")
+        print(f"  status: {status}")
+        return 0
+
     return 1
+
+
+
+def detect_session_id() -> str:
+    """Extract the active session ID from JSONL context info."""
+    import pathlib, json
+    session_dir = pathlib.Path("/home/peter/.pi/agent/sessions/--home-peter-xmyrequi-myrequi--")
+    if not session_dir.exists():
+        return "unknown"
+    files = sorted(session_dir.glob("*.jsonl"), key=lambda p: p.stat().st_mtime, reverse=True)
+    if not files:
+        return "unknown"
+    with open(files[0], "r") as f:
+        for line in f:
+            try:
+                entry = json.loads(line)
+                if entry.get("type") == "session":
+                    sid = entry.get("id")
+                    if sid:
+                        return sid
+            except (json.JSONDecodeError, KeyError):
+                continue
+    return "unknown"
+
+
+def sync_active_model(auto_add: bool = False, session_id: str | None = None) -> tuple[str, str, str]:
+    """Sync active model to DB, using session ID from JSONL context."""
+    import sqlite3, json, pathlib
+    settings_path = pathlib.Path("/home/peter/.pi/agent/settings.json")
+    models_store_path = pathlib.Path("/home/peter/.pi/agent/models-store.json")
+    settings = json.loads(settings_path.read_text()) if settings_path.exists() else {}
+    model = settings.get("defaultModel", "unknown")
+    model_info = None
+    if models_store_path.exists():
+        store = json.loads(models_store_path.read_text())
+        for _provider, block in store.items():
+            if isinstance(block, dict):
+                for entry in block.get("models", []):
+                    if entry.get("id") == model:
+                        model_info = entry
+                        break
+            if model_info:
+                break
+    sid = session_id or detect_session_id()
+    db_path = Path(__file__).resolve().parent / "continuity.db"
+    con = sqlite3.connect(str(db_path))
+    cur = con.cursor()
+    cur.execute("SELECT object_key FROM object_metadata WHERE object_type='ai_model' AND object_key=?", (model,))
+    exists = cur.fetchone()
+    if exists:
+        cur.execute("UPDATE ai_model_details SET is_active = 1 WHERE model_key = ?", (model,))
+        cur.execute("UPDATE ai_model_details SET is_active = 0 WHERE model_key != ?", (model,))
+        cur.execute("INSERT INTO model_session_link (model_key, session_id, is_active, context_window_tokens, provider, source_json) VALUES (?, ?, 1, ?, ?, ?)",
+                    (model, sid, model_info.get("contextWindow") if model_info else None,
+                     model_info.get("provider") if model_info else "unknown",
+                     json.dumps({"settings": str(settings_path), "store": str(models_store_path)})))
+        con.commit()
+        con.close()
+        return model, sid, "synced"
+    if not auto_add:
+        con.close()
+        return model, sid, "missing"
+    # auto-add
+    tags = json.dumps([("provider:" + model_info.get("provider", "unknown")) if model_info else "provider:unknown",
+                       ("context:" + str(model_info.get("contextWindow", 0))) if model_info else "context:0", "tier:active"]) if model_info else "[]"
+    cur.execute("INSERT INTO object_metadata (object_type, object_key, sensitivity, review_status, tags_json) VALUES (?, ?, ?, ?, ?)",
+                ("ai_model", model, "internal", "unreviewed", tags))
+    cur.execute("INSERT INTO ai_model_details (model_key, version, architecture, context_window_tokens, training_cutoff, performance_json, is_active) VALUES (?, ?, ?, ?, ?, ?, 1)",
+                (model, model_info.get("version") if model_info else "latest",
+                 model_info.get("name") if model_info else "unknown",
+                 model_info.get("contextWindow") if model_info else None, None,
+                 json.dumps({"cost": model_info.get("cost") if model_info else {}, "notes": "Auto-added from settings.json"})))
+    cur.execute("INSERT INTO model_session_link (model_key, session_id, is_active, context_window_tokens, provider, source_json) VALUES (?, ?, 1, ?, ?, ?)",
+                (model, sid, model_info.get("contextWindow") if model_info else None,
+                 model_info.get("provider") if model_info else "unknown",
+                 json.dumps({"settings": str(settings_path), "store": str(models_store_path)})))
+    con.commit()
+    con.close()
+    return model, sid, "auto_added"
+
+
+def end_session(session_id: str | None = None) -> None:
+    """Close the active model link for a session."""
+    import sqlite3
+    sid = session_id or detect_session_id()
+    db_path = Path(__file__).resolve().parent / "continuity.db"
+    con = sqlite3.connect(str(db_path))
+    cur = con.cursor()
+    cur.execute("UPDATE model_session_link SET is_active = 0, ended_at = CURRENT_TIMESTAMP WHERE session_id = ? AND is_active = 1", (sid,))
+    con.commit()
+    con.close()
+    print(f"Closed active model link for session {sid}")
 
 
 if __name__ == "__main__":
