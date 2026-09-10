@@ -599,6 +599,25 @@ class InputActionRouter:
         if route_mode_match:
             return route_mode_match
 
+        # Accept the direct bridge expression emitted by the session tooling as
+        # an alias for the named session route.
+        bridge_match = re.fullmatch(
+            r'''pi_session\.latest_assistant_text\(pid=["']([^"']+)["']\)''',
+            normalized_text,
+        )
+        if bridge_match:
+            route = self._load_route_lookup_cache().get('session_latest_answer', {})
+            return {
+                "matched_pattern": "session_latest_answer_bridge",
+                "route_name": "session_latest_answer",
+                "route_type": "control_command",
+                "command_template": route.get("command_template"),
+                "input_pattern": route.get("input_pattern"),
+                "parameters": {"group1": bridge_match.group(1)},
+                "priority": 0,
+                "description": route.get("description") or "Fetch the latest assistant answer",
+            }
+
         # input_action_router.py is itself an explicit routing entrypoint: if it is
         # invoked, route-shaped input must always be accepted.  The route_mode
         # feature flag is kept for status/toggle visibility, but it must not gate

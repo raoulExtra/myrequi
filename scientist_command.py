@@ -19,5 +19,12 @@ for _key, _value in vars(_module).items():
     if not (_key.startswith("__") and _key not in {"__version__"}):
         globals()[_key] = _value
 
+# Keep monkeypatching the compatibility module effective for callers/tests.
+def run_scientist_analyse(*args, **kwargs):
+    _module.duckduckgo_search = globals()['duckduckgo_search']
+    _module.fetch_url_text = globals()['fetch_url_text']
+    return _module.run_scientist_analyse(*args, **kwargs)
+
+
 if __name__ == "__main__":
     _module.main()

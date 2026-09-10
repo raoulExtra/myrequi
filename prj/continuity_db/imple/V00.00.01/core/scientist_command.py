@@ -3,7 +3,10 @@ import argparse
 import html as html_lib
 import json
 import re
+import os
 import sqlite3
+import sys
+import warnings
 from collections import Counter
 from pathlib import Path
 from urllib.parse import parse_qs, quote_plus, unquote, urlparse
@@ -12,11 +15,85 @@ from urllib.request import Request, urlopen
 ROOT = Path(__file__).resolve().parents[5]
 DB_PATH = ROOT / 'continuity.db'
 OUTPUT_DIR = ROOT / 'scientist_reports'
+SOURCE_POLICY_PATH = ROOT / 'source_policy.json'
+MIN_RESEARCH_SOURCES = 1
 __version__ = '0.0.0-placeholder'
 
 
 def get_version():
     return __version__
+
+
+TRUSTED_DOMAIN_SUFFIXES = ('.gov', '.edu')
+TRUSTED_EUROPEAN_SUFFIXES = ('.eu', '.europa.eu', '.gov.uk', '.ac.uk')
+TRUSTED_DOMAIN_MARKERS = {
+    'wikipedia.org', 'britannica.com', 'nih.gov', 'ncbi.nlm.nih.gov',
+    'nist.gov', 'cisa.gov', 'cdc.gov', 'who.int', 'nasa.gov',
+    'ietf.org', 'rfc-editor.org', 'w3.org', 'python.org', 'sqlite.org',
+    'kernel.org', 'royalsociety.org',
+    'europa.eu', 'europarl.europa.eu', 'ecb.europa.eu', 'ema.europa.eu',
+    'esa.int', 'edps.europa.eu', 'echa.europa.eu', 'cordis.europa.eu',
+    'bund.de', 'gouv.fr', 'service-public.fr', 'gov.ie', 'gov.pl',
+    'government.nl', 'regeringen.se', 'regjeringen.no', 'admin.ch',
+}
+BLOCKED_DOMAIN_SUFFIXES = (
+    '.cn', '.中国', '.香港', '.台湾',
+)
+BLOCKED_DOMAIN_MARKERS = {
+    'baidu.com', 'qq.com', 'sohu.com', 'sina.com.cn', '163.com',
+    'wechat.com', 'hackernews.com', 'ycombinator.com', 'hackerone.com',
+    'hackforums.net', 'exploit-db.com', 'pastebin.com', 'breachforums.is',
+}
+BLOCKED_SOURCE_MARKERS = {
+    'hacker', 'hacking', 'exploit', 'exploit-db', '0day', 'zero-day',
+    'darkweb', 'dark-web', 'ransomware', 'breachforum', 'pastebin',
+}
+AD_MARKERS = {
+    'advertisement', 'advertising', 'sponsored', 'sponsor', 'promoted',
+    'buy now', 'shop now', 'limited time', 'special offer',
+    'discount', 'coupon', 'sale', 'subscribe now', 'get started today',
+    'affiliate', 'adchoices', 'utm_source', 'utm_campaign',
+}
+UNWANTED_CONTENT_PATTERNS = {
+    'erotic': (
+        r'\bporn(?:ography)?\b', r'\bhentai\b', r'\bsexually explicit\b',
+        r'\berotic content\b', r'\bescort service\b', r'\bnude photo\b',
+    ),
+    'spam': (
+        r'\bspam\b', r'\bclick here now\b', r'\bfree money\b',
+        r'\bmake money fast\b', r'\bwork from home guaranteed\b',
+        r'\bnigerian prince\b', r'\blink farm\b', r'\bseo spam\b',
+    ),
+}
+ATTACK_VECTOR_PATTERNS = {
+    'xss': (r'<script\b', r'javascript:', r'onerror\s*='),
+    'sql_injection': (r'\bsql\s+injection\b', r'\bunion\s+select\b', r"['\"]\s*or\s+['\"]?1['\"]?\s*=\s*['\"]?1"),
+    'command_injection': (r'\bcommand\s+injection\b', r'\breverse\s+shell\b', r'\bshell\s+payload\b'),
+    'path_traversal': (r'\bpath\s+traversal\b', r'(?:\.\./){2,}'),
+    'ssrf': (r'\bssrf\b', r'\bserver[- ]side request forgery\b', r'169\.254\.169\.254'),
+    'credential_theft': (r'\bcredential\s+theft\b', r'\bphishing\s+kit\b', r'\bkeylogger\b'),
+    'malware': (r'\bransomware\b', r'\bmalware\b', r'\bencoded\s+powershell\b'),
+}
+
+
+
+def load_source_policy(path=SOURCE_POLICY_PATH):
+    """Load domain policy from JSON, retaining safe code defaults on failure."""
+    try:
+        with Path(path).open(encoding='utf-8') as handle:
+            policy = json.load(handle)
+    except (OSError, json.JSONDecodeError):
+        return
+    globals()['MIN_RESEARCH_SOURCES'] = int(policy.get('minimum_sources', MIN_RESEARCH_SOURCES))
+    globals()['TRUSTED_DOMAIN_SUFFIXES'] = tuple(policy.get('trusted_domain_suffixes', TRUSTED_DOMAIN_SUFFIXES))
+    globals()['TRUSTED_EUROPEAN_SUFFIXES'] = tuple(policy.get('trusted_european_suffixes', TRUSTED_EUROPEAN_SUFFIXES))
+    globals()['TRUSTED_DOMAIN_MARKERS'] = set(policy.get('trusted_domain_markers', TRUSTED_DOMAIN_MARKERS))
+    globals()['BLOCKED_DOMAIN_SUFFIXES'] = tuple(policy.get('blocked_domain_suffixes', BLOCKED_DOMAIN_SUFFIXES))
+    globals()['BLOCKED_DOMAIN_MARKERS'] = set(policy.get('blocked_domain_markers', BLOCKED_DOMAIN_MARKERS))
+    globals()['BLOCKED_SOURCE_MARKERS'] = set(policy.get('blocked_source_markers', BLOCKED_SOURCE_MARKERS))
+
+
+load_source_policy()
 
 
 STOPWORDS = {
@@ -101,6 +178,100 @@ def fetch_url_text(url, timeout=20, max_chars=12000):
     return strip_html(fetch_url_raw(url, timeout=timeout, max_chars=max_chars * 4))[:max_chars]
 
 
+def detect_unwanted_content(text):
+    """Return labels for erotic or spam content that research must exclude."""
+    haystack = str(text or '').lower()
+    return [
+        category for category, patterns in UNWANTED_CONTENT_PATTERNS.items()
+        if any(re.search(pattern, haystack) for pattern in patterns)
+    ]
+
+
+def detect_attack_vectors(text):
+    """Return defensive labels for common attack-vector content indicators."""
+    haystack = str(text or '').lower()
+    return [
+        category for category, patterns in ATTACK_VECTOR_PATTERNS.items()
+        if any(re.search(pattern, haystack) for pattern in patterns)
+    ]
+
+
+def is_recognizable_ad(url, title='', text=''):
+    """Detect obvious advertising/affiliate pages, not ordinary editorial mentions."""
+    haystack = f'{url} {title} {text}'.lower()
+    marker_hits = sum(marker in haystack for marker in AD_MARKERS)
+    path = urlparse(url).path.lower()
+    return (
+        'utm_' in url.lower()
+        or '/ads/' in path
+        or '/advert' in path
+        or marker_hits >= 2
+        or ('sponsored' in title.lower() and marker_hits >= 1)
+    )
+
+
+def classify_source(url, title='', text=''):
+    """Return a source policy decision before/after fetching untrusted content."""
+    parsed = urlparse(url)
+    host = (parsed.hostname or '').lower().rstrip('.')
+    haystack = f'{host} {parsed.path.lower()} {title.lower()}'
+    unwanted_content = detect_unwanted_content(f'{title} {text}')
+    if unwanted_content:
+        return {
+            'allowed': False,
+            'class': 'blocked_unwanted_content',
+            'reason': 'unwanted content: ' + ', '.join(unwanted_content),
+        }
+    attack_vectors = detect_attack_vectors(text)
+    if attack_vectors:
+        return {
+            'allowed': False,
+            'class': 'blocked_attack_content',
+            'reason': 'attack-vector content: ' + ', '.join(attack_vectors),
+        }
+    if is_recognizable_ad(url, title, text):
+        return {'allowed': False, 'class': 'blocked_ad', 'reason': 'recognizable advertising policy'}
+    if host.endswith(BLOCKED_DOMAIN_SUFFIXES) or any(
+        host == marker or host.endswith('.' + marker)
+        for marker in BLOCKED_DOMAIN_MARKERS
+    ):
+        return {'allowed': False, 'class': 'blocked', 'reason': 'blocked domain policy'}
+    if any(marker in haystack for marker in BLOCKED_SOURCE_MARKERS):
+        return {'allowed': False, 'class': 'blocked', 'reason': 'blocked source marker policy'}
+    cjk_count = len(re.findall(r'[\u3400-\u9fff]', title))
+    if cjk_count >= 3 and cjk_count / max(len(title), 1) > 0.2:
+        return {'allowed': False, 'class': 'blocked', 'reason': 'non-target language policy'}
+    trusted = (
+        host.endswith(TRUSTED_DOMAIN_SUFFIXES)
+        or host.endswith(TRUSTED_EUROPEAN_SUFFIXES)
+        or any(
+        host == marker or host.endswith('.' + marker)
+        for marker in TRUSTED_DOMAIN_MARKERS
+        )
+    )
+    if not trusted:
+        return {'allowed': False, 'class': 'blocked_untrusted', 'reason': 'not on trusted-domain allowlist'}
+    region = 'european' if (
+        host.endswith(TRUSTED_EUROPEAN_SUFFIXES)
+        or any(host == marker or host.endswith('.' + marker) for marker in (
+            'europa.eu', 'europarl.europa.eu', 'ecb.europa.eu', 'ema.europa.eu',
+            'esa.int', 'edps.europa.eu', 'echa.europa.eu', 'cordis.europa.eu',
+            'bund.de', 'gouv.fr', 'service-public.fr', 'gov.ie', 'gov.pl',
+            'government.nl', 'regeringen.se', 'regjeringen.no', 'admin.ch',
+            'royalsociety.org',
+        ))
+    ) else 'general'
+    return {'allowed': True, 'class': 'trusted_' + region, 'reason': ''}
+
+def filter_research_results(results):
+    accepted = []
+    for result in results:
+        policy = classify_source(result.get('url', ''), result.get('title', ''))
+        if policy['allowed']:
+            accepted.append({**result, 'source_class': policy['class']})
+    return accepted
+
+
 def normalize_result_url(href):
     href = html_lib.unescape(href)
     if href.startswith('//'):
@@ -127,6 +298,25 @@ def duckduckgo_search(query, max_results=5):
         if len(results) >= max_results:
             break
     return results
+
+
+def wikipedia_search(query, max_results=5):
+    """Use Wikipedia as a resilient fallback when DuckDuckGo has no results."""
+    search_url = (
+        'https://en.wikipedia.org/w/api.php?action=query&list=search&format=json'
+        '&utf8=1&srlimit=' + str(max_results) + '&srsearch=' + quote_plus(query)
+    )
+    payload = json.loads(fetch_url_raw(search_url, timeout=20, max_chars=50000))
+    results = []
+    for item in payload.get('query', {}).get('search', []):
+        title = str(item.get('title') or '').strip()
+        if not title:
+            continue
+        results.append({
+            'title': title,
+            'url': 'https://en.wikipedia.org/wiki/' + quote_plus(title.replace(' ', '_')),
+        })
+    return results[:max_results]
 
 
 def sentence_score(sentence, keywords):
@@ -258,12 +448,19 @@ def perform_web_research(conn, topic, max_results=5):
     conn.commit()
     sources = []
     try:
-        search_results = duckduckgo_search(topic, max_results=max_results)
+        search_results = filter_research_results(duckduckgo_search(topic, max_results=max_results))
+        if not search_results:
+            try:
+                search_results = filter_research_results(wikipedia_search(topic, max_results=max_results))
+            except Exception:
+                search_results = []
         for result in search_results:
             summary = ''
             page_text = ''
             try:
                 page_text = fetch_url_text(result['url'])
+                if not classify_source(result['url'], result['title'], page_text)['allowed']:
+                    continue
                 summary = summarize_text_for_query(page_text, topic)
             except Exception as exc:
                 summary = f'Unavailable ({exc.__class__.__name__})'
@@ -276,9 +473,15 @@ def perform_web_research(conn, topic, max_results=5):
                 'title': result['title'],
                 'url': result['url'],
                 'publisher': publisher,
+                'source_class': result.get('source_class', 'general'),
                 'summary': summary,
                 'text_sample': page_text[:600],
             })
+        if len(sources) < MIN_RESEARCH_SOURCES:
+            raise RuntimeError(
+                f'Only {len(sources)} trusted research sources found; '
+                f'{MIN_RESEARCH_SOURCES} required.'
+            )
         result_summary = f'Collected {len(sources)} live web sources for topic research.'
         cur.execute(
             'UPDATE research_jobs SET status=?, result_summary=?, completed_at=CURRENT_TIMESTAMP WHERE id=?',
@@ -363,6 +566,36 @@ def main():
     parser.add_argument('--outdir', default=str(OUTPUT_DIR))
     args = parser.parse_args()
     print(run_scientist_analyse(args.target, db_path=Path(args.db), output_dir=Path(args.outdir)))
+
+
+
+
+def activate_content_guard():
+    """Load the optional content guard without making it a core dependency."""
+    if os.environ.get('CONTENT_GUARD_ENABLED', '1').lower() in {'0', 'false', 'off', 'no'}:
+        warnings.warn('content-guard extension is disabled; using reduced source checks', RuntimeWarning)
+        return False
+    extension_dir = Path(__file__).resolve().parents[1] / 'extension' / 'content-guard'
+    if not extension_dir.is_dir():
+        warnings.warn('content-guard extension is unavailable; using reduced source checks', RuntimeWarning)
+        return False
+    sys.path.insert(0, str(extension_dir))
+    try:
+        import content_guard as guard
+    except Exception as exc:
+        warnings.warn(f'content-guard extension failed to load: {exc}; using reduced source checks', RuntimeWarning)
+        return False
+    globals()['classify_source'] = guard.classify_source
+    globals()['filter_research_results'] = guard.filter_research_results
+    globals()['detect_unwanted_content'] = guard.detect_unwanted_content
+    globals()['detect_attack_vectors'] = guard.detect_attack_vectors
+    globals()['is_recognizable_ad'] = guard.is_recognizable_ad
+    globals()['MIN_RESEARCH_SOURCES'] = int(guard.POLICY.get('minimum_sources', MIN_RESEARCH_SOURCES))
+    globals()['CONTENT_GUARD_ACTIVE'] = True
+    return True
+
+
+CONTENT_GUARD_ACTIVE = activate_content_guard()
 
 
 if __name__ == '__main__':

@@ -17,7 +17,7 @@ import re
 import sqlite3
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parent
+ROOT = Path(__file__).resolve().parents[5]
 DB_PATH = ROOT / "continuity.db"
 PREFIX_CONCEPT = "morphology.common_prefixes"
 SUFFIX_CONCEPT = "morphology.common_suffixes"

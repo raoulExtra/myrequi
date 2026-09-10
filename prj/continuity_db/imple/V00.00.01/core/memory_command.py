@@ -59,7 +59,7 @@ def ensure_memory_index_view(cur):
         SELECT 'belief' AS source_type, slug AS source_key, slug AS title,
                current_statement AS body, confidence, current_version AS version, updated_at AS recorded_at
         FROM beliefs
-        UNION ALL SELECT 'belief_version', CAST(bv.id AS TEXT), COALESCE(b.slug, CAST(bv.belief_id AS TEXT)),
+        UNION ALL SELECT 'belief_version', COALESCE(b.slug, CAST(bv.belief_id AS TEXT)) || ':v' || CAST(bv.version AS TEXT), COALESCE(b.slug, CAST(bv.belief_id AS TEXT)),
                bv.statement, bv.confidence, bv.version, bv.created_at
         FROM belief_versions bv
         LEFT JOIN beliefs b ON b.id = bv.belief_id
@@ -294,6 +294,58 @@ def retrieval_trace(query_tokens, row):
     return matches
 
 
+PROVENANCE_QUERY_TOKENS = {
+    'audit', 'auditing', 'evidence', 'origin', 'origins', 'provenance',
+    'receipt', 'receipts', 'source', 'sources', 'trace', 'tracing',
+}
+
+MATCH_CLASS_RANK = {
+    'incidental': 0,
+    'audit': 1,
+    'historical_body': 2,
+    'current_body': 3,
+}
+
+
+def is_explicit_provenance_query(query_tokens):
+    return bool(set(query_tokens) & PROVENANCE_QUERY_TOKENS)
+
+
+def classify_match(query_tokens, row):
+    """Classify a hit by where its query match occurs.
+
+    Body matches are deliberately checked before generic field overlap.  This
+    keeps provenance text from competing with the belief text it describes,
+    while still making an explicit provenance request useful.
+    """
+    source_type = str(row.get('source_type') or '')
+    body = str(row.get('body') or '').lower()
+    query_tokens = list(dict.fromkeys(query_tokens))
+    body_match = bool(query_tokens) and all(token in body for token in query_tokens)
+    if source_type == 'belief' and body_match:
+        return 'current_body'
+    if source_type == 'belief_version' and body_match:
+        return 'historical_body'
+    if source_type == 'epistemic_receipt' and body_match:
+        return 'audit'
+    return 'incidental'
+
+
+def match_priority(query_tokens, row):
+    match_class = classify_match(query_tokens, row)
+    if match_class == 'audit' and is_explicit_provenance_query(query_tokens):
+        return 4
+    # A direct metacognitive key lookup is a named-state request, not an
+    # incidental body hit.  Keep it visible for short queries such as "trust".
+    if (
+        str(row.get('source_type') or '') == 'metacognitive_state'
+        and len(query_tokens) == 1
+        and str(row.get('source_key') or '').lower() == query_tokens[0]
+    ):
+        return MATCH_CLASS_RANK['current_body']
+    return MATCH_CLASS_RANK[match_class]
+
+
 def score_hit(query_tokens, row):
     text = ' '.join(str(x or '') for x in row.values()).lower()
     counts = Counter(query_tokens)
@@ -333,14 +385,6 @@ def score_hit(query_tokens, row):
         # Explicit conditions are authoritative matches, even when receipts
         # happen to contain the same token in their audit text.
         score += 10.0
-    if source_type == 'belief' and len(query_tokens) == 1 and all(token in body for token in query_tokens):
-        # Keep directly matching current beliefs visible ahead of incidental audit matches.
-        score += 1.5
-    if source_type == 'belief_version' and len(query_tokens) > 1 and all(token in body for token in query_tokens):
-        # Historical text should beat a current row that no longer contains it.
-        score += 3.0
-    if source_type == 'epistemic_receipt':
-        score += 1.25
     if source_type == 'metacognitive_state' and query_tokens and any(t in source_key for t in query_tokens):
         score += 1.0
     return score
@@ -444,14 +488,17 @@ def retrieve_memory(query, db_path=DB_PATH, limit=5, layer=None):
                 continue
             score = score_hit(qtokens, row)
             if score > 0:
+                row['match_class'] = classify_match(qtokens, row)
                 scored.append((score, row))
         scored.sort(
             key=lambda item: (
+                match_priority(qtokens, item[1]),
                 lookup_domain_priority(qtokens, item[1]),
                 item[0],
                 layer_priority(item[1].get('memory_layer') or layer_for_source(item[1].get('source_type'))),
                 float(item[1].get('confidence') or 0.0),
                 str(item[1].get('recorded_at') or ''),
+                str(item[1].get('source_key') or ''),
             ),
             reverse=True,
         )

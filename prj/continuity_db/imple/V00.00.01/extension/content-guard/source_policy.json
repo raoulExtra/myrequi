@@ -1,0 +1,25 @@
+{
+  "minimum_sources": 1,
+  "trusted_domain_suffixes": [".gov", ".edu"],
+  "trusted_european_suffixes": [".eu", ".europa.eu", ".gov.uk", ".ac.uk"],
+  "trusted_domain_markers": [
+    "wikipedia.org", "britannica.com", "nih.gov", "ncbi.nlm.nih.gov",
+    "nist.gov", "cisa.gov", "cdc.gov", "who.int", "nasa.gov",
+    "ietf.org", "rfc-editor.org", "w3.org", "python.org", "sqlite.org",
+    "kernel.org", "royalsociety.org", "europa.eu", "europarl.europa.eu",
+    "ecb.europa.eu", "ema.europa.eu", "esa.int", "edps.europa.eu",
+    "echa.europa.eu", "cordis.europa.eu", "bund.de", "gouv.fr",
+    "service-public.fr", "gov.ie", "gov.pl", "government.nl",
+    "regeringen.se", "regjeringen.no", "admin.ch"
+  ],
+  "blocked_domain_suffixes": [".cn", ".中国", ".香港", ".台湾"],
+  "blocked_domain_markers": [
+    "baidu.com", "qq.com", "sohu.com", "sina.com.cn", "163.com",
+    "wechat.com", "hackernews.com", "ycombinator.com", "hackerone.com",
+    "hackforums.net", "exploit-db.com", "pastebin.com", "breachforums.is"
+  ],
+  "blocked_source_markers": [
+    "hacker", "hacking", "exploit", "exploit-db", "0day", "zero-day",
+    "darkweb", "dark-web", "ransomware", "breachforum", "pastebin"
+  ]
+}
