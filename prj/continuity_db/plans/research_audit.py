@@ -11,6 +11,7 @@ from typing import Any
 
 
 TABLE = "research_audit_receipts"
+DEFAULT_AUDIT_TYPE = "research_source_scan"
 _FORBIDDEN_METADATA_KEYS = {"raw_content", "content", "text", "body", "page_text"}
 
 
@@ -20,6 +21,8 @@ def ensure_research_audit_schema(conn: sqlite3.Connection) -> None:
         f"""
         create table if not exists {TABLE} (
             id integer primary key,
+            audit_type text not null default 'research_source_scan'
+                check (audit_type = 'research_source_scan'),
             research_job_id integer not null,
             source_url text not null,
             content_hash text not null,
@@ -36,8 +39,20 @@ def ensure_research_audit_schema(conn: sqlite3.Connection) -> None:
     conn.execute(
         f"create index if not exists idx_research_audit_job on {TABLE}(research_job_id)"
     )
+    columns = {
+        row[1] for row in conn.execute(f"pragma table_info({TABLE})")
+    }
+    if "audit_type" not in columns:
+        conn.execute(
+            f"alter table {TABLE} add column audit_type text not null "
+            "default 'research_source_scan'"
+        )
     conn.execute(
         f"create index if not exists idx_research_audit_decision on {TABLE}(decision)"
+    )
+    conn.execute(
+        f"create index if not exists idx_research_audit_type_job "
+        f"on {TABLE}(audit_type, research_job_id)"
     )
     conn.execute(
         f"""
@@ -83,11 +98,14 @@ def record_research_audit(
     policy_version: str,
     scanner_provider: str,
     allowed: bool,
+    audit_type: str = DEFAULT_AUDIT_TYPE,
     denial_reason: str | None = None,
     provenance_metadata: Mapping[str, Any] | None = None,
 ) -> int:
     """Store one decision receipt; raw content is used only to calculate a hash."""
     ensure_research_audit_schema(conn)
+    if audit_type != DEFAULT_AUDIT_TYPE:
+        raise ValueError(f"unsupported audit type: {audit_type}")
     decision = "allow" if allowed else "deny"
     if allowed:
         denial_reason = None
@@ -95,11 +113,12 @@ def record_research_audit(
     cursor = conn.execute(
         f"""
         insert into {TABLE} (
-            research_job_id, source_url, content_hash, policy_version,
+            audit_type, research_job_id, source_url, content_hash, policy_version,
             scanner_provider, decision, denial_reason, provenance_metadata
-        ) values (?, ?, ?, ?, ?, ?, ?, ?)
+        ) values (?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
+            audit_type,
             research_job_id,
             source_url,
             content_hash(content),

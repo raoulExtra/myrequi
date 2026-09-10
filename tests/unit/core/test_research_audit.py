@@ -34,6 +34,7 @@ def test_audit_schema_has_required_fields_and_indexes_without_raw_content_column
 
     assert {
         "research_job_id",
+        "audit_type",
         "source_url",
         "content_hash",
         "policy_version",
@@ -46,6 +47,7 @@ def test_audit_schema_has_required_fields_and_indexes_without_raw_content_column
     assert "raw_content" not in columns
     assert "idx_research_audit_job" in indexes
     assert "idx_research_audit_decision" in indexes
+    assert "idx_research_audit_type_job" in indexes
 
 
 def test_record_hashes_content_and_never_stores_raw_content():
@@ -67,8 +69,29 @@ def test_record_hashes_content_and_never_stores_raw_content():
         "select * from research_audit_receipts where id=?", (receipt_id,)
     ).fetchone()
     assert raw_content not in repr(row)
-    assert row[6] == "allow"
-    assert json.loads(row[9])["source_class"] == "trusted"
+    assert row[7] == "allow"
+    assert json.loads(row[10])["source_class"] == "trusted"
+    assert row[1] == "research_source_scan"
+
+
+def test_explicit_audit_type_is_preserved():
+    conn = make_db()
+
+    receipt_id = record_research_audit(
+        conn,
+        research_job_id=1,
+        audit_type="research_source_scan",
+        source_url="https://www.nist.gov/research",
+        content="safe",
+        policy_version="policy-v1",
+        scanner_provider="policy",
+        allowed=True,
+    )
+
+    row = conn.execute(
+        "select audit_type from research_audit_receipts where id=?", (receipt_id,)
+    ).fetchone()
+    assert row[0] == "research_source_scan"
 
 
 def test_trusted_source_can_still_be_denied_and_rejected_content_is_not_accepted():
