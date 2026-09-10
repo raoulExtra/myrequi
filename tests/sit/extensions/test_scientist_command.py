@@ -9,6 +9,73 @@ import scientist_command
 
 
 class ScientistCommandTests(unittest.TestCase):
+    def test_unwanted_content_overrides_trusted_domain(self):
+        decision = scientist_command.classify_source(
+            'https://www.nist.gov/research',
+            'Official source',
+            'This trusted page contains sexually explicit erotic content.',
+        )
+        self.assertFalse(decision['allowed'])
+        self.assertEqual(decision['class'], 'blocked_unwanted_content')
+
+    def test_source_policy_blocks_erotic_and_spam_content(self):
+        self.assertEqual(
+            scientist_command.detect_unwanted_content('This is sexually explicit erotic content.'),
+            ['erotic'],
+        )
+        self.assertEqual(
+            scientist_command.detect_unwanted_content('Click here now for free money.'),
+            ['spam'],
+        )
+        self.assertFalse(scientist_command.classify_source(
+            'https://www.nist.gov/research', 'Research', 'Peer-reviewed methods and results.'
+        )['allowed'] is False)
+
+    def test_source_policy_detects_attack_vector_content(self):
+        vectors = scientist_command.detect_attack_vectors(
+            'This page describes SQL injection, SSRF, path traversal, and ransomware.'
+        )
+        self.assertIn('sql_injection', vectors)
+        self.assertIn('ssrf', vectors)
+        self.assertIn('path_traversal', vectors)
+        self.assertIn('malware', vectors)
+        self.assertFalse(scientist_command.classify_source(
+            'https://www.nist.gov/research', 'Research', 'The page contains a reverse shell payload.'
+        )['allowed'])
+
+    def test_source_policy_blocks_recognizable_advertising(self):
+        self.assertTrue(scientist_command.is_recognizable_ad(
+            'https://example.org/article?utm_source=ads', 'Article'
+        ))
+        self.assertTrue(scientist_command.is_recognizable_ad(
+            'https://example.org/sponsored', 'Sponsored special offer'
+        ))
+        self.assertFalse(scientist_command.is_recognizable_ad(
+            'https://www.nist.gov/research', 'Research article', 'Evidence and methods'
+        ))
+
+    def test_source_policy_allows_trusted_european_sources(self):
+        for url in (
+            'https://europa.eu/policies',
+            'https://www.gov.uk/guidance',
+            'https://www.bund.de/service',
+            'https://www.esa.int/News',
+        ):
+            self.assertTrue(scientist_command.classify_source(url, 'Official source')['allowed'])
+        self.assertEqual(
+            scientist_command.classify_source('https://europa.eu/policies', 'Official source')['class'],
+            'trusted_european',
+        )
+
+    def test_source_policy_blocks_chinese_and_hacker_sources(self):
+        self.assertFalse(scientist_command.classify_source('https://example.cn/page', 'Example')['allowed'])
+        self.assertFalse(scientist_command.classify_source('https://news.ycombinator.com/item?id=1', 'Discussion')['allowed'])
+        allowed = scientist_command.filter_research_results([
+            {'title': 'Allowed source', 'url': 'https://www.nist.gov/research'},
+            {'title': 'Blocked source', 'url': 'https://example.cn/page'},
+        ])
+        self.assertEqual([item['title'] for item in allowed], ['Allowed source'])
+
     def test_scientist_analysis_route_and_requirement_present(self):
         conn = scientist_command.connect()
         try:
@@ -37,11 +104,11 @@ class ScientistCommandTests(unittest.TestCase):
             fake_results = [
                 {
                     'title': 'Paper One',
-                    'url': 'https://example.com/paper-one',
+                    'url': 'https://www.nist.gov/paper-one',
                 },
                 {
                     'title': 'Paper Two',
-                    'url': 'https://example.com/paper-two',
+                    'url': 'https://www.nist.gov/paper-two',
                 },
             ]
 

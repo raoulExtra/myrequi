@@ -144,6 +144,101 @@ class MemoryCommandTests(unittest.TestCase):
         finally:
             shutil.rmtree(tmpdir)
 
+    def test_memory_recall_ranking_distinguishes_current_and_historical_body(self):
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            db_copy = tmpdir / 'continuity.db'
+            shutil.copy2(memory_command.DB_PATH, db_copy)
+            conn = memory_command.connect(db_copy)
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "insert into beliefs(slug,current_statement,confidence,status,current_version) values(?,?,?,?,?)",
+                    ('ranking_semantics_belief', 'current ranking token', 0.9, 'active', 2),
+                )
+                cur.execute(
+                    "insert into belief_versions(belief_id,version,statement,confidence,change_reason) values(?,?,?,?,?)",
+                    (cur.lastrowid, 1, 'historical ranking token', 0.9, 'test history'),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            current = json.loads(memory_command.run_memory_recall('current ranking token', db_path=db_copy))
+            historical = json.loads(memory_command.run_memory_recall('historical ranking token', db_path=db_copy))
+            self.assertEqual(current['hits'][0]['source_type'], 'belief')
+            self.assertEqual(historical['hits'][0]['source_type'], 'belief_version')
+            self.assertEqual(historical['hits'][0]['source_key'], 'ranking_semantics_belief:v1')
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_memory_recall_historical_body_beats_receipt_text(self):
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            db_copy = tmpdir / 'continuity.db'
+            shutil.copy2(memory_command.DB_PATH, db_copy)
+            conn = memory_command.connect(db_copy)
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "insert into beliefs(slug,current_statement,confidence,status,current_version) values(?,?,?,?,?)",
+                    ('receipt_ranking_belief', 'current body ranking token', 0.9, 'active', 2),
+                )
+                belief_id = cur.lastrowid
+                cur.execute(
+                    "insert into belief_versions(belief_id,version,statement,confidence,change_reason) values(?,?,?,?,?)",
+                    (belief_id, 1, 'historical body ranking token', 0.9, 'test history'),
+                )
+                cur.execute(
+                    """insert into epistemic_receipts(
+                        object_type, object_key, object_version, change_summary,
+                        provenance_json, provenance_complete, confidence,
+                        session_key, project_name, effect, receipt_kind
+                    ) values(?,?,?,?,?,?,?,?,?,?,?)""",
+                    ('belief', 'receipt_ranking_belief', '1',
+                     'historical body ranking token', '{}', 1, 1.0,
+                     'test', 'continuity_db', 'new', 'object'),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            result = json.loads(memory_command.run_memory_recall('historical body ranking token', db_path=db_copy))
+            self.assertEqual(result['hits'][0]['source_type'], 'belief_version')
+        finally:
+            shutil.rmtree(tmpdir)
+
+    def test_memory_recall_explicit_provenance_prefers_audit_match(self):
+        tmpdir = Path(tempfile.mkdtemp())
+        try:
+            db_copy = tmpdir / 'continuity.db'
+            shutil.copy2(memory_command.DB_PATH, db_copy)
+            conn = memory_command.connect(db_copy)
+            try:
+                cur = conn.cursor()
+                cur.execute(
+                    "insert into beliefs(slug,current_statement,confidence,status,current_version) values(?,?,?,?,?)",
+                    ('explicit_provenance_belief', 'ordinary provenance ranking token', 0.9, 'active', 1),
+                )
+                cur.execute(
+                    """insert into epistemic_receipts(
+                        object_type, object_key, object_version, change_summary,
+                        provenance_json, provenance_complete, confidence,
+                        session_key, project_name, effect, receipt_kind
+                    ) values(?,?,?,?,?,?,?,?,?,?,?)""",
+                    ('belief', 'explicit_provenance_belief', '1',
+                     'provenance ranking token audit receipt', '{}', 1, 1.0,
+                     'test', 'continuity_db', 'new', 'object'),
+                )
+                conn.commit()
+            finally:
+                conn.close()
+
+            result = json.loads(memory_command.run_memory_recall('provenance ranking token', db_path=db_copy))
+            self.assertEqual(result['hits'][0]['source_type'], 'epistemic_receipt')
+        finally:
+            shutil.rmtree(tmpdir)
+
     def test_memory_recall_can_retrieve_provenance_parts(self):
         tmpdir = Path(tempfile.mkdtemp())
         try:
