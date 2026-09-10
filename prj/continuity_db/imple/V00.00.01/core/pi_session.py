@@ -9,7 +9,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from prj.continuity_db.plans.provider_retry import request_with_retry
+
 BRIDGE = Path.home() / ".pi/agent/npm/node_modules/@vanillagreen/pi-session-bridge/bin/pi-bridge.js"
+PROVIDER_ERROR_LOG = Path(__file__).resolve().parents[5] / "tmp" / "provider_error.log"
 __version__ = '0.0.0-placeholder'
 
 
@@ -28,7 +31,22 @@ def get_session_state(pid: Optional[str] = None) -> Dict[str, Any]:
 
 def send_prompt(prompt: str, pid: Optional[str] = None) -> Dict[str, Any]:
     target = ["--pid", str(pid)] if pid else []
-    return json.loads(run_bridge(["send", *target, prompt]).strip())
+    bridge_args = ["send", *target, prompt]
+
+    def request() -> Dict[str, Any]:
+        return json.loads(run_bridge(bridge_args).strip())
+
+    def issue_continue() -> None:
+        continue_args = ["send", *target, "continue"]
+        run_bridge(continue_args)
+
+    return request_with_retry(
+        request,
+        provider="pi-session-bridge",
+        error_log=PROVIDER_ERROR_LOG,
+        sleep_fn=time.sleep,
+        continue_fn=issue_continue,
+    )
 
 
 def set_model(provider: str, model_id: str, pid: Optional[str] = None) -> Dict[str, Any]:
