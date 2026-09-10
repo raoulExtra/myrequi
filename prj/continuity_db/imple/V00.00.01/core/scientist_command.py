@@ -12,6 +12,11 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote_plus, unquote, urlparse
 from urllib.request import Request, urlopen
 
+from prj.continuity_db.plans.research_audit import (
+    ensure_research_audit_schema,
+    record_research_audit,
+)
+
 ROOT = Path(__file__).resolve().parents[5]
 DB_PATH = ROOT / 'continuity.db'
 OUTPUT_DIR = ROOT / 'scientist_reports'
@@ -442,6 +447,7 @@ def analyze_file_target(target_path, output_dir):
 
 
 def perform_web_research(conn, topic, max_results=5):
+    ensure_research_audit_schema(conn)
     cur = conn.cursor()
     cur.execute('INSERT INTO research_jobs(query, status) VALUES (?, ?)', (topic, 'running'))
     job_id = cur.lastrowid
@@ -465,6 +471,19 @@ def perform_web_research(conn, topic, max_results=5):
             except Exception as exc:
                 summary = f'Unavailable ({exc.__class__.__name__})'
             publisher = urlparse(result['url']).netloc
+            record_research_audit(
+                conn,
+                research_job_id=job_id,
+                source_url=result['url'],
+                content=page_text,
+                policy_version='source-policy-v1',
+                scanner_provider='content-guard',
+                allowed=True,
+                provenance_metadata={
+                    'source_class': result.get('source_class', 'general'),
+                    'publisher': publisher,
+                },
+            )
             cur.execute(
                 'INSERT INTO research_sources(job_id, title, url, publisher, notes) VALUES (?,?,?,?,?)',
                 (job_id, result['title'], result['url'], publisher, summary[:4000]),
