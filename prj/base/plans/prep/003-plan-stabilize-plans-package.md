@@ -49,10 +49,34 @@ Before each step, the plan runner SHALL automatically:
 4. Refactor only with the safety net green and append the refactor note.
 5. Append and run `git add` and `git commit` with a clear imperative message.
 
-No human approval is required. The runner SHALL stop automatically on a test,
-refactor, or commit failure, append the failure details, and leave the logfile
-for diagnosis; otherwise it proceeds to the next step only after
+No human approval is required. The runner SHALL execute the complete ordered
+plan automatically, not stop after a convenient milestone. It SHALL stop only
+on a test, refactor, or commit failure, append the failure details, and leave
+the logfile for diagnosis. Otherwise it proceeds to the next step only after
 the preceding step is green and committed.
+
+## Comparable step evidence
+
+Every step SHALL use the same log fields so results are directly comparable:
+
+```text
+timestamp | plan.step | phase | action | command | expected | actual | status
+```
+
+The runner SHALL record expected behavior before execution and actual pytest or
+Git results afterward. A step is `GREEN` only when actual matches expected.
+
+For every Git action, the logfile SHALL include:
+
+- repository root and current branch;
+- `git status --short` before staging;
+- the exact `git add ...` command;
+- the exact `git commit -m ...` command;
+- commit exit status and resulting commit ID;
+- `git status --short` after committing.
+
+If a commit fails, the runner SHALL record the full failure and SHALL NOT
+advance to the next step.
 
 ## Proposed nested plan sequence
 
@@ -132,14 +156,12 @@ the preceding step is green and committed.
 - **Step 7.3: Final refactor and release commit**
   - Check PEP 8, type hints where useful, clean git state, and commit.
 
-## Initial execution point
+## Execution policy
 
-The first automatic execution step is **Plan 1, Step 1.1: Inspect current plans
-structure**.
+The plan is an ordered execution queue, not a menu. After Step 1.1 completes,
+the runner SHALL automatically continue through Step 1.2, Step 1.3, and all
+later plans. It SHALL not require a new user request between logical steps.
 
-### What happens next
-
-- Inspect `prj/continuity_db/plans` and its current tests.
-- Identify package and import assumptions.
-- Record the smallest Step 1.2 change.
-- Continue automatically when inspection succeeds.
+The initial automatic execution step is **Plan 1, Step 1.1: Inspect current
+plans structure**. The runner SHALL then continue through the complete nested
+sequence while preserving the test, refactor, and Git gates above.
