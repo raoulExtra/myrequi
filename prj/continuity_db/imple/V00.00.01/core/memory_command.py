@@ -244,6 +244,8 @@ def lookup_domain_priority(query_tokens, row):
             return 2
     if source_type == 'metacognitive_state' and any(token in source_key for token in query_tokens):
         return 3
+    if source_type == 'epistemic_receipt' and query_tokens and all(token in searchable for token in query_tokens):
+        return 2
     if source_type == 'belief' and query_tokens and all(token in body for token in query_tokens):
         return 2
     if 'convention' in query_tokens and source_type == 'metacognitive_state':
@@ -331,9 +333,12 @@ def score_hit(query_tokens, row):
         # Explicit conditions are authoritative matches, even when receipts
         # happen to contain the same token in their audit text.
         score += 10.0
-    if source_type == 'belief' and query_tokens and all(token in body for token in query_tokens):
+    if source_type == 'belief' and len(query_tokens) == 1 and all(token in body for token in query_tokens):
         # Keep directly matching current beliefs visible ahead of incidental audit matches.
         score += 1.5
+    if source_type == 'belief_version' and len(query_tokens) > 1 and all(token in body for token in query_tokens):
+        # Historical text should beat a current row that no longer contains it.
+        score += 3.0
     if source_type == 'epistemic_receipt':
         score += 1.25
     if source_type == 'metacognitive_state' and query_tokens and any(t in source_key for t in query_tokens):
