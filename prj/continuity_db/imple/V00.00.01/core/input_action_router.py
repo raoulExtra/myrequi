@@ -24,6 +24,17 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
+from input_action_database import migrate_evidence_ledger
+from input_action_matching import (
+    build_routing_indexes,
+    literal_prefix,
+    match_json_pattern,
+    match_routing_rule,
+    pattern_prefixes,
+    route_candidates_for_text,
+)
+from input_action_parsing import parse_input
+
 U_ACTION = "uaction"
 
 ROOT = Path(__file__).resolve().parents[5]
@@ -182,7 +193,7 @@ class InputActionRouter:
                 recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         """)
-        self._migrate_evidence_ledger(cur)
+        migrate_evidence_ledger(cur)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS hypothesis_evidence (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -214,18 +225,6 @@ class InputActionRouter:
         self._seed_promotion_routes()
         self.seed_patterns_from_routes()
         self.setup_views()
-
-    @staticmethod
-    def _migrate_evidence_ledger(cur: sqlite3.Cursor) -> None:
-        """Add provenance columns required by the scientific evidence layer."""
-        for ddl in (
-            "ALTER TABLE evidence_ledger ADD COLUMN source_actor TEXT NOT NULL DEFAULT 'unknown'",
-            "ALTER TABLE evidence_ledger ADD COLUMN provenance_json TEXT NOT NULL DEFAULT ''",
-        ):
-            try:
-                cur.execute(ddl)
-            except sqlite3.OperationalError:
-                pass
 
     def _seed_science_routes(self):
         """Install built-in scientific-method commands if absent."""
@@ -518,74 +517,22 @@ class InputActionRouter:
         
         self.conn.commit()
 
-    def json_pattern_match(self, input_data: Union[str, Dict, Any], pattern_spec: str, 
-                          pattern_type: str) -> Tuple[bool, Dict[str, Any]]:
-        """Match input against JSON pattern specification.
-        
-        Args:
-            input_data: The input to match (can be string or dict)
-            pattern_spec: Pattern specification
-            pattern_type: Type of pattern (json_path, json_value, json_regex)
-            
-        Returns:
-            Tuple of (matched, extracted_data)
-        """
-        if isinstance(input_data, str):
-            try:
-                input_data = json.loads(input_data)
-            except json.JSONDecodeError:
-                input_data = {"raw_input": input_data}
-        
-        try:
-            if pattern_type == 'json_path':
-                return self._match_json_path(input_data, pattern_spec)
-            elif pattern_type == 'json_value':
-                return self._match_json_value(input_data, pattern_spec)
-            elif pattern_type == 'json_regex':
-                return self._match_json_regex(input_data, pattern_spec)
-            else:
-                return False, {}
-        except Exception as e:
-            return False, {}
+    def json_pattern_match(self, input_data: Union[str, Dict, Any], pattern_spec: str,
+                           pattern_type: str) -> Tuple[bool, Dict[str, Any]]:
+        """Match input against a JSON pattern using the matching module."""
+        return match_json_pattern(input_data, pattern_spec, pattern_type)
 
     def _match_json_path(self, data: Dict, path_spec: str) -> Tuple[bool, Dict[str, Any]]:
-        """Match using JSON path pattern (e.g., '$.intent' or '$.data.action')."""
-        try:
-            if path_spec.startswith('$.'):
-                keys = path_spec[2:].split('.')
-                current = data
-                for key in keys:
-                    if isinstance(current, dict) and key in current:
-                        current = current[key]
-                    else:
-                        return False, {}
-                return True, {path_spec: current}
-            else:
-                return False, {}
-        except Exception:
-            return False, {}
+        """Match using a JSON path pattern."""
+        return match_json_pattern(data, path_spec, "json_path")
 
     def _match_json_value(self, data: Dict, value_spec: str) -> Tuple[bool, Dict[str, Any]]:
-        """Match using JSON value pattern (e.g., 'create_project')."""
-        try:
-            if isinstance(data, dict):
-                for key, value in data.items():
-                    if str(value).lower() == value_spec.lower():
-                        return True, {key: value}
-            return False, {}
-        except Exception:
-            return False, {}
+        """Match using a JSON value pattern."""
+        return match_json_pattern(data, value_spec, "json_value")
 
     def _match_json_regex(self, data: Dict, regex_pattern: str) -> Tuple[bool, Dict[str, Any]]:
-        """Match using JSON regex pattern (e.g., '^create_.*')."""
-        try:
-            if isinstance(data, dict):
-                for key, value in data.items():
-                    if isinstance(value, str) and re.match(regex_pattern, value, re.IGNORECASE):
-                        return True, {key: value}
-            return False, {}
-        except Exception:
-            return False, {}
+        """Match using a JSON regex pattern."""
+        return match_json_pattern(data, regex_pattern, "json_regex")
 
     def load_routing_rules(self) -> List[Dict[str, Any]]:
         """Load active, resolved routing patterns (enabled=1, pending_route=0)."""
@@ -638,72 +585,19 @@ class InputActionRouter:
         return lookup
 
     def _pattern_prefixes(self, pattern_spec: str) -> List[str]:
-        spec = (pattern_spec or "").strip()
-        if not spec:
-            return []
-        if spec.startswith("^"):
-            spec = spec[1:]
-        prefixes: List[str] = []
-        if spec.startswith("(?:"):
-            close_idx = spec.find(")")
-            if close_idx > 3:
-                inner = spec[3:close_idx]
-                for alt in inner.split("|"):
-                    token = self._literal_prefix(alt)
-                    if token:
-                        prefixes.append(token)
-                if prefixes:
-                    return sorted(set(prefixes))
-        token = self._literal_prefix(spec)
-        if token:
-            prefixes.append(token)
-        return sorted(set(prefixes))
+        """Delegate routing-prefix extraction to the matching module."""
+        return pattern_prefixes(pattern_spec)
 
     def _literal_prefix(self, text: str) -> Optional[str]:
-        if not text:
-            return None
-        literal: List[str] = []
-        i = 0
-        while i < len(text):
-            ch = text[i]
-            if ch == "\\" and i + 1 < len(text):
-                nxt = text[i + 1]
-                if nxt in {"s", "S", "d", "D", "w", "W", "t", "n", "r"}:
-                    break
-                literal.append(nxt)
-                i += 2
-                continue
-            if ch in "[](){}.*+?|$^":
-                break
-            literal.append(ch)
-            i += 1
-        token = "".join(literal).strip().lower()
-        if not token:
-            return None
-        return token.split()[0]
+        """Delegate literal-prefix extraction to the matching module."""
+        return literal_prefix(text)
 
     def _build_routing_cache(self) -> None:
-        rules = [dict(rule) for rule in self.load_routing_rules()]
-        route_lookup = self._load_route_lookup_cache()
-        buckets: Dict[str, List[Dict[str, Any]]] = {}
-        fallback: List[Dict[str, Any]] = []
-        for rule in rules:
-            pattern_spec = rule.get("pattern_spec") or ""
-            if rule.get("pattern_type") == "json_regex" and isinstance(pattern_spec, str):
-                try:
-                    rule["_compiled_pattern"] = re.compile(pattern_spec, re.IGNORECASE)
-                except re.error:
-                    rule["_compiled_pattern"] = None
-            prefixes = self._pattern_prefixes(str(pattern_spec))
-            rule["_prefixes"] = prefixes
-            if prefixes:
-                for prefix in prefixes:
-                    buckets.setdefault(prefix, []).append(rule)
-            else:
-                fallback.append(rule)
-        for prefix, bucket in buckets.items():
-            bucket.sort(key=lambda item: (-int(item.get("priority", 0) or 0), str(item.get("pattern_name", ""))))
-        fallback.sort(key=lambda item: (-int(item.get("priority", 0) or 0), str(item.get("pattern_name", ""))))
+        """Build routing indexes using the matching module."""
+        rules, buckets, fallback, route_lookup = build_routing_indexes(
+            self.load_routing_rules(),
+            self._load_route_lookup_cache(),
+        )
         self._routing_rules_cache = rules
         self._routing_buckets_cache = buckets
         self._routing_fallback_cache = fallback
@@ -714,70 +608,15 @@ class InputActionRouter:
             self._build_routing_cache()
         assert self._routing_buckets_cache is not None
         assert self._routing_fallback_cache is not None
-        text = normalized_text.strip().lower()
-        if not text:
-            return list(self._routing_fallback_cache)
-        tokens = text.split()
-        candidates: List[Dict[str, Any]] = []
-        seen: set[str] = set()
-        probe_keys: List[str] = []
-
-        def add_key(key: str) -> None:
-            key = (key or "").strip().lower()
-            if key and key not in probe_keys:
-                probe_keys.append(key)
-
-        if tokens:
-            first = tokens[0]
-            add_key(first)
-            if len(tokens) > 1:
-                add_key(" ".join(tokens[:2]))
-            for variant in list(probe_keys):
-                add_key(variant.split("(", 1)[0])
-                add_key(variant.split(".", 1)[0])
-                add_key(variant.split("::", 1)[0])
-        add_key(text)
-        for key in probe_keys:
-            for rule in self._routing_buckets_cache.get(key, []):
-                pattern_name = str(rule.get("pattern_name", ""))
-                if pattern_name in seen:
-                    continue
-                seen.add(pattern_name)
-                candidates.append(rule)
-        for rule in self._routing_fallback_cache:
-            pattern_name = str(rule.get("pattern_name", ""))
-            if pattern_name in seen:
-                continue
-            seen.add(pattern_name)
-            candidates.append(rule)
-        candidates.sort(key=lambda item: (-int(item.get("priority", 0) or 0), str(item.get("pattern_name", ""))))
-        return candidates
+        return route_candidates_for_text(
+            normalized_text,
+            self._routing_buckets_cache,
+            self._routing_fallback_cache,
+        )
 
     def _match_routing_rule(self, pattern: Dict[str, Any], normalized_text: str, parsed_input: Optional[Dict[str, Any]]) -> Tuple[bool, Dict[str, Any]]:
-        pattern_type = pattern.get("pattern_type")
-        pattern_spec = pattern.get("pattern_spec") or ""
-        if parsed_input:
-            return self.json_pattern_match(parsed_input, pattern_spec, pattern_type)
-        if pattern_type == "json_regex":
-            compiled = pattern.get("_compiled_pattern")
-            if compiled is not None:
-                match = compiled.match(normalized_text)
-            else:
-                match = re.match(pattern_spec, normalized_text, re.IGNORECASE)
-            if not match:
-                return False, {}
-            extracted = {"input_text": normalized_text}
-            if match.groups():
-                extracted["groups"] = list(match.groups())
-                for idx, value in enumerate(match.groups(), start=1):
-                    extracted[f"group{idx}"] = value
-            return True, extracted
-        if pattern_type == "json_value":
-            matched = str(pattern_spec).lower() in normalized_text.lower()
-            return (matched, {"input_text": normalized_text}) if matched else (False, {})
-        if pattern_type == "json_path":
-            return True, {"intent": normalized_text, "type": "general_command"}
-        return False, {}
+        """Match one routing rule using the matching module."""
+        return match_routing_rule(pattern, normalized_text, parsed_input)
 
     def _route_mode_enabled(self) -> bool:
         cur = self.conn.cursor()
@@ -884,14 +723,8 @@ class InputActionRouter:
         ]
 
     def _parse_input(self, input_text: str, input_type: str) -> Tuple[Any, str]:
-        """Parse structured input when requested and return normalized text."""
-        parsed_input = None
-        if input_type in ["json", "structured"]:
-            try:
-                parsed_input = json.loads(input_text)
-            except json.JSONDecodeError:
-                pass
-        return parsed_input, input_text.strip()
+        """Delegate input parsing to the isolated parsing module."""
+        return parse_input(input_text, input_type)
 
     def match_input_to_route(self, input_text: str, input_type: str = "text") -> Dict[str, Any]:
         """Match input against routing patterns and determine action.
