@@ -68,10 +68,10 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('v_decision_versions', 'derived', 'derived'),
             ('v_entry_points_all', 'derived', 'derived'),
             ('v_entry_points', 'derived', 'derived'),
-            ('v_explain', 'derived', 'derived'),
-            ('v_interpreted_layer', 'derived', 'derived'),
-            ('v_item_links', 'derived', 'derived'),
-            ('v_items', 'derived', 'derived'),
+            ('v_explanations', 'derived', 'derived'),
+            ('v_interpretations', 'derived', 'derived'),
+            ('v_canonical_item_links', 'derived', 'derived'),
+            ('v_canonical_items', 'derived', 'derived'),
             ('v_lean_thinking_patterns', 'derived', 'derived'),
             ('v_meaningful_sentences', 'derived', 'derived'),
             ('v_memory_index', 'derived', 'derived'),
@@ -87,7 +87,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             ('v_component_influence_presets', 'derived', 'derived'),
             ('v_core_model', 'derived', 'derived'),
             ('v_decisions', 'derived', 'derived'),
-            ('v_meta', 'derived', 'derived'),
+            ('v_metacognitive_state', 'derived', 'derived'),
             ('v_object_epistemic_tags', 'derived', 'derived'),
             ('v_open_question_flow', 'derived', 'derived'),
             ('v_problem_solving_patterns', 'derived', 'derived'),
@@ -195,7 +195,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         conn = hardening.connect()
         try:
             row = conn.execute(
-                "select synthesis_key, topic, input_count, unresolved_conflicts from v_interpreted_layer where input_count > 0 order by input_count desc, synthesis_key limit 1"
+                "select synthesis_key, topic, input_count, unresolved_conflicts from v_interpretations where input_count > 0 order by input_count desc, synthesis_key limit 1"
             ).fetchone()
         finally:
             conn.close()
@@ -207,9 +207,9 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         conn = hardening.connect()
         try:
             argument_count = conn.execute("select count(*) from arguments").fetchone()[0]
-            argument_surface = conn.execute("select count(*) from v_items where item_kind='argument'").fetchone()[0]
+            argument_surface = conn.execute("select count(*) from v_canonical_items where item_kind='argument'").fetchone()[0]
             episode_count = conn.execute("select count(*) from reasoning_episodes").fetchone()[0]
-            episode_surface = conn.execute("select count(*) from v_items where item_kind='reasoning_episode'").fetchone()[0]
+            episode_surface = conn.execute("select count(*) from v_canonical_items where item_kind='reasoning_episode'").fetchone()[0]
         finally:
             conn.close()
 

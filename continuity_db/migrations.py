@@ -1003,7 +1003,7 @@ def seed_reasoning_episodes(cur):
             'gap_report_reasoning_surface',
             'Resolve reasoning surface gaps',
             'Reasoning episodes should be first-class and arguments should appear on the main recall surface.',
-            'The gap report found no dedicated reasoning_episode object and found that arguments were absent from v_items and v_recall.',
+            'The gap report found no dedicated reasoning_episode object and found that arguments were absent from v_canonical_items and v_recall.',
             'Creating a dedicated reasoning episode table and surfacing arguments makes the DB better at preserving and reusing good thinking.',
             'Leave reasoning only in journal entries; keep arguments hidden in a specialized table; rely on syntheses alone.',
             'The episode shape may need refinement after real usage.',
@@ -1108,7 +1108,7 @@ def seed_interpretive_layer(cur):
 
 
 def create_interpretive_layer_views(cur):
-    cur.execute("DROP VIEW IF EXISTS v_interpreted_layer")
+    cur.execute("DROP VIEW IF EXISTS v_interpretations")
     cur.execute("DROP VIEW IF EXISTS v_synthesis_conflicts")
     cur.execute("DROP VIEW IF EXISTS v_synthesis_inputs")
     cur.execute("DROP VIEW IF EXISTS v_syntheses")
@@ -1149,7 +1149,7 @@ def create_decision_overview_view(cur):
 
 
 def create_reasoning_v2_views(cur):
-    for name in ['v_item_links', 'v_meta', 'v_explain', 'v_recall', 'v_recall_all', 'v_entry_points', 'v_entry_points_all', 'v_items', 'v_memory_index', 'v_decision_versions', 'v_decision_options', 'v_open_question_flow', 'v_reasoning_episode_inputs', 'v_reasoning_flow']:
+    for name in ['v_canonical_item_links', 'v_metacognitive_state', 'v_explanations', 'v_recall', 'v_recall_all', 'v_entry_points', 'v_entry_points_all', 'v_canonical_items', 'v_memory_index', 'v_decision_versions', 'v_decision_options', 'v_open_question_flow', 'v_reasoning_episode_inputs', 'v_reasoning_flow']:
         cur.execute(f'DROP VIEW IF EXISTS {name}')
     cur.executescript(RAW_RECALL_VIEWS_SQL)
 
@@ -1295,7 +1295,7 @@ def create_convictions_view(cur):
 
 
 def create_frame_views(cur):
-    for name in ['v_visions', 'v_missions', 'v_strategies', 'v_plans']:
+    for name in ['v_visions', 'v_project_missions', 'v_strategies', 'v_plans']:
         cur.execute(f'DROP VIEW IF EXISTS {name}')
     cur.executescript(FRAME_VIEWS_SQL)
 
@@ -1646,8 +1646,8 @@ def seed_canonical_tag(cur):
         'v_memory_index',
         'v_schema_catalog',
         'v_storage_map',
-        'v_meta',
-        'v_item_links',
+        'v_metacognitive_state',
+        'v_canonical_item_links',
         'v_object_epistemic_tags',
         'v_tag_search',
         'decisions',
@@ -2253,16 +2253,16 @@ def validate(conn):
         "v_glossary_terms",
         "v_provenance_summary",
         "v_visions",
-        "v_missions",
+        "v_project_missions",
         "v_strategies",
         "v_plans",
         "v_convictions",
-        "v_items",
-        "v_item_links",
+        "v_canonical_items",
+        "v_canonical_item_links",
         "v_argument_claims",
         "v_recall",
-        "v_explain",
-        "v_meta",
+        "v_explanations",
+        "v_metacognitive_state",
         "v_entry_points_all",
         "v_entry_points",
         "v_memory_index",
@@ -2489,17 +2489,17 @@ def validate(conn):
         issues.append(("active_syntheses", active_syntheses, '>=1'))
     if cur.execute("select 1 from sqlite_master where type='view' and name='v_syntheses'").fetchone() is None:
         issues.append(("syntheses_view", ["v_syntheses missing"], []))
-    if cur.execute("select 1 from sqlite_master where type='view' and name='v_interpreted_layer'").fetchone() is None:
-        issues.append(("interpreted_layer_view", ["v_interpreted_layer missing"], []))
+    if cur.execute("select 1 from sqlite_master where type='view' and name='v_interpretations'").fetchone() is None:
+        issues.append(("interpreted_layer_view", ["v_interpretations missing"], []))
 
     if cur.execute("select 1 from sqlite_master where type='table' and name='reasoning_episodes'").fetchone() is None:
         issues.append(("reasoning_episodes_missing", ["reasoning_episodes missing"], []))
     else:
-        reasoning_surface = cur.execute("select count(*) from v_items where item_kind='reasoning_episode'").fetchone()[0]
+        reasoning_surface = cur.execute("select count(*) from v_canonical_items where item_kind='reasoning_episode'").fetchone()[0]
         reasoning_total = cur.execute("select count(*) from reasoning_episodes").fetchone()[0]
         if reasoning_surface != reasoning_total:
             issues.append(("reasoning_episode_surface", reasoning_surface, reasoning_total))
-        argument_surface = cur.execute("select count(*) from v_items where item_kind='argument'").fetchone()[0]
+        argument_surface = cur.execute("select count(*) from v_canonical_items where item_kind='argument'").fetchone()[0]
         argument_total = cur.execute("select count(*) from arguments").fetchone()[0]
         if argument_surface != argument_total:
             issues.append(("argument_surface", argument_surface, argument_total))

@@ -42,7 +42,7 @@ for layered concept work.
 The DB now also models:
 
 - **vision / mission / strategy / plan views**:
-  `v_visions`, `v_missions`, `v_strategies`,
+  `v_visions`, `v_project_missions`, `v_strategies`,
   `v_plans`
 - **project-scoped goals**: goals now live as
   project-specific `metacognitive_state` rows like
@@ -139,13 +139,13 @@ supporting metadata.
 
 ## Derived views
 
-- `v_visions` / `v_missions`
+- `v_visions` / `v_project_missions`
 - `v_strategies` / `v_plans`
 - `v_decisions`
 - `v_decision_options`
 - `v_decision_versions`
 - `v_convictions`
-- `v_items`
+- `v_canonical_items`
 - `v_recall` / `v_recall_all`
 - `v_entry_points` / `v_entry_points_all`
 - `v_memory_index`
@@ -156,12 +156,12 @@ supporting metadata.
 - `v_component_influence_history`
 - `v_component_influence_modes`
 - `v_concept_search`
-- `v_item_links`
+- `v_canonical_item_links`
 - `error_recovery_influence_flow` work plan
 - `evolved_baseline_demo` work plan
 - `concept_links` for concept-to-plan relationships
-- `v_explain`
-- `v_interpreted_layer`
+- `v_explanations`
+- `v_interpretations`
 - `v_storage_map`
 - `v_glossary_terms`
 - `v_provenance_summary`

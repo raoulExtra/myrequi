@@ -304,7 +304,7 @@ SELECT
 FROM metacognitive_state
 ORDER BY updated_at DESC, state_key;
 
-CREATE VIEW v_missions AS
+CREATE VIEW v_project_missions AS
 SELECT
     'mission' AS frame_role,
     project_name AS frame_key,
