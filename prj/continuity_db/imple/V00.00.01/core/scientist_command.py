@@ -112,6 +112,7 @@ STOPWORDS = {
 def connect(db_path=DB_PATH):
     conn = sqlite3.connect(db_path)
     conn.execute('PRAGMA foreign_keys=ON')
+    ensure_research_audit_schema(conn)
     return conn
 
 

@@ -82,6 +82,7 @@ is fulfilled, the runner SHALL:
 3. Run the final required status check and commit any completed step before
    termination.
 4. Report the completed condition and terminal commit in the final summary.
+5. Terminate with "END of PLAN reached" message and closing log files.
 
 The runner SHALL NOT invent, weaken, or replace the user-provided condition.
 If no end condition is supplied, initialization SHALL stop with a logged
