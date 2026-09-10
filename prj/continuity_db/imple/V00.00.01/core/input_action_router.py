@@ -24,7 +24,18 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 
-from input_action_database import migrate_evidence_ledger
+from input_action_audit import (
+    action_error,
+    action_warning,
+    importance_reason,
+    preview_text,
+    record_route_receipt,
+    record_route_usage,
+    summarize_action_result,
+)
+from input_action_bridge import PiBridgeClient
+from input_action_database import ensure_router_schema
+from input_action_output import extract_session_text, format_plain_result
 from input_action_matching import (
     build_routing_indexes,
     literal_prefix,
@@ -49,9 +60,9 @@ class InputActionRouter:
         self.db_path = Path(db_path)
         self.conn = sqlite3.connect(self.db_path)
         self.conn.row_factory = sqlite3.Row
-        self.conn.execute('PRAGMA foreign_keys=ON')
         self.pid = pid
         self.verbose = verbose
+        self._bridge_client = PiBridgeClient(ROOT)
         self.setup_database()
         self.running = False
         self.loop_mode = False
@@ -63,162 +74,7 @@ class InputActionRouter:
 
     def setup_database(self):
         """Ensure required tables and views exist; seed patterns from existing routes."""
-        cur = self.conn.cursor()
-
-        # Create input_action_log table for audit trail
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS input_action_log (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                input_text TEXT NOT NULL,
-                input_type TEXT NOT NULL,
-                matched_route_name TEXT,
-                matched_route_type TEXT,
-                action_type TEXT NOT NULL,
-                parameters TEXT,
-                success INTEGER NOT NULL,
-                error_message TEXT,
-                planning_episode_id INTEGER,
-                loop_iteration INTEGER DEFAULT 0,
-                FOREIGN KEY (planning_episode_id) REFERENCES work_plans(id)
-            )
-        """)
-
-        # Create input_patterns table for JSON pattern matching rules
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS input_patterns (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                pattern_name TEXT NOT NULL UNIQUE,
-                pattern_type TEXT NOT NULL CHECK(pattern_type IN ('json_path', 'json_value', 'json_regex')),
-                pattern_spec TEXT NOT NULL,
-                route_name TEXT NOT NULL,
-                route_type TEXT NOT NULL CHECK(route_type IN ('control_command', 'agent_tool')),
-                priority INTEGER NOT NULL DEFAULT 0,
-                description TEXT,
-                enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
-                pending_route INTEGER NOT NULL DEFAULT 0 CHECK(pending_route IN (0,1)),
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # Compact aggregate stats: one row per route instead of one row per routine call.
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS route_usage_stats (
-                route_name TEXT NOT NULL,
-                route_type TEXT NOT NULL,
-                total_count INTEGER NOT NULL DEFAULT 0,
-                success_count INTEGER NOT NULL DEFAULT 0,
-                error_count INTEGER NOT NULL DEFAULT 0,
-                warning_count INTEGER NOT NULL DEFAULT 0,
-                first_used_at TEXT,
-                last_used_at TEXT,
-                last_success_at TEXT,
-                last_error_at TEXT,
-                last_warning_at TEXT,
-                last_input_preview TEXT,
-                last_result_preview TEXT,
-                last_error TEXT,
-                PRIMARY KEY (route_name, route_type)
-            )
-        """)
-
-        # Detailed receipts are reserved for important events only: errors,
-        # warnings, state-changing route classes, or explicit receipt-worthy routes.
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS route_execution_receipts (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                route_name TEXT,
-                route_type TEXT,
-                input_text TEXT NOT NULL,
-                success INTEGER NOT NULL,
-                importance_reason TEXT NOT NULL,
-                result_summary TEXT,
-                error_message TEXT,
-                warning_message TEXT,
-                decision_json TEXT,
-                action_result_json TEXT,
-                input_action_log_id INTEGER
-            )
-        """)
-
-        # Promotion candidates are the metabolism layer between cheap traces and
-        # durable memory objects.  Candidate rows are small, reviewable, and can
-        # be promoted into memory_fragments or reasoning_episodes.
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS promotion_candidates (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source_type TEXT NOT NULL,
-                source_id INTEGER,
-                candidate_kind TEXT NOT NULL,
-                reason TEXT NOT NULL,
-                summary TEXT NOT NULL,
-                score REAL NOT NULL DEFAULT 0.5,
-                status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','promoted','rejected')),
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                promoted_to_type TEXT,
-                promoted_to_id TEXT,
-                promoted_at TEXT,
-                UNIQUE(source_type, source_id, candidate_kind)
-            )
-        """)
-
-        # Scientific layer: separate hypotheses from evidence, predictions,
-        # falsifiers, and confidence updates.
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS hypotheses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                hypothesis_key TEXT NOT NULL UNIQUE,
-                claim TEXT NOT NULL,
-                prediction TEXT NOT NULL DEFAULT '',
-                expected_evidence TEXT NOT NULL DEFAULT '',
-                falsifier TEXT NOT NULL DEFAULT '',
-                confidence REAL NOT NULL DEFAULT 0.5,
-                status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active','supported','weakened','falsified','retired')),
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS evidence_ledger (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                source_type TEXT NOT NULL DEFAULT 'user_observation',
-                source_ref TEXT,
-                source_actor TEXT NOT NULL DEFAULT 'unknown',
-                provenance_json TEXT NOT NULL DEFAULT '',
-                observation TEXT NOT NULL,
-                reliability REAL NOT NULL DEFAULT 0.7,
-                recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-        migrate_evidence_ledger(cur)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS hypothesis_evidence (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                hypothesis_id INTEGER NOT NULL,
-                evidence_id INTEGER NOT NULL,
-                relation TEXT NOT NULL CHECK(relation IN ('supports','weakens','neutral','falsifies')),
-                rationale TEXT NOT NULL DEFAULT '',
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(hypothesis_id, evidence_id),
-                FOREIGN KEY(hypothesis_id) REFERENCES hypotheses(id),
-                FOREIGN KEY(evidence_id) REFERENCES evidence_ledger(id)
-            )
-        """)
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS belief_confidence_updates (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                target_type TEXT NOT NULL CHECK(target_type IN ('hypothesis','belief')),
-                target_id INTEGER NOT NULL,
-                confidence_before REAL,
-                confidence_after REAL NOT NULL,
-                reason TEXT NOT NULL,
-                evidence_id INTEGER,
-                created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
+        ensure_router_schema(self.conn)
 
         self.conn.commit()
         self._seed_science_routes()
@@ -776,6 +632,17 @@ class InputActionRouter:
             }
             if route_type == "agent_tool" and not decision.get("handler"):
                 decision["handler"] = route.get("handler")
+            if route_name == "session_prompt" and not self._route_mode_enabled():
+                return {
+                    "matched_pattern": None,
+                    "route_name": None,
+                    "route_type": None,
+                    "action_type": "unknown",
+                    "parameters": {"input_text": normalized_text, "query": normalized_text},
+                    "priority": -1,
+                    "description": "Route recognition mode is off",
+                    "recall_packet": {"query": normalized_text, "hit_count": 0, "hits": []},
+                }
             return decision
 
         # No pattern matched: try memory recall as a DB key/content search fallback.
@@ -846,126 +713,33 @@ class InputActionRouter:
             return {"query": query, "hit_count": 0, "hits": [], "error": str(exc)}
 
     def _preview_text(self, value: Any, limit: int = 1000) -> Optional[str]:
-        """Return a bounded, single-field text summary for DB stats/receipts."""
-        if value is None:
-            return None
-        if isinstance(value, str):
-            text = value
-        else:
-            try:
-                text = json.dumps(value, ensure_ascii=False, sort_keys=True)
-            except TypeError:
-                text = str(value)
-        text = text.strip()
-        if len(text) > limit:
-            return text[:limit] + "..."
-        return text or None
+        """Delegate bounded text formatting to the audit module."""
+        return preview_text(value, limit)
 
     def _action_warning(self, action_result: Any) -> Optional[str]:
-        if isinstance(action_result, dict):
-            warning = action_result.get("warning") or action_result.get("warnings")
-            return self._preview_text(warning, limit=500)
-        return None
+        return action_warning(action_result)
 
     def _action_error(self, action_result: Any) -> Optional[str]:
-        if isinstance(action_result, dict):
-            error = action_result.get("error") or action_result.get("error_message")
-            return self._preview_text(error, limit=500)
-        return None
+        return action_error(action_result)
 
     def _summarize_action_result(self, action_result: Any) -> Optional[str]:
-        if isinstance(action_result, dict):
-            for key in ("status", "message", "warning", "error", "value", "result", "assistant_text"):
-                value = action_result.get(key)
-                if value:
-                    return self._preview_text({key: value}, limit=2000)
-        return self._preview_text(action_result, limit=2000)
+        return summarize_action_result(action_result)
 
     def _importance_reason(self, decision: Dict[str, Any], success: bool, action_result: Any, error_message: Optional[str]) -> Optional[str]:
-        """Decide whether this execution deserves a detailed receipt.
-
-        Routine successful read-only routes are represented only in route_usage_stats.
-        Detailed rows are kept for failures, warnings, state-changing route families,
-        or receipt/audit route families.
-        """
-        route_name = str(decision.get("route_name") or "unknown")
-        if not success or error_message or self._action_error(action_result):
-            return "error"
-        if self._action_warning(action_result):
-            return "warning"
-        if route_name.startswith(("plan_", "receipt_", "promotion_", "hypothesis_", "evidence_")):
-            return "state_or_audit_route"
-        if route_name.startswith("memory_") and not route_name.startswith("memory_recall"):
-            return "state_or_audit_route"
-        if route_name in {"report_gap", "route_on", "route_off", "session_model_set"}:
-            return "state_changing_route"
-        return None
+        return importance_reason(decision, success, action_result, error_message)
 
     def _record_route_usage(self, decision: Dict[str, Any], input_text: str, timestamp: str,
                             success: bool, action_result: Any, error_message: Optional[str]) -> None:
-        route_name = str(decision.get("route_name") or "unmatched")
-        route_type = str(decision.get("route_type") or "unknown")
-        warning = self._action_warning(action_result)
-        error = error_message or self._action_error(action_result)
-        result_preview = self._summarize_action_result(action_result)
-        input_preview = self._preview_text(input_text, limit=500)
-        self.conn.execute("""
-            INSERT INTO route_usage_stats (
-                route_name, route_type, total_count, success_count, error_count, warning_count,
-                first_used_at, last_used_at, last_success_at, last_error_at, last_warning_at,
-                last_input_preview, last_result_preview, last_error
-            ) VALUES (?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            ON CONFLICT(route_name, route_type) DO UPDATE SET
-                total_count = total_count + 1,
-                success_count = success_count + excluded.success_count,
-                error_count = error_count + excluded.error_count,
-                warning_count = warning_count + excluded.warning_count,
-                last_used_at = excluded.last_used_at,
-                last_success_at = COALESCE(excluded.last_success_at, route_usage_stats.last_success_at),
-                last_error_at = COALESCE(excluded.last_error_at, route_usage_stats.last_error_at),
-                last_warning_at = COALESCE(excluded.last_warning_at, route_usage_stats.last_warning_at),
-                last_input_preview = excluded.last_input_preview,
-                last_result_preview = excluded.last_result_preview,
-                last_error = COALESCE(excluded.last_error, route_usage_stats.last_error)
-        """, (
-            route_name,
-            route_type,
-            1 if success else 0,
-            0 if success else 1,
-            1 if warning else 0,
-            timestamp,
-            timestamp,
-            timestamp if success else None,
-            timestamp if not success or error else None,
-            timestamp if warning else None,
-            input_preview,
-            result_preview,
-            error,
-        ))
+        record_route_usage(self.conn, decision, input_text, timestamp, success, action_result, error_message)
 
     def _record_route_receipt(self, decision: Dict[str, Any], input_text: str, timestamp: str,
                               success: bool, action_result: Any, error_message: Optional[str],
                               importance_reason: str, input_action_log_id: Optional[int] = None) -> None:
-        self.conn.execute("""
-            INSERT INTO route_execution_receipts (
-                timestamp, route_name, route_type, input_text, success, importance_reason,
-                result_summary, error_message, warning_message, decision_json, action_result_json,
-                input_action_log_id
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """, (
-            timestamp,
-            decision.get("route_name"),
-            decision.get("route_type"),
-            str(input_text),
-            1 if success else 0,
-            importance_reason,
-            self._summarize_action_result(action_result),
-            error_message or self._action_error(action_result),
-            self._action_warning(action_result),
-            self._preview_text(decision, limit=5000),
-            self._preview_text(action_result, limit=5000),
-            input_action_log_id,
-        ))
+        record_route_receipt(
+            self.conn, decision, input_text, timestamp, success, action_result,
+            error_message, importance_reason, input_action_log_id,
+        )
+
 
     def execute_routing_decision(self, decision: Dict[str, Any], input_text: str,
                                planning_episode_id: Optional[int] = None,
@@ -1759,70 +1533,19 @@ class InputActionRouter:
         return {"status": "executed_agent", "handler": handler}
 
     def _bridge_binary(self) -> Optional[Path]:
-        candidates = [
-            ROOT / ".pi/bin/pi-bridge",
-            Path.home() / ".pi/agent/bin/pi-bridge",
-            Path.home() / ".pi/agent/npm/node_modules/@vanillagreen/pi-session-bridge/bin/pi-bridge.js",
-        ]
-        for candidate in candidates:
-            if candidate.exists():
-                return candidate
-        return None
+        return self._bridge_client.binary()
 
     def _bridge_command(self, *args: str, timeout: int = 20) -> Any:
-        bridge = self._bridge_binary()
-        if bridge is None:
-            raise FileNotFoundError("pi-bridge CLI not found")
-
-        if bridge.suffix == ".js":
-            command = ["node", str(bridge), *args]
-        else:
-            command = [str(bridge), *args]
-
-        output = subprocess.check_output(command, text=True, stderr=subprocess.STDOUT, timeout=timeout)
-        return json.loads(output)
+        return self._bridge_client.command(*args, timeout=timeout)
 
     def _select_bridge_pid(self) -> Optional[int]:
-        try:
-            instances = self._bridge_command("list", "--json")
-        except Exception:
-            return None
-
-        if not isinstance(instances, list):
-            return None
-
-        workspace = str(ROOT)
-        matches = [
-            inst for inst in instances
-            if inst.get("cwd") == workspace and inst.get("alive") and inst.get("socketExists")
-        ]
-        if not matches:
-            matches = [
-                inst for inst in instances
-                if inst.get("alive") and inst.get("socketExists")
-            ]
-        if not matches:
-            return None
-        return int(matches[0]["pid"])
+        return self._bridge_client.select_pid()
 
     def _bridge_request(self, pid: int, payload: Dict[str, Any], timeout: int = 20) -> Any:
-        request = dict(payload)
-        request.setdefault("id", f"iar-{int(time.time() * 1000)}")
-        return self._bridge_command("request", "--pid", str(pid), json.dumps(request), timeout=timeout)
+        return self._bridge_client.request(pid, payload, timeout=timeout)
 
     def _extract_tool_text(self, history_response: Dict[str, Any], tool_name: str) -> Optional[str]:
-        events = ((history_response or {}).get("data") or {}).get("events") or []
-        for event in reversed(events):
-            data = event.get("data") or {}
-            if event.get("event") != "tool_execution_end":
-                continue
-            if data.get("toolName") != tool_name:
-                continue
-            result = data.get("result") or {}
-            for chunk in result.get("content") or []:
-                if isinstance(chunk, dict) and chunk.get("type") == "text" and chunk.get("text"):
-                    return chunk["text"]
-        return None
+        return self._bridge_client.extract_tool_text(history_response, tool_name)
 
     def _execute_context_info_tool(self, decision: Dict[str, Any]) -> Any:
         pid = self._select_bridge_pid()
@@ -1889,117 +1612,12 @@ class InputActionRouter:
             }
 
     def _format_plain_result(self, result: Dict[str, Any]) -> List[str]:
-        action_result = result.get("action_result") or {}
-        lines: List[str] = []
-
-        assistant_text = action_result.get("assistant_text") or action_result.get("reply_text")
-        if isinstance(assistant_text, str) and assistant_text.strip():
-            lines.append(assistant_text.strip())
-            return lines
-
-        session_text = self._extract_session_text(action_result.get("session_result"))
-        if session_text:
-            lines.append(session_text)
-            return lines
-
-        text = action_result.get("result")
-        if isinstance(text, str) and text.strip():
-            lines.append(text.strip())
-            return lines
-
-        # Show the queried value if present (e.g., info_about return value)
-        value = action_result.get("value")
-        if isinstance(value, (str, int, float, bool)) and value:
-            lines.append(f"value: {value}")
-            return lines
-
-        if action_result.get("command"):
-            lines.append(str(action_result["command"]))
-
-        message = action_result.get("message")
-        if isinstance(message, str) and message.strip():
-            lines.append(message.strip())
-
-        warning = action_result.get("warning")
-        if isinstance(warning, str) and warning.strip():
-            lines.append(warning.strip())
-
-        error = action_result.get("error")
-        if isinstance(error, str) and error.strip():
-            lines.append(error.strip())
-
-        if not lines:
-            lines.append(json.dumps(action_result, indent=2))
-        return lines
+        """Delegate result formatting to the output module."""
+        return format_plain_result(result)
 
     def _extract_session_text(self, session_result: Any) -> Optional[str]:
-        if not isinstance(session_result, dict):
-            return None
-
-        def pick_text(node: Any) -> Optional[str]:
-            if isinstance(node, str):
-                return node.strip() or None
-            if isinstance(node, list):
-                for item in node:
-                    found = pick_text(item)
-                    if found:
-                        return found
-                return None
-            if isinstance(node, dict):
-                for key in ("text", "message", "result", "content", "output"):
-                    if key in node:
-                        found = pick_text(node[key])
-                        if found:
-                            return found
-                data = node.get("data")
-                if isinstance(data, dict):
-                    for key in ("text", "message", "result", "content", "output", "deliveredAs"):
-                        value = data.get(key)
-                        if isinstance(value, str) and value.strip():
-                            return value.strip()
-                        found = pick_text(value)
-                        if found:
-                            return found
-                return None
-            return None
-
-        for key in ("assistant_text", "reply_text"):
-            value = session_result.get(key)
-            if isinstance(value, str) and value.strip():
-                return value.strip()
-
-        history = session_result.get("history")
-        if isinstance(history, dict):
-            events = ((history.get("data") or {}).get("events") or [])
-            for event in reversed(events):
-                data = event.get("data") or {}
-                message = data.get("message") or data.get("partial")
-                if not isinstance(message, dict) or message.get("role") != "assistant":
-                    continue
-                content = message.get("content") or []
-                if isinstance(content, str) and content.strip():
-                    return content.strip()
-                if isinstance(content, list):
-                    for chunk in reversed(content):
-                        if isinstance(chunk, dict):
-                            if chunk.get("type") == "text" and isinstance(chunk.get("text"), str) and chunk["text"].strip():
-                                return chunk["text"].strip()
-                            if isinstance(chunk.get("text"), str) and chunk["text"].strip():
-                                return chunk["text"].strip()
-
-        send = session_result.get("send")
-        if isinstance(send, dict):
-            found = pick_text(send)
-            if found:
-                return found
-
-        state = session_result.get("state")
-        if isinstance(state, dict):
-            found = pick_text(state)
-            if found:
-                return found
-
-        return pick_text(session_result)
+        """Delegate session-text extraction to the output module."""
+        return extract_session_text(session_result)
 
     def process_continuous_input(self, source="stdin") -> Dict[str, Any]:
         """Process a single input continuously. Returns routing decision."""
