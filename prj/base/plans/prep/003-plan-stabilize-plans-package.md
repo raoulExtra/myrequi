@@ -121,8 +121,9 @@ Context budget constraint:
 - If context usage reaches or exceeds 30%, execute `/compact` before
   continuing. This plan already compacted at the 30% threshold; do not wait
   for 50% usage.
-- After compaction, re-read the active step state and continue from the last
-  committed checkpoint.
+- After compaction, wait for the exact text `Compaction completed.`. Only
+  after that text is received, issue the `continue` command, re-read the active
+  step state, and continue from the last committed checkpoint.
 
 Language: Python. Test framework: pytest. The work uses small, reversible
 TDD cycles and requires a commit before progressing to the next step.
