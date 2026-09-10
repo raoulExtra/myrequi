@@ -593,6 +593,7 @@ class GraphToolTests(unittest.TestCase):
             self.assertTrue(out_file.exists())
             self.assertEqual(out_file.read_text(encoding="utf-8").strip(), "x = 1")
 
+    @unittest.skipUnless(java_from_ast.tree is not None, "javalang is not installed")
     def test_java_from_ast_module_builds_class_and_method(self):
         graph_data = {
             "nodes": [
@@ -628,6 +629,7 @@ class GraphToolTests(unittest.TestCase):
         self.assertIn("int x = 1;", source)
         self.assertIn("return x;", source)
 
+    @unittest.skipUnless(java_from_ast.tree is not None, "javalang is not installed")
     def test_java_from_ast_respects_explicit_edge_order(self):
         graph_data = {
             "nodes": [
@@ -655,6 +657,7 @@ class GraphToolTests(unittest.TestCase):
         source = java_from_ast.to_source(graph_data)
         self.assertTrue(source.index("first()") < source.index("second()"))
 
+    @unittest.skipUnless((REPO_ROOT / "prj/demo/examples/040-rust-ast-func.rs").exists(), "Rust expected fixture is absent")
     def test_main_supports_rs_for_ast_graph(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)
@@ -673,6 +676,7 @@ class GraphToolTests(unittest.TestCase):
             self.assertTrue(out_file.exists())
             self.assertEqual(out_file.read_text(encoding="utf-8"), expected_file.read_text(encoding="utf-8"))
 
+    @unittest.skipUnless((REPO_ROOT / "prj/demo/examples/041-rust-ast-struct-impl.rs").exists(), "Rust expected fixture is absent")
     def test_main_supports_rs_for_struct_impl_graph(self):
         with tempfile.TemporaryDirectory() as tmp:
             tmp = Path(tmp)

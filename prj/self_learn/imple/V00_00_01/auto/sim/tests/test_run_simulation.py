@@ -1,7 +1,6 @@
 """Tests for Mesa simulation runner with -sim JSON argument."""
 
 import json
-import os
 import sys
 import tempfile
 import unittest
@@ -9,7 +8,7 @@ from pathlib import Path
 
 
 # Add the project root to sys.path so we can import the simulation module
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', '..', '..'))
+sys.path.insert(0, str(Path(__file__).resolve().parents[7]))
 
 
 class TestRunSimulationImport(unittest.TestCase):
@@ -28,10 +27,8 @@ class TestJSONVariantLoading(unittest.TestCase):
         """Set up test fixture."""
         self.test_dir = tempfile.mkdtemp()
         self.JSON_DIR = Path(self.test_dir)
-        self.JSON_DIR.mkdir()
 
     def tearDown(self):
-        """Clean up test fixture."""
         import shutil
         shutil.rmtree(self.test_dir)
 
@@ -79,10 +76,8 @@ class TestSimulationExecution(unittest.TestCase):
         """Set up test fixture."""
         self.test_dir = tempfile.mkdtemp()
         self.JSON_DIR = Path(self.test_dir)
-        self.JSON_DIR.mkdir()
 
     def tearDown(self):
-        """Clean up test fixture."""
         import shutil
         shutil.rmtree(self.test_dir)
 
