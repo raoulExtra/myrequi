@@ -26,6 +26,27 @@ Provider error log:
 
 `tmp/provider-error.log`
 
+## IMPORTANT: masterplan initialization log rotation
+
+At the start of every new masterplan initialization, before Step 1.1 runs, the
+runner SHALL archive any existing active logs:
+
+- `tmp/plan-execution.log`
+- `tmp/provider-error.log`
+
+Move each existing file to `tmp/done/` and append the UTC timestamp to its
+filename, for example:
+
+```text
+tmp/done/plan-execution-20260910T102151Z.log
+tmp/done/provider-error-20260910T102151Z.log
+```
+
+The runner SHALL create `tmp/done/` when needed, preserve the original file
+contents, and start fresh active logs for the new masterplan. The archive
+operation SHALL be recorded in the new `tmp/plan-execution.log`. Never
+overwrite an existing archive; add a numeric suffix if necessary.
+
 The runner SHALL create the workspace `tmp` directory when needed and append
 step summaries, pytest commands/results, refactor notes, git commands, commit
 IDs, and failures to the execution logfile. The logfile is runtime evidence
