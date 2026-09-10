@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 
-ROOT = Path(__file__).resolve().parents[4]
+ROOT = Path(__file__).resolve().parents[7]
 ADAPTER_PATH = (
     ROOT
     / "prj/continuity_db/imple/V00.00.01/extension/content-guard/llm_guard_adapter.py"
