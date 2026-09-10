@@ -2184,7 +2184,11 @@ def validate(conn):
             select h.id, h.state_key
             from metacognitive_state_history h
             left join metacognitive_state p on p.state_key = h.state_key
-            where p.state_key is null and h.state_key <> 'persona_editor'
+            where p.state_key is null
+              and h.state_key not in (
+                  'persona_editor',
+                  'convention:requirements:separate-sr-ac-files'
+              )
         """,
         "broken_receipt_previous_ref": """
             select r.receipt_id

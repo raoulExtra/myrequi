@@ -56,7 +56,7 @@ def ensure_memory_index_view(cur):
     cur.execute(
         '''
         CREATE VIEW v_memory_index AS
-        SELECT 'belief' AS source_type, CAST(id AS TEXT) AS source_key, slug AS title,
+        SELECT 'belief' AS source_type, slug AS source_key, slug AS title,
                current_statement AS body, confidence, current_version AS version, updated_at AS recorded_at
         FROM beliefs
         UNION ALL SELECT 'belief_version', CAST(bv.id AS TEXT), COALESCE(b.slug, CAST(bv.belief_id AS TEXT)),
@@ -230,6 +230,8 @@ LAYER_PRIORITY = {
 def lookup_domain_priority(query_tokens, row):
     """Prioritize explicit term/concept lookups without making them global boosts."""
     source_type = str(row.get('source_type') or '')
+    source_key = str(row.get('source_key') or '').lower()
+    body = str(row.get('body') or '').lower()
     searchable = ' '.join(
         str(row.get(field) or '')
         for field in ('title', 'body', 'source_key')
@@ -240,11 +242,17 @@ def lookup_domain_priority(query_tokens, row):
     if 'concept' in query_tokens and source_type in ('concept', 'concept_search'):
         if any(token != 'concept' and token in searchable for token in query_tokens):
             return 2
+    if source_type == 'metacognitive_state' and any(token in source_key for token in query_tokens):
+        return 3
+    if source_type == 'belief' and query_tokens and all(token in body for token in query_tokens):
+        return 2
     if 'convention' in query_tokens and source_type == 'metacognitive_state':
         if 'convention' in searchable:
             return 2
-    if 'policy' in query_tokens and source_type == 'policy':
+    if 'policy' in query_tokens and source_type == 'metacognitive_state' and source_key == 'thinking_policy':
         return 2
+    if 'policy' in query_tokens and source_type == 'policy':
+        return 1
     if 'tag' in query_tokens and source_type == 'tag':
         if any(token != 'tag' and token in searchable for token in query_tokens):
             return 2
@@ -319,6 +327,13 @@ def score_hit(query_tokens, row):
     elif confidence <= 0:
         confidence = 0.35
     score = overlap + confidence + recency_bonus(row.get('recorded_at'))
+    if condition and query_tokens and all(token in condition for token in query_tokens):
+        # Explicit conditions are authoritative matches, even when receipts
+        # happen to contain the same token in their audit text.
+        score += 10.0
+    if source_type == 'belief' and query_tokens and all(token in body for token in query_tokens):
+        # Keep directly matching current beliefs visible ahead of incidental audit matches.
+        score += 1.5
     if source_type == 'epistemic_receipt':
         score += 1.25
     if source_type == 'metacognitive_state' and query_tokens and any(t in source_key for t in query_tokens):

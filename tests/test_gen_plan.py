@@ -19,12 +19,12 @@ class GenPlanTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            files = sorted(outdir.glob('*_plan.md'))
+            files = sorted(outdir.glob('*-plan.md'))
             self.assertEqual(len(files), 1)
             text = files[0].read_text()
             self.assertIn('TODO[ ]', text)
             self.assertIn('Make a short plan for testing', text)
-            self.assertIn('1_plan.md', result.stdout)
+            self.assertIn('1-plan.md', result.stdout)
 
     def test_db_mode_includes_linked_plans(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -35,7 +35,7 @@ class GenPlanTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            files = sorted(outdir.glob('*_plan.md'))
+            files = sorted(outdir.glob('*-plan.md'))
             # next_action has linked moderator_discussion in the DB.
             self.assertGreaterEqual(len(files), 2)
             combined = '\n'.join(f.read_text() for f in files)
@@ -51,7 +51,7 @@ class GenPlanTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
-            files = sorted(outdir.glob('*_plan.md'))
+            files = sorted(outdir.glob('*-plan.md'))
             self.assertEqual(len(files), 1)
             text = files[0].read_text()
             self.assertIn('1. TODO[ ] output hello world', text)
