@@ -53,6 +53,28 @@ At masterplan initialization, the runner SHALL require a non-empty end
 condition supplied by the user. The end condition is part of the masterplan
 state and SHALL be recorded in `tmp/plan-execution.log` before Step 1.1.
 
+### This masterplan's end criterion
+
+For this execution, the user-defined end condition is the completion of all
+outstanding items below:
+
+1. Push all commits created by this masterplan to the configured remote.
+2. Synchronize the runtime provider log filename with the plan:
+   `tmp/provider-error.log`.
+3. Complete the optional `llm-guard` content-guard adapter, provenance/denial
+   handling, and mocked unit tests.
+4. Complete the executable plans-package runner, including sequential plans,
+   pytest and Git gates, comparable logging, log rotation, provider retry
+   handling, context compaction handling, and end-condition termination.
+5. Review and resolve the outstanding repository changes, including the
+   research-extension files and test-generated database state.
+6. Provide the requested UAT workflow baseline and verify the organized test
+   suite remains green.
+
+The runner SHALL evaluate every item against repository evidence. The plan is
+not complete merely because the plan document describes the behavior; required
+runtime behavior, tests, commits, and remote state must exist.
+
 After every logical step, the runner SHALL evaluate the end condition. When it
 is fulfilled, the runner SHALL:
 
