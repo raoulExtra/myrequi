@@ -33,10 +33,12 @@ def request_with_retry(
     The callback is injectable so orchestration and tests can define what
     issuing ``continue`` means without invoking a shell command here.
     """
+    had_provider_error = False
     for attempt in (1, 2):
         try:
             result = request()
         except Exception as error:
+            had_provider_error = True
             _log(
                 error_log,
                 f"provider={provider} event=provider_error attempt={attempt} "
@@ -51,7 +53,7 @@ def request_with_retry(
             sleep_fn(2)
             _log(error_log, f"provider={provider} event=retry attempt=2")
         else:
-            if continue_fn is not None:
+            if had_provider_error and continue_fn is not None:
                 _log(error_log, f"provider={provider} event=continue")
                 continue_fn()
             return result

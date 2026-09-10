@@ -5,6 +5,20 @@ import pytest
 from prj.continuity_db.plans.provider_retry import request_with_retry
 
 
+def test_successful_provider_request_does_not_continue(tmp_path: Path):
+    continued = []
+
+    result = request_with_retry(
+        lambda: "accepted response",
+        provider="test-provider",
+        error_log=tmp_path / "provider_error.log",
+        continue_fn=lambda: continued.append(True),
+    )
+
+    assert result == "accepted response"
+    assert continued == []
+
+
 def test_provider_error_waits_two_seconds_logs_and_continues(tmp_path: Path):
     attempts = []
     waits = []
