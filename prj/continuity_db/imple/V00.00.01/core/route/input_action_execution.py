@@ -28,7 +28,7 @@ def execute_agent_tool(
         if bot is None:
             token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
             bot = adapter.create_bot(token)
-        received = adapter.receive_one(bot)
+        received = adapter.receive_one(bot, db_path=db_path)
         return {"status": "telegram_message_received", "handler": handler, "message": received, "token_persisted": False}
     if handler == "telegram_send_document":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
