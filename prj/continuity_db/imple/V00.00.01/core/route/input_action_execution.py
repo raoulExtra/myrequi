@@ -1,5 +1,6 @@
 """Execution services for agent-tool routing decisions."""
 
+import importlib.util
 import sqlite3
 import time
 from pathlib import Path
@@ -15,11 +16,56 @@ def execute_agent_tool(
     handler = decision.get("handler")
     if handler == "context_info":
         return execute_context_info_tool(decision, bridge_client)
+    if handler == "telegram_send_message":
+        adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
+        spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
+        if spec is None or spec.loader is None:
+            return {"status": "unavailable", "handler": handler, "error": "Telegram adapter could not be loaded"}
+        adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+        params = decision.get("parameters") or {}
+        chat_id = params.get("group1") or params.get("chat_id")
+        message = params.get("group2") or params.get("message")
+        bridge = getattr(bridge_client, "_bridge_client", bridge_client)
+        bot = getattr(bridge, "telegram_bot", None)
+        if bot is None:
+            token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
+            bot = adapter.create_bot(token)
+        result = adapter.send_message(bot, chat_id, str(message or ""))
+        return {
+            "status": "telegram_message_sent",
+            "handler": handler,
+            "chat_id": str(chat_id),
+            "message_id": getattr(result, "message_id", None),
+            "token_persisted": False,
+        }
+    if handler == "prj/continuity_db/imple/V00.00.01/extension/messenger-adapter/telegram/telegram_adapter.py":
+        adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
+        spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
+        if spec is None or spec.loader is None:
+            return {"status": "unavailable", "handler": handler, "error": "Telegram adapter could not be loaded"}
+        adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+
+        class EphemeralBot:
+            token = None
+
+        bridge = getattr(bridge_client, "_bridge_client", bridge_client)
+        bot = getattr(bridge, "telegram_bot", None) or EphemeralBot()
+        token_reader = getattr(bridge, "telegram_token_reader", None)
+        token = adapter.ask_for_bot_token(bot, token_reader=token_reader, db_path=db_path)
+        return {
+            "status": "executed_agent",
+            "handler": handler,
+            "configured": bool(token),
+            "token_persisted": False,
+            "user_signal": "Telegram bot token was required and accepted through hidden input.",
+        }
     if handler == "controlled_tag_assign":
         groups = (decision.get("parameters") or {}).get("groups") or []
         if len(groups) != 3:
             return {"status": "rejected", "reason": "controlled tag route requires object type, object key, and existing tag"}
-        from helper_for_db import _controlled_tag_assign
+        from continuity_db_helper import _controlled_tag_assign
         try:
             with sqlite3.connect(db_path) as con:
                 con.row_factory = sqlite3.Row

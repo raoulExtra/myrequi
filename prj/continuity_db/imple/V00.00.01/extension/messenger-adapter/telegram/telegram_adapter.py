@@ -6,7 +6,9 @@ object. This module does not persist the token or contact Telegram.
 
 from __future__ import annotations
 
+import asyncio
 from getpass import getpass
+import os
 from pathlib import Path
 from typing import Any, Callable
 
@@ -27,10 +29,34 @@ DEFAULT_DB = PROJECT_ROOT / "continuity.db"
 ARTIFACT_NAME = "messenger-adapter.telegramm"
 
 
+def send_message(
+    bot: Any,
+    chat_id: str | int,
+    text: str,
+) -> Any:
+    """Send one Telegram message through python-telegram-bot 22.x."""
+    if not str(chat_id).strip():
+        raise ValueError("Telegram chat_id cannot be empty")
+    if not text.strip():
+        raise ValueError("Telegram message cannot be empty")
+
+    async def _send() -> Any:
+        return await bot.send_message(chat_id=chat_id, text=text)
+
+    return asyncio.run(_send())
+
+
+def create_bot(token: str) -> Any:
+    """Create a python-telegram-bot Bot without persisting the token."""
+    from telegram import Bot
+
+    return Bot(token=token)
+
+
 def ask_for_bot_token(
     bot: Any,
     *,
-    prompt: str = "Telegram bot token: ",
+    prompt: str = "Telegram bot token required (input hidden; never echoed): ",
     token_reader: Callable[[str], str] | None = None,
     db_path: str | Path = DEFAULT_DB,
 ) -> str:
@@ -42,8 +68,10 @@ def ask_for_bot_token(
     """
     db_path = Path(db_path)
     require_extension_ready(db_path, ARTIFACT_NAME)
-    reader = token_reader or getpass
-    token = reader(prompt).strip()
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+    if not token:
+        reader = token_reader or getpass
+        token = reader(prompt).strip()
     if not token:
         raise ValueError("Telegram bot token cannot be empty")
     bot.token = token

@@ -1524,6 +1524,31 @@ def ensure_typed_semantic_records(cur):
     )
 
 
+def ensure_telegram_dependency_and_route(cur):
+    try:
+        cur.execute('ALTER TABLE code_artifacts ADD COLUMN dependency_spec TEXT')
+    except sqlite3.OperationalError as exc:
+        if 'duplicate column name' not in str(exc).lower():
+            raise
+    cur.execute(
+        """UPDATE code_artifacts
+           SET description='Telegram messenger adapter extension using python-telegram-bot 22.8; mock-first integration.',
+               dependency_spec='python-telegram-bot==22.8'
+           WHERE name='messenger-adapter.telegramm'"""
+    )
+    cur.execute(
+        """INSERT INTO agent_tool_routes
+          (route_name,input_pattern,handler,required_capability,output_contract,enabled)
+          VALUES ('telegram_send_message', '^telegram\\s+send\\s+(-?\\d+)\\s+(.+)$', 'telegram_send_message', 'telegram_send', 'json', 1)
+          ON CONFLICT(route_name) DO UPDATE SET
+            input_pattern=excluded.input_pattern,
+            handler=excluded.handler,
+            required_capability=excluded.required_capability,
+            output_contract=excluded.output_contract,
+            enabled=1"""
+    )
+
+
 def ensure_semantic_history_consolidation(cur):
     for column in ('history_source_table', 'history_source_id'):
         try:
@@ -3102,6 +3127,7 @@ def apply_migration():
     ensure_shared_semantic_records(cur)
     ensure_typed_semantic_records(cur)
     ensure_semantic_history_consolidation(cur)
+    ensure_telegram_dependency_and_route(cur)
     create_semantic_ownership_contract(cur)
     create_core_model_view(cur)
     create_semantic_records_view(cur)
