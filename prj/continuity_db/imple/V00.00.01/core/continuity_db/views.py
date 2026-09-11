@@ -399,24 +399,8 @@ ORDER BY sort_order
 
 SEMANTIC_RECORDS_VIEW_SQL = """
 CREATE VIEW v_semantic_records AS
-SELECT 'belief' AS semantic_type, slug AS semantic_key, current_statement AS statement,
-       confidence, status, 'beliefs' AS source_table
-FROM beliefs
-UNION ALL
-SELECT 'conviction', slug, current_statement, confidence, status, 'convictions'
-FROM convictions
-UNION ALL
-SELECT 'metacognitive_state', state_key, value, confidence, 'active', 'metacognitive_state'
-FROM metacognitive_state
-UNION ALL
-SELECT 'identity', key, value, NULL, 'active', 'identity'
-FROM identity
-UNION ALL
-SELECT 'decision', CAST(id AS TEXT), decision, NULL, status, 'decisions'
-FROM decisions
-UNION ALL
-SELECT 'concept', concept_key, description, confidence, status, 'concepts'
-FROM concepts
+SELECT semantic_type, semantic_key, statement, confidence, status, source_table
+FROM semantic_records
 """
 
 

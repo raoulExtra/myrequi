@@ -1272,6 +1272,160 @@ def create_core_model_view(cur):
     cur.execute(CORE_MODEL_VIEW_SQL)
 
 
+def drop_shared_semantic_triggers(cur):
+    cur.executescript("""
+        DROP TRIGGER IF EXISTS semantic_records_beliefs_ai;
+        DROP TRIGGER IF EXISTS semantic_records_beliefs_au;
+        DROP TRIGGER IF EXISTS semantic_records_beliefs_ad;
+        DROP TRIGGER IF EXISTS semantic_records_convictions_ai;
+        DROP TRIGGER IF EXISTS semantic_records_convictions_au;
+        DROP TRIGGER IF EXISTS semantic_records_convictions_ad;
+        DROP TRIGGER IF EXISTS semantic_records_concepts_ai;
+        DROP TRIGGER IF EXISTS semantic_records_concepts_au;
+        DROP TRIGGER IF EXISTS semantic_records_concepts_ad;
+        DROP TRIGGER IF EXISTS semantic_records_identity_ai;
+        DROP TRIGGER IF EXISTS semantic_records_identity_au;
+        DROP TRIGGER IF EXISTS semantic_records_identity_ad;
+        DROP TRIGGER IF EXISTS semantic_records_metastate_ai;
+        DROP TRIGGER IF EXISTS semantic_records_metastate_au;
+        DROP TRIGGER IF EXISTS semantic_records_metastate_ad;
+        DROP TRIGGER IF EXISTS semantic_records_decisions_ai;
+        DROP TRIGGER IF EXISTS semantic_records_decisions_au;
+        DROP TRIGGER IF EXISTS semantic_records_decisions_ad;
+    """)
+
+
+def ensure_shared_semantic_records(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_records (
+          semantic_type TEXT NOT NULL CHECK(semantic_type IN ('concept','belief','conviction','identity','metacognitive_state','decision')),
+          semantic_key TEXT NOT NULL,
+          statement TEXT NOT NULL,
+          confidence REAL,
+          status TEXT NOT NULL,
+          provenance TEXT,
+          version INTEGER,
+          source_table TEXT NOT NULL,
+          source_id TEXT NOT NULL,
+          created_at TEXT,
+          updated_at TEXT,
+          PRIMARY KEY(semantic_type, semantic_key)
+        )
+        """
+    )
+    cur.executescript(
+        """
+        DELETE FROM semantic_records WHERE semantic_type='concept'
+          AND NOT EXISTS (SELECT 1 FROM concepts s WHERE s.concept_key=semantic_records.source_id);
+        DELETE FROM semantic_records WHERE semantic_type='belief'
+          AND NOT EXISTS (SELECT 1 FROM beliefs s WHERE CAST(s.id AS TEXT)=semantic_records.source_id);
+        DELETE FROM semantic_records WHERE semantic_type='conviction'
+          AND NOT EXISTS (SELECT 1 FROM convictions s WHERE CAST(s.id AS TEXT)=semantic_records.source_id);
+        DELETE FROM semantic_records WHERE semantic_type='identity'
+          AND NOT EXISTS (SELECT 1 FROM identity s WHERE s.key=semantic_records.source_id);
+        DELETE FROM semantic_records WHERE semantic_type='metacognitive_state'
+          AND NOT EXISTS (SELECT 1 FROM metacognitive_state s WHERE CAST(s.id AS TEXT)=semantic_records.source_id);
+        DELETE FROM semantic_records WHERE semantic_type='decision'
+          AND NOT EXISTS (SELECT 1 FROM decisions s WHERE CAST(s.id AS TEXT)=semantic_records.source_id);
+        """
+    )
+    cur.executescript(
+        """
+        INSERT OR REPLACE INTO semantic_records
+          SELECT 'concept', concept_key, description, confidence, status, NULL,
+                 NULL, 'concepts', concept_key, created_at, updated_at FROM concepts;
+        INSERT OR REPLACE INTO semantic_records
+          SELECT 'belief', slug, current_statement, confidence, status, NULL,
+                 current_version, 'beliefs', CAST(id AS TEXT), created_at, updated_at FROM beliefs;
+        INSERT OR REPLACE INTO semantic_records
+          SELECT 'conviction', slug, current_statement, confidence, status, NULL,
+                 current_version, 'convictions', CAST(id AS TEXT), created_at, updated_at FROM convictions;
+        INSERT OR REPLACE INTO semantic_records
+          SELECT 'identity', key, value, NULL, 'active', NULL,
+                 version, 'identity', key, NULL, updated_at FROM identity;
+        INSERT OR REPLACE INTO semantic_records
+          SELECT 'metacognitive_state', state_key, value, confidence, 'active', provenance,
+                 version, 'metacognitive_state', CAST(id AS TEXT), NULL, updated_at FROM metacognitive_state;
+        INSERT OR REPLACE INTO semantic_records
+          SELECT 'decision', CAST(id AS TEXT), decision, NULL, status, rationale_summary,
+                 NULL, 'decisions', CAST(id AS TEXT), created_at, created_at FROM decisions;
+        """
+    )
+    cur.executescript("""
+        DROP TRIGGER IF EXISTS semantic_records_beliefs_ai;
+        DROP TRIGGER IF EXISTS semantic_records_beliefs_au;
+        DROP TRIGGER IF EXISTS semantic_records_beliefs_ad;
+        DROP TRIGGER IF EXISTS semantic_records_convictions_ai;
+        DROP TRIGGER IF EXISTS semantic_records_convictions_au;
+        DROP TRIGGER IF EXISTS semantic_records_convictions_ad;
+        DROP TRIGGER IF EXISTS semantic_records_concepts_ai;
+        DROP TRIGGER IF EXISTS semantic_records_concepts_au;
+        DROP TRIGGER IF EXISTS semantic_records_concepts_ad;
+        DROP TRIGGER IF EXISTS semantic_records_identity_ai;
+        DROP TRIGGER IF EXISTS semantic_records_identity_au;
+        DROP TRIGGER IF EXISTS semantic_records_identity_ad;
+        DROP TRIGGER IF EXISTS semantic_records_metastate_ai;
+        DROP TRIGGER IF EXISTS semantic_records_metastate_au;
+        DROP TRIGGER IF EXISTS semantic_records_metastate_ad;
+        DROP TRIGGER IF EXISTS semantic_records_decisions_ai;
+        DROP TRIGGER IF EXISTS semantic_records_decisions_au;
+        DROP TRIGGER IF EXISTS semantic_records_decisions_ad;
+    """)
+    trigger_sql = {
+        'beliefs': """CREATE TRIGGER IF NOT EXISTS semantic_records_beliefs_ai AFTER INSERT ON beliefs BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='belief' AND semantic_key=NEW.slug;
+          INSERT INTO semantic_records SELECT 'belief',NEW.slug,NEW.current_statement,NEW.confidence,NEW.status,NULL,NEW.current_version,'beliefs',CAST(NEW.id AS TEXT),NEW.created_at,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_beliefs_au AFTER UPDATE ON beliefs BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='belief' AND semantic_key=NEW.slug;
+          INSERT INTO semantic_records SELECT 'belief',NEW.slug,NEW.current_statement,NEW.confidence,NEW.status,NULL,NEW.current_version,'beliefs',CAST(NEW.id AS TEXT),NEW.created_at,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_beliefs_ad AFTER DELETE ON beliefs BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='belief' AND source_id=CAST(OLD.id AS TEXT); END;""",
+        'convictions': """CREATE TRIGGER IF NOT EXISTS semantic_records_convictions_ai AFTER INSERT ON convictions BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='conviction' AND semantic_key=NEW.slug;
+          INSERT INTO semantic_records SELECT 'conviction',NEW.slug,NEW.current_statement,NEW.confidence,NEW.status,NULL,NEW.current_version,'convictions',CAST(NEW.id AS TEXT),NEW.created_at,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_convictions_au AFTER UPDATE ON convictions BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='conviction' AND semantic_key=NEW.slug;
+          INSERT INTO semantic_records SELECT 'conviction',NEW.slug,NEW.current_statement,NEW.confidence,NEW.status,NULL,NEW.current_version,'convictions',CAST(NEW.id AS TEXT),NEW.created_at,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_convictions_ad AFTER DELETE ON convictions BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='conviction' AND source_id=CAST(OLD.id AS TEXT); END;""",
+        'remaining': """CREATE TRIGGER IF NOT EXISTS semantic_records_concepts_ai AFTER INSERT ON concepts BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='concept' AND semantic_key=NEW.concept_key;
+          INSERT INTO semantic_records SELECT 'concept',NEW.concept_key,NEW.description,NEW.confidence,NEW.status,NULL,NULL,'concepts',NEW.concept_key,NEW.created_at,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_concepts_au AFTER UPDATE ON concepts BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='concept' AND semantic_key=NEW.concept_key;
+          INSERT INTO semantic_records SELECT 'concept',NEW.concept_key,NEW.description,NEW.confidence,NEW.status,NULL,NULL,'concepts',NEW.concept_key,NEW.created_at,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_concepts_ad AFTER DELETE ON concepts BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='concept' AND source_id=OLD.concept_key; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_identity_ai AFTER INSERT ON identity BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='identity' AND semantic_key=NEW.key;
+          INSERT INTO semantic_records SELECT 'identity',NEW.key,NEW.value,NULL,'active',NULL,NEW.version,'identity',NEW.key,NULL,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_identity_au AFTER UPDATE ON identity BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='identity' AND semantic_key=NEW.key;
+          INSERT INTO semantic_records SELECT 'identity',NEW.key,NEW.value,NULL,'active',NULL,NEW.version,'identity',NEW.key,NULL,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_identity_ad AFTER DELETE ON identity BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='identity' AND source_id=OLD.key; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_metastate_ai AFTER INSERT ON metacognitive_state BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='metacognitive_state' AND semantic_key=NEW.state_key;
+          INSERT INTO semantic_records SELECT 'metacognitive_state',NEW.state_key,NEW.value,NEW.confidence,'active',NEW.provenance,NEW.version,'metacognitive_state',CAST(NEW.id AS TEXT),NULL,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_metastate_au AFTER UPDATE ON metacognitive_state BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='metacognitive_state' AND semantic_key=NEW.state_key;
+          INSERT INTO semantic_records SELECT 'metacognitive_state',NEW.state_key,NEW.value,NEW.confidence,'active',NEW.provenance,NEW.version,'metacognitive_state',CAST(NEW.id AS TEXT),NULL,NEW.updated_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_metastate_ad AFTER DELETE ON metacognitive_state BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='metacognitive_state' AND source_id=CAST(OLD.id AS TEXT); END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_decisions_ai AFTER INSERT ON decisions BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='decision' AND semantic_key=CAST(NEW.id AS TEXT);
+          INSERT INTO semantic_records SELECT 'decision',CAST(NEW.id AS TEXT),NEW.decision,NULL,NEW.status,NEW.rationale_summary,NULL,'decisions',CAST(NEW.id AS TEXT),NEW.created_at,NEW.created_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_decisions_au AFTER UPDATE ON decisions BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='decision' AND semantic_key=CAST(NEW.id AS TEXT);
+          INSERT INTO semantic_records SELECT 'decision',CAST(NEW.id AS TEXT),NEW.decision,NULL,NEW.status,NEW.rationale_summary,NULL,'decisions',CAST(NEW.id AS TEXT),NEW.created_at,NEW.created_at; END;
+        CREATE TRIGGER IF NOT EXISTS semantic_records_decisions_ad AFTER DELETE ON decisions BEGIN
+          DELETE FROM semantic_records WHERE semantic_type='decision' AND source_id=CAST(OLD.id AS TEXT); END;""",
+    }
+    for sql in trigger_sql.values():
+        cur.executescript(sql)
+
+
 def create_semantic_ownership_contract(cur):
     cur.execute(
         """
@@ -2719,6 +2873,7 @@ def validate(conn):
 def apply_migration():
     conn = connect()
     cur = conn.cursor()
+    drop_shared_semantic_triggers(cur)
     add_receipt_kind_column(cur)
     add_action_check_principle_column(cur)
     ensure_concept_link_relations(cur)
@@ -2812,6 +2967,7 @@ def apply_migration():
     seed_session_model_routes(cur)
     seed_canonical_tag(cur)
     create_storage_map_view(cur)
+    ensure_shared_semantic_records(cur)
     create_semantic_ownership_contract(cur)
     create_core_model_view(cur)
     create_semantic_records_view(cur)
