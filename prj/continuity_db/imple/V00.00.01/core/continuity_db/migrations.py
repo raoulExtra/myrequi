@@ -1524,6 +1524,40 @@ def ensure_typed_semantic_records(cur):
     )
 
 
+def ensure_semantic_history_consolidation(cur):
+    for column in ('history_source_table', 'history_source_id'):
+        try:
+            cur.execute(f'ALTER TABLE semantic_record_history ADD COLUMN {column} TEXT')
+        except sqlite3.OperationalError as exc:
+            if 'duplicate column name' not in str(exc).lower():
+                raise
+    cur.execute(
+        """CREATE UNIQUE INDEX IF NOT EXISTS uq_semantic_history_source
+           ON semantic_record_history(history_source_table, history_source_id)
+           WHERE history_source_table IS NOT NULL AND history_source_id IS NOT NULL"""
+    )
+    cur.executescript(
+        """
+        INSERT OR IGNORE INTO semantic_record_history
+          (semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind,history_source_table,history_source_id,recorded_at)
+          SELECT 'belief',b.slug,v.statement,v.confidence,b.status,v.evidence_summary,v.version,'beliefs',CAST(v.belief_id AS TEXT),'update','belief_versions',CAST(v.id AS TEXT),v.created_at
+          FROM belief_versions v JOIN beliefs b ON b.id=v.belief_id;
+        INSERT OR IGNORE INTO semantic_record_history
+          (semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind,history_source_table,history_source_id,recorded_at)
+          SELECT 'conviction',c.slug,v.statement,v.confidence,c.status,v.evidence_summary,v.version,'convictions',CAST(v.conviction_id AS TEXT),'update','conviction_versions',CAST(v.id AS TEXT),v.created_at
+          FROM conviction_versions v JOIN convictions c ON c.id=v.conviction_id;
+        INSERT OR IGNORE INTO semantic_record_history
+          (semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind,history_source_table,history_source_id,recorded_at)
+          SELECT 'decision',CAST(v.decision_id AS TEXT),v.decision,v.confidence,v.status,v.rationale_summary,v.version,'decisions',CAST(v.decision_id AS TEXT),'update','decision_versions',CAST(v.id AS TEXT),COALESCE(v.recorded_at,v.created_at)
+          FROM decision_versions v;
+        INSERT OR IGNORE INTO semantic_record_history
+          (semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind,history_source_table,history_source_id,recorded_at)
+          SELECT 'metacognitive_state',v.state_key,v.value,v.confidence,'active',v.provenance,v.version,'metacognitive_state',CAST(m.id AS TEXT),'update','metacognitive_state_history',CAST(v.id AS TEXT),v.recorded_at
+          FROM metacognitive_state_history v LEFT JOIN metacognitive_state m ON m.state_key=v.state_key;
+        """
+    )
+
+
 def create_semantic_ownership_contract(cur):
     cur.execute(
         """
@@ -3067,6 +3101,7 @@ def apply_migration():
     create_storage_map_view(cur)
     ensure_shared_semantic_records(cur)
     ensure_typed_semantic_records(cur)
+    ensure_semantic_history_consolidation(cur)
     create_semantic_ownership_contract(cur)
     create_core_model_view(cur)
     create_semantic_records_view(cur)
