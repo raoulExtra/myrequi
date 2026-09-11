@@ -11,6 +11,7 @@ from typing import Any, Dict
 
 
 TELEGRAM_POLL_PID_PATH = Path('/tmp/myrequi-telegram-poll.pid')
+TELEGRAM_POLL_USER_PATH = Path('/tmp/myrequi-telegram-poll-user.id')
 
 
 def execute_agent_tool(
@@ -51,6 +52,7 @@ def execute_agent_tool(
             poll_pid = int(TELEGRAM_POLL_PID_PATH.read_text().strip())
             os.kill(poll_pid, signal.SIGTERM)
             TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
+            TELEGRAM_POLL_USER_PATH.unlink(missing_ok=True)
             return {"status": "telegram_poll_stopped", "handler": handler, "pid": poll_pid}
         except (ValueError, ProcessLookupError):
             TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
@@ -89,6 +91,8 @@ def execute_agent_tool(
                     allowed_chat_id = chat_id
                 if allowed_user_id is None:
                     allowed_user_id = user_id
+                    TELEGRAM_POLL_USER_PATH.write_text(str(allowed_user_id))
+                    TELEGRAM_POLL_USER_PATH.chmod(0o600)
                 if chat_id != allowed_chat_id or user_id != allowed_user_id:
                     # Acknowledge but never forward another chat's message.
                     continue
@@ -103,6 +107,7 @@ def execute_agent_tool(
             asyncio.run(poll_forever())
         finally:
             TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
+            TELEGRAM_POLL_USER_PATH.unlink(missing_ok=True)
         return {"status": "telegram_poll_stopped", "handler": handler}
     if handler == "telegram_receive_one":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
