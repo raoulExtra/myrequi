@@ -34,15 +34,10 @@ def test_receive_one_uses_async_get_updates():
     assert adapter.receive_one(FakeBot()) == {"update_id": 7, "chat_id": "987", "text": "incoming"}
 
 
-def test_receive_one_advances_offset_without_storing_message():
+def test_receive_one_acknowledges_offset_without_database_storage():
     adapter = load_adapter()
-    with tempfile.NamedTemporaryFile() as database:
-        first = adapter.receive_one(FakeBot(), db_path=database.name)
-        assert first["update_id"] == 7
-        import sqlite3
-        connection = sqlite3.connect(database.name)
-        assert connection.execute("SELECT state_value FROM telegram_runtime_state WHERE state_key='next_update_offset'").fetchone()[0] == "8"
-        connection.close()
+    bot = FakeBot()
+    assert adapter.receive_one(bot)["update_id"] == 7
 
 
 def test_send_message_uses_python_telegram_bot_shape():

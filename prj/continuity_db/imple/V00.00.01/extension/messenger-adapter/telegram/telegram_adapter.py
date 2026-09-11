@@ -9,7 +9,6 @@ from __future__ import annotations
 import asyncio
 from getpass import getpass
 import os
-import sqlite3
 from pathlib import Path
 from typing import Any, Callable
 
@@ -30,46 +29,30 @@ DEFAULT_DB = PROJECT_ROOT / "continuity.db"
 ARTIFACT_NAME = "messenger-adapter.telegramm"
 
 
-async def receive_one_async(bot: Any, offset: int | None = None) -> dict[str, Any]:
-    """Receive one pending Telegram update without persisting its message."""
-    kwargs = {"limit": 1}
-    if offset is not None:
-        kwargs["offset"] = offset
-    updates = await bot.get_updates(**kwargs)
+async def receive_one_async(bot: Any) -> dict[str, Any]:
+    """Receive and acknowledge one pending Telegram update without local storage."""
+    updates = await bot.get_updates(limit=1)
     if not updates:
         raise LookupError("Telegram getUpdates returned no pending message")
     update = updates[0]
     chat = getattr(getattr(update, "effective_chat", None), "id", None)
     message = getattr(getattr(update, "effective_message", None), "text", None)
+    update_id = getattr(update, "update_id", None)
+    if update_id is not None:
+        # Telegram acknowledges updates below this offset server-side. Any
+        # newer update returned by this call remains pending for next receive.
+        await bot.get_updates(offset=int(update_id) + 1, limit=1)
     return {
-        "update_id": getattr(update, "update_id", None),
+        "update_id": update_id,
         "chat_id": str(chat) if chat is not None else None,
         "text": message,
     }
 
 
 def receive_one(bot: Any, db_path: str | Path | None = None) -> dict[str, Any]:
-    """Expose one update and advance Telegram's offset across CLI invocations."""
-    offset = None
-    connection = None
-    if db_path is not None:
-        connection = sqlite3.connect(db_path)
-        connection.execute("CREATE TABLE IF NOT EXISTS telegram_runtime_state (state_key TEXT PRIMARY KEY, state_value TEXT NOT NULL)")
-        row = connection.execute("SELECT state_value FROM telegram_runtime_state WHERE state_key='next_update_offset'").fetchone()
-        offset = int(row[0]) if row else None
-    try:
-        received = asyncio.run(receive_one_async(bot, offset))
-        next_offset = received.get("update_id")
-        if connection is not None and next_offset is not None:
-            connection.execute(
-                "INSERT INTO telegram_runtime_state(state_key,state_value) VALUES('next_update_offset',?) ON CONFLICT(state_key) DO UPDATE SET state_value=excluded.state_value",
-                (str(int(next_offset) + 1),),
-            )
-            connection.commit()
-        return received
-    finally:
-        if connection is not None:
-            connection.close()
+    """Expose one update; db_path is accepted only for executor compatibility."""
+    del db_path
+    return asyncio.run(receive_one_async(bot))
 
 
 def get_default_chat_id(bot: Any) -> str:
