@@ -71,6 +71,7 @@ def execute_agent_tool(
 
         async def poll_forever() -> None:
             allowed_chat_id = None
+            allowed_user_id = None
             while True:
                 try:
                     received = await adapter.receive_one_async(bot)
@@ -78,9 +79,11 @@ def execute_agent_tool(
                     await asyncio.sleep(2)
                     continue
                 chat_id = received.get("chat_id")
+                user_id = received.get("user_id")
                 if allowed_chat_id is None:
                     allowed_chat_id = chat_id
-                if chat_id != allowed_chat_id:
+                    allowed_user_id = user_id
+                if chat_id != allowed_chat_id or user_id != allowed_user_id:
                     # Acknowledge but never forward another chat's message.
                     continue
                 text = received.get("text") or ""

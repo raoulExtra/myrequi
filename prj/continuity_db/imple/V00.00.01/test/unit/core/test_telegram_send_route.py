@@ -18,6 +18,7 @@ class FakeBot:
         update = type("Update", (), {
             "update_id": 7,
             "effective_chat": type("Chat", (), {"id": 987})(),
+            "effective_user": type("User", (), {"id": 654})(),
             "effective_message": type("Message", (), {"text": "incoming"})(),
         })()
         return [update]
@@ -31,7 +32,7 @@ class FakeBot:
 
 def test_receive_one_uses_async_get_updates():
     adapter = load_adapter()
-    assert adapter.receive_one(FakeBot()) == {"update_id": 7, "chat_id": "987", "text": "incoming"}
+    assert adapter.receive_one(FakeBot()) == {"update_id": 7, "chat_id": "987", "user_id": "654", "text": "incoming"}
 
 
 def test_receive_one_acknowledges_offset_without_database_storage():
