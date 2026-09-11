@@ -30,10 +30,14 @@ Before Step 1.1, collect and record:
 If any required input is missing, stop with a configuration error. Do not
 execute implementation work.
 
-## Concrete-plan creation
+## Concrete-plan creation and immediate start
 
-The first project-specific deliverable is a concrete plan created under the
-related project, for example:
+Immediately after the required inputs are available, the runner SHALL create
+and start the concrete plan under the related project. Creating the concrete
+plan is the first executable step toward the end condition; it is not a review
+checkpoint or a reason to pause.
+
+The concrete plan is created under the related project, for example:
 
 ```text
 <target-project>/plans/<plan-id>-<short-name>.md
@@ -44,8 +48,10 @@ related project, for example:
 The concrete plan must contain the target project's paths, commands, package
 boundaries, test selectors, dependencies, acceptance criteria, rollback plan,
 and the supplied end condition. It may select, reorder, or omit the generic
-parts below after inspection. All implementation work and execution evidence
-belong to the related project; this reusable template remains unchanged.
+parts below after inspection. Immediately after writing it, the runner starts
+its first concrete step and continues toward the end condition without waiting
+for another user request. All implementation work and execution evidence belong
+to the related project; this reusable template remains unchanged.
 
 ## Generic execution sequence
 
@@ -61,17 +67,28 @@ Use these parts only after adapting them into the concrete project plan:
 
 The concrete plan should include only the parts relevant to its Python task.
 
+## Completion notification
+
+When the concrete plan reaches `END_CONDITION_MET`, send one Telegram summary
+according to `contracts/telegram-completion-contract.md`. The summary must
+reference the plan ID, completed work, tests, commits, paths, end condition, and
+limitations. Send it after final status checks and before moving active logs to
+`done/`; logfile archival remains the final filesystem action. A failed send
+must be recorded and reported, not silently ignored.
+
 ## Shared contracts
 
 - `003/contracts/runner-contract.md`
 - `003/contracts/logging-contract.md`
 - `003/contracts/context-and-gates.md`
+- `003/contracts/telegram-completion-contract.md`
 
 ## Operating rule
 
-This is an ordered execution queue, not a menu. The runner works from the
-concrete project-local plan, commits each completed logical step in the target
-repository, and stops on test, refactor, or commit failure. It terminates
-only when the concrete plan records `END_CONDITION_MET`. After the final status
-check, moving the active execution and provider-error logs to `done/` is the
-final filesystem action; no action may follow the move.
+This is an ordered execution queue, not a menu. The runner creates the
+concrete project-local plan and immediately starts its first step. It commits
+each completed logical step in the target repository and stops on test,
+refactor, or commit failure. It terminates only when the concrete plan records
+`END_CONDITION_MET`. After the final status check, send the required Telegram
+completion summary, then move the active execution and provider-error logs to
+`done/` as the final filesystem action; no action may follow the move.

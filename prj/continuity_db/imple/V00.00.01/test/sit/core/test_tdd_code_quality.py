@@ -1,6 +1,6 @@
 import json, shutil, sqlite3, tempfile, unittest, argparse
 from pathlib import Path
-import helper_for_db
+import continuity_db_helper
 
 
 class TDD_CodeQualityTests(unittest.TestCase):
@@ -25,12 +25,12 @@ class TDD_CodeQualityTests(unittest.TestCase):
         """Quality checks are recorded in continuity_check_items."""
         tmpdir = Path(tempfile.mkdtemp())
         db = tmpdir / "continuity.db"
-        shutil.copy2(helper_for_db.DEFAULT_DB, db)
+        shutil.copy2(continuity_db_helper.DEFAULT_DB, db)
         self._setup_artifact(db, "qc_test_art", ethics_tier="full")
 
         # Run the artifact to trigger quality check insertion
         try:
-            helper_for_db.cmd_run(argparse.Namespace(name="qc_test_art", db=db, timeout=1, program_args=[]))
+            continuity_db_helper.cmd_run(argparse.Namespace(name="qc_test_art", db=db, timeout=1, program_args=[]))
         except SystemExit:
             pass  # expected
 
@@ -63,12 +63,12 @@ class TDD_CodeQualityTests(unittest.TestCase):
         """Minimal ethics tier still allows quality checks to be recorded."""
         tmpdir = Path(tempfile.mkdtemp())
         db = tmpdir / "continuity.db"
-        shutil.copy2(helper_for_db.DEFAULT_DB, db)
+        shutil.copy2(continuity_db_helper.DEFAULT_DB, db)
         self._setup_artifact(db, "qc_minimal_art", ethics_tier="minimal")
 
         # Run the artifact to trigger quality check insertion
         try:
-            helper_for_db.cmd_run(argparse.Namespace(name="qc_minimal_art", db=db, timeout=1, program_args=[]))
+            continuity_db_helper.cmd_run(argparse.Namespace(name="qc_minimal_art", db=db, timeout=1, program_args=[]))
         except SystemExit:
             pass  # expected
 

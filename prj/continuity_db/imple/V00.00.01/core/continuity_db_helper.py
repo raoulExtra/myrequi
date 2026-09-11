@@ -768,7 +768,7 @@ def cmd_show(args: argparse.Namespace) -> None:
 
 
 def cmd_recall(args: argparse.Namespace) -> None:
-    """Recall memory directly through helper_for_db.py.
+    """Recall memory directly through continuity_db_helper.py.
 
     This wraps the continuity memory API so GPT/tool routes do not need to know
     or call memory_command.py separately for common lookup tasks.

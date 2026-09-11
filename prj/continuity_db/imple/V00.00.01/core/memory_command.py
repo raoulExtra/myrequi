@@ -102,6 +102,10 @@ def ensure_memory_index_view(cur):
         UNION ALL SELECT 'tag', tag_key, label,
                description, NULL, NULL, created_at
         FROM epistemic_tags
+        UNION ALL SELECT 'tagged_object', object_type || ':' || object_key || ':' || tag_key,
+               object_type || ':' || object_key || ' [' || tag_key || ']',
+               COALESCE(note, '') || ' ' || tag_key, NULL, NULL, created_at
+        FROM object_epistemic_tags
         UNION ALL SELECT 'route', route_name, route_name || ' ' || input_pattern,
                command_template || COALESCE(' ' || scope, ''), enabled, NULL, NULL
         FROM control_command_routes
@@ -198,6 +202,7 @@ SOURCE_LAYER = {
     'requirements_glossary_term': 'semantic',
     'policy': 'procedural',
     'tag': 'semantic',
+    'tagged_object': 'semantic',
     'route': 'procedural',
     'ethical_conflict_rule': 'semantic',
     'ethical_principle': 'semantic',
@@ -387,7 +392,40 @@ def score_hit(query_tokens, row):
         score += 10.0
     if source_type == 'metacognitive_state' and query_tokens and any(t in source_key for t in query_tokens):
         score += 1.0
+    # Namespace queries should surface the objects carrying that namespace's
+    # tags, not just unrelated text that happens to mention the word.
+    if 'lifecycle' in query_tokens and source_type == 'tagged_object' and 'lifecycle:' in text:
+        score += 20.0
+    if 'routing' in query_tokens and source_type == 'tagged_object' and (
+        'routing' in text or 'route_action:' in text
+    ):
+        score += 20.0
     return score
+
+
+def load_tag_namespace_paths(cur):
+    """Return distinct tag namespaces from one to three prefix components."""
+    rows = cur.execute(
+        '''
+        SELECT DISTINCT namespace
+        FROM (
+            SELECT "1_prefix" AS namespace
+            FROM v_epistemic_tag_prefixes
+            WHERE "1_prefix" IS NOT NULL AND "1_prefix" <> ''
+            UNION
+            SELECT "1_prefix" || ':' || "2_prefix"
+            FROM v_epistemic_tag_prefixes
+            WHERE "1_prefix" IS NOT NULL AND "2_prefix" IS NOT NULL
+            UNION
+            SELECT "1_prefix" || ':' || "2_prefix" || ':' || "3_prefix"
+            FROM v_epistemic_tag_prefixes
+            WHERE "1_prefix" IS NOT NULL AND "2_prefix" IS NOT NULL
+              AND "3_prefix" IS NOT NULL
+        )
+        WHERE namespace IS NOT NULL AND namespace <> ''
+        '''
+    ).fetchall()
+    return {row[0].lower() for row in rows}
 
 
 def load_memory_rows(cur):
@@ -469,6 +507,13 @@ def build_working_packet(query, hits, focus=None, policy=None):
     }
 
 
+QUERY_NAMESPACE_ALIASES = {
+    # Treat the routing domain as including route-action lifecycle tags such as
+    # route_action:matched and route_action:completed.
+    'routing': ('route_action',),
+}
+
+
 def retrieve_memory(query, db_path=DB_PATH, limit=5, layer=None):
     conn = connect(db_path)
     try:
@@ -482,11 +527,29 @@ def retrieve_memory(query, db_path=DB_PATH, limit=5, layer=None):
         ).fetchone()
         policy_rows = load_writeback_policy(cur)
         qtokens = tokenize(query)
+        for token in tuple(qtokens):
+            qtokens.extend(QUERY_NAMESPACE_ALIASES.get(token, ()))
+        qtokens = list(dict.fromkeys(qtokens))
+        tag_namespaces = load_tag_namespace_paths(cur)
+        requested_namespaces = {
+            namespace for namespace in tag_namespaces
+            if all(component in qtokens for component in namespace.split(':'))
+        }
         scored = []
+        object_namespace_query = (
+            any(token in qtokens for token in ('object', 'objects'))
+            and any(token in qtokens for token in ('lifecycle', 'routing'))
+        )
         for row in rows:
             if requested_layer and (row.get('memory_layer') or layer_for_source(row.get('source_type'))) != requested_layer:
                 continue
+            if object_namespace_query and row.get('source_type') != 'tagged_object':
+                continue
             score = score_hit(qtokens, row)
+            source_key = str(row.get('source_key') or '').lower()
+            if requested_namespaces and row.get('source_type') in ('tag', 'tagged_object'):
+                if any(source_key.startswith(namespace + ':') for namespace in requested_namespaces):
+                    score += 20.0
             if score > 0:
                 row['match_class'] = classify_match(qtokens, row)
                 scored.append((score, row))

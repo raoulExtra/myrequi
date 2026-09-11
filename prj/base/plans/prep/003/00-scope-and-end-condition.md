@@ -18,9 +18,10 @@ Inspect the target project before selecting implementation parts. Do not assume
 that it uses the same package layout, test markers, database, or tooling as
 another project.
 
-## Concrete plan output
+## Concrete plan output and immediate execution
 
-Create a plan in the related project, not only in this reusable template:
+Immediately create and start a plan in the related project, not only in this
+reusable template:
 
 ```text
 <target-project>/plans/<plan-id>-<short-name>.md
@@ -30,7 +31,9 @@ Create a plan in the related project, not only in this reusable template:
 
 The concrete plan must map each selected generic part to actual files, symbols,
 commands, tests, acceptance evidence, rollback steps, and commits. It must
-state which parts are intentionally omitted.
+state which parts are intentionally omitted. After writing the plan, begin its
+first step immediately and continue until the end condition is met or a
+failure gate stops execution; do not wait for another user request.
 
 ## End condition
 

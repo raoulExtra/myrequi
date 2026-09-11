@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Test script to send queries to the current session's LLM via the helper_for_db.py helper.
+Test script to send queries to the current session's LLM via the continuity_db_helper.py helper.
 
-The helper_for_db.py provides a CLI interface that can be used
+The continuity_db_helper.py provides a CLI interface that can be used
 to send queries to the underlying system. This script demonstrates how to invoke
 that functionality programmatically.
 """
 
-from helper_for_db import (
+from continuity_db_helper import (
     connect,
     cmd_research_create,
     cmd_self_check,

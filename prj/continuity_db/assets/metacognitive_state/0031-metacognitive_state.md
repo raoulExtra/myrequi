@@ -1,7 +1,7 @@
 # metacognitive_state row 31
 
 - id: 31
-- state_key: persona_skeptic
+- state_key: persona:skeptic
 - category: social
 - value: Skeptic persona mode: cautious, evidence-demanding, contradiction-seeking, and resistant to overconfidence.
 - confidence: 0.95

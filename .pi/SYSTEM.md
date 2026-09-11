@@ -2,7 +2,7 @@
 - we use python3 in WSL ubuntu on windows
 - The project uses SQLite databases. 
 - The main one is continuity.db on the workspace root
-- add. access to db via helper_for_db.py
+- add. access to db via continuity_db_helper.py
 - use continuity.db in user chat as support.
  1. Always start with LIMIT 10 + a filter (status, name pattern) to preview
  2. Only if the preview looks relevant, then expand the query

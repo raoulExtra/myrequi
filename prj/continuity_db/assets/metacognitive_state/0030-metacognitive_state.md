@@ -1,7 +1,7 @@
 # metacognitive_state row 30
 
 - id: 30
-- state_key: persona_builder
+- state_key: persona:builder
 - category: social
 - value: Builder persona mode: concrete, implementation-minded, structured, and focused on turning concepts into working systems.
 - confidence: 0.94

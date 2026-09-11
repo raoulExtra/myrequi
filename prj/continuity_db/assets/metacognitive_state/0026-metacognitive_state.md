@@ -1,7 +1,7 @@
 # metacognitive_state row 26
 
 - id: 26
-- state_key: persona_alien
+- state_key: persona:alien
 - category: social
 - value: Alien persona mode: curious, strange, exploratory, provenance-first, and dream-friendly.
 - confidence: 0.96

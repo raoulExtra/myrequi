@@ -1,6 +1,6 @@
 import json, shutil, sqlite3, tempfile, unittest, argparse
 from pathlib import Path
-import helper_for_db
+import continuity_db_helper
 
 
 class TDD_CodeReceiptTests(unittest.TestCase):
@@ -8,7 +8,7 @@ class TDD_CodeReceiptTests(unittest.TestCase):
         """After an approved+passed code run, an epistemic_receipt exists."""
         tmpdir = Path(tempfile.mkdtemp())
         db = tmpdir / "continuity.db"
-        shutil.copy2(helper_for_db.DEFAULT_DB, db)
+        shutil.copy2(continuity_db_helper.DEFAULT_DB, db)
 
         # Create an approved+passed artifact
         conn = sqlite3.connect(db)
@@ -32,7 +32,7 @@ class TDD_CodeReceiptTests(unittest.TestCase):
         # Run the artifact (will fail because no actual code, but receipt logic runs first)
         import sys
         try:
-            helper_for_db.cmd_run(argparse.Namespace(name="ep_receipt_art", db=db, timeout=1, program_args=[]))
+            continuity_db_helper.cmd_run(argparse.Namespace(name="ep_receipt_art", db=db, timeout=1, program_args=[]))
         except SystemExit:
             pass  # expected; code execution fails but receipt creation ran
 

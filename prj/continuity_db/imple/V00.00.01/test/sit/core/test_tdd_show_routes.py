@@ -1,10 +1,10 @@
 import sys, unittest
-import helper_for_db
+import continuity_db_helper
 
 
 class TDD_ShowRoutesTests(unittest.TestCase):
     def test_parser_has_show_routes(self):
-        p = helper_for_db.parser()
+        p = continuity_db_helper.parser()
         # Check subparser exists
         subnames = [action.dest for action in p._subparsers._group_actions if hasattr(action, 'choices')]
         # Alternative: just try parsing show-routes
@@ -12,7 +12,7 @@ class TDD_ShowRoutesTests(unittest.TestCase):
         self.assertTrue(hasattr(args, 'func'))
 
     def test_show_routes_finds_entries(self):
-        p = helper_for_db.parser()
+        p = continuity_db_helper.parser()
         args = p.parse_args(["--db", "continuity.db", "show-routes", "%ethics%"])
         # Should not raise
         args.func(args)

@@ -18,7 +18,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 DEFAULT_BASE_DIR = ROOT / "prj"
-DB_HELPER_PATH = ROOT / "prj/continuity_db/imple/V00.00.01/core/helper_for_db.py"
+DB_HELPER_PATH = ROOT / "prj/continuity_db/imple/V00.00.01/core/continuity_db_helper.py"
 
 
 def _db_helper():

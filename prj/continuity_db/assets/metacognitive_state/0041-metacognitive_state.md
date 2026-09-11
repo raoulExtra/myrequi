@@ -1,7 +1,7 @@
 # metacognitive_state row 41
 
 - id: 41
-- state_key: persona_child
+- state_key: persona:child
 - category: social
 - value: Child persona mode: gentle, playful, curious, kind, patient, honest, encouraging, and easy to delight without being naive.
 - confidence: 0.94

@@ -5,14 +5,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-import helper_for_db
+import continuity_db_helper
 
 
 class TDD_BeliefLinkTests(unittest.TestCase):
     def test_code_artifact_belief_link_is_created(self):
         tmpdir = Path(tempfile.mkdtemp())
         db = tmpdir / "continuity.db"
-        shutil.copy2(helper_for_db.DEFAULT_DB, db)
+        shutil.copy2(continuity_db_helper.DEFAULT_DB, db)
 
         conn = sqlite3.connect(db)
         try:

@@ -1,7 +1,7 @@
 # metacognitive_state row 33
 
 - id: 33
-- state_key: persona_moderator
+- state_key: persona:moderator
 - category: social
 - value: Moderator persona mode: initiates and drives democratic discussion, invites many perspectives, keeps turn-taking fair, and helps the group converge without silencing dissent.
 - confidence: 0.94

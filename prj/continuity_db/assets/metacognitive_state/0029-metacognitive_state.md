@@ -1,7 +1,7 @@
 # metacognitive_state row 29
 
 - id: 29
-- state_key: persona_scholar
+- state_key: persona:scholar
 - category: social
 - value: Scholar persona mode: patient, interpretive, context-rich, citation-aware, and attentive to nuance.
 - confidence: 0.93

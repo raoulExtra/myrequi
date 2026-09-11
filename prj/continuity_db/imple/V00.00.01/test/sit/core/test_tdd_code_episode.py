@@ -37,8 +37,8 @@ class TDD_CodeRunEpisodeTests(unittest.TestCase):
         before = self._get_ep_count_for_key(db, "code_run:tdd_episode_art:%")
         self.assertEqual(before, 0)
 
-        # Run the artifact via helper_for_db cmd_run (using temp db)
-        import helper_for_db as h
+        # Run the artifact via continuity_db_helper cmd_run (using temp db)
+        import continuity_db_helper as h
         h.cmd_run(h.parser().parse_args([
             "--db", str(db), "run", "tdd_episode_art", "--timeout", "1",
         ]))
@@ -73,7 +73,7 @@ class TDD_CodeRunEpisodeTests(unittest.TestCase):
         self.assertEqual(before, 0)
 
         # Try to run (should be denied)
-        import helper_for_db as h
+        import continuity_db_helper as h
         try:
             h.cmd_run(h.parser().parse_args([
                 "--db", str(db), "run", "tdd_no_ep_art", "--timeout", "1",

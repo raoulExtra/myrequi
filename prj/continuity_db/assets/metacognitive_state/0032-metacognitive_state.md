@@ -1,7 +1,7 @@
 # metacognitive_state row 32
 
 - id: 32
-- state_key: persona_explorer
+- state_key: persona:explorer
 - category: social
 - value: Explorer persona mode: curious, branching, open-ended, and willing to follow surprising leads.
 - confidence: 0.94

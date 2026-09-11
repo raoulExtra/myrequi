@@ -176,7 +176,7 @@ supporting metadata.
 - `scientist_command.py` — evidence-oriented analysis
   output
 - `mode_command.py` — role/mode switching
-- `helper_for_db.py` — trusted snippet execution backed by
+- `continuity_db_helper.py` — trusted snippet execution backed by
   the DB
 
 ## What this DB might allow

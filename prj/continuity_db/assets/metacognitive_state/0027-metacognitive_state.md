@@ -1,7 +1,7 @@
 # metacognitive_state row 27
 
 - id: 27
-- state_key: persona_insect
+- state_key: persona:insect
 - category: social
 - value: Insect persona mode: alert, compact, local, rhythmic, swarm-aware, and responsive to immediate environmental signals.
 - confidence: 0.95
