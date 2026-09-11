@@ -71,6 +71,46 @@ FROM ai_model_details d
 ORDER BY d.is_active DESC, provider_model
 """
 
+EPISTEMIC_TAG_PREFIXES_VIEW_SQL = """
+CREATE VIEW v_epistemic_tag_prefixes AS
+WITH first_part AS (
+    SELECT
+        t.*,
+        instr(t.tag_key, ':') AS colon1
+    FROM epistemic_tags t
+), second_part AS (
+    SELECT
+        f.*,
+        CASE WHEN f.colon1 > 0 THEN instr(substr(f.tag_key, f.colon1 + 1), ':') ELSE 0 END AS relative_colon2
+    FROM first_part f
+), third_part AS (
+    SELECT
+        s.*,
+        CASE WHEN s.relative_colon2 > 0 THEN
+            instr(substr(s.tag_key, s.colon1 + s.relative_colon2 + 1), ':')
+        ELSE 0 END AS relative_colon3
+    FROM second_part s
+)
+SELECT
+    tag_key,
+    label,
+    description,
+    CASE WHEN colon1 > 0 THEN substr(tag_key, 1, colon1 - 1) END AS "1_prefix",
+    CASE WHEN relative_colon2 > 0 THEN
+        substr(tag_key, colon1 + 1, relative_colon2 - 1)
+    END AS "2_prefix",
+    CASE WHEN relative_colon3 > 0 THEN
+        substr(tag_key, colon1 + relative_colon2 + 1, relative_colon3 - 1)
+    END AS "3_prefix",
+    CASE
+        WHEN relative_colon3 > 0 THEN substr(tag_key, colon1 + relative_colon2 + relative_colon3 + 1)
+        WHEN relative_colon2 > 0 THEN substr(tag_key, colon1 + relative_colon2 + 1)
+        WHEN colon1 > 0 THEN substr(tag_key, colon1 + 1)
+    END AS rest
+FROM third_part
+ORDER BY tag_key
+"""
+
 TAG_SEARCH_VIEW_SQL = """
 CREATE VIEW v_tag_search AS
 SELECT
@@ -349,12 +389,56 @@ ORDER BY updated_at DESC, plan_key;
 
 CORE_MODEL_VIEW_SQL = """
 CREATE VIEW v_core_model AS
-SELECT 1 AS sort_order, 'state' AS layer_key, 'What is true, uncertain, or decided.' AS purpose, 'observations, beliefs, convictions, open_questions, decisions' AS current_tables, 'beliefs, convictions' AS collapsed_concepts, 'Keep the smallest useful semantic state surface.' AS notes
-UNION ALL SELECT 2, 'action', 'What should happen next.', 'continuity_requirements, work_plans, work_plan_steps, projects', 'missions, strategies, plans, commitments', 'Treat plans as execution scaffolding, not a separate universe.'
-UNION ALL SELECT 3, 'audit', 'How we know, what changed, and why.', 'epistemic_receipts, reasoning_episodes, reasoning_episode_inputs, decision_versions, belief_versions, conviction_versions, continuity_requirement_versions, object_provenance, journal, synthesis_conflicts, feature_flag_events, component_influence_history', 'episodes, receipts, provenance, history', 'Preserve traceability, but keep it out of the core reasoning vocabulary.'
-UNION ALL SELECT 4, 'policy', 'How the engine should behave.', 'metacognitive_state, component_influence, component_influence_modes, component_influence_presets, feature_flags, epistemic_tags', 'personas, trust, quality, modes', 'Treat tuning and persona-like state as policy metadata, not core facts.'
+SELECT 1 AS sort_order, 'state' AS layer_key, 'Canonical semantic records: beliefs are revisable claims, convictions are endorsed principles, concepts are definitions, and decisions are choices.' AS purpose, 'beliefs, convictions, concepts, decisions, observations, open_questions' AS current_tables, 'canonical semantic ownership' AS collapsed_concepts, 'Do not silently substitute one semantic type for another.' AS notes
+UNION ALL SELECT 2, 'identity', 'Stable identity commitments and continuity rules.', 'identity', 'identity rules', 'Keep identity distinct from mutable metacognitive policy state.'
+UNION ALL SELECT 3, 'policy', 'How the engine should behave or what it is attending to.', 'metacognitive_state, component_influence, component_influence_modes, component_influence_presets, feature_flags, epistemic_tags', 'personas, trust, quality, modes', 'Treat tuning and runtime self-model state as policy metadata, not ordinary facts.'
+UNION ALL SELECT 4, 'action', 'What should happen next.', 'continuity_requirements, work_plans, work_plan_steps, projects', 'missions, strategies, plans, commitments', 'Treat plans as execution scaffolding, not a separate semantic type.'
+UNION ALL SELECT 5, 'audit', 'How we know, what changed, and why.', 'epistemic_receipts, reasoning_episodes, reasoning_episode_inputs, decision_versions, belief_versions, conviction_versions, continuity_requirement_versions, object_provenance, journal, synthesis_conflicts, feature_flag_events, component_influence_history', 'episodes, receipts, provenance, history', 'Preserve traceability without collapsing it into semantic state.'
 ORDER BY sort_order
 """
+
+SEMANTIC_RECORDS_VIEW_SQL = """
+CREATE VIEW v_semantic_records AS
+SELECT 'belief' AS semantic_type, slug AS semantic_key, current_statement AS statement,
+       confidence, status, 'beliefs' AS source_table
+FROM beliefs
+UNION ALL
+SELECT 'conviction', slug, current_statement, confidence, status, 'convictions'
+FROM convictions
+UNION ALL
+SELECT 'metacognitive_state', state_key, value, confidence, 'active', 'metacognitive_state'
+FROM metacognitive_state
+UNION ALL
+SELECT 'identity', key, value, NULL, 'active', 'identity'
+FROM identity
+UNION ALL
+SELECT 'decision', CAST(id AS TEXT), decision, NULL, status, 'decisions'
+FROM decisions
+UNION ALL
+SELECT 'concept', concept_key, description, confidence, status, 'concepts'
+FROM concepts
+"""
+
+
+SEMANTIC_OVERLAP_VIEW_SQL = """
+CREATE VIEW v_semantic_overlap_candidates AS
+WITH normalized AS (
+    SELECT semantic_type, semantic_key, statement, confidence, status, source_table,
+           lower(trim(replace(replace(statement, '.', ''), ',', ''))) AS normalized_statement
+    FROM v_semantic_records
+    WHERE trim(statement) <> ''
+), duplicated AS (
+    SELECT normalized_statement
+    FROM normalized
+    GROUP BY normalized_statement
+    HAVING COUNT(*) > 1
+)
+SELECT n.semantic_type, n.semantic_key, n.statement, n.confidence, n.status,
+       n.source_table, n.normalized_statement
+FROM normalized n
+JOIN duplicated d ON d.normalized_statement = n.normalized_statement
+"""
+
 
 PROBLEM_SOLVING_PATTERNS_VIEW_SQL = """
 CREATE VIEW v_problem_solving_patterns AS

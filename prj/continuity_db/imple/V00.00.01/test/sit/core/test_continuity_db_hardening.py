@@ -154,7 +154,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertEqual({row[0] for row in rows}, expected)
         self.assertTrue(all(row[1] >= 0 for row in rows))
 
-    def test_core_model_view_summarizes_four_layers(self):
+    def test_core_model_view_summarizes_distinct_semantic_layers(self):
         conn = hardening.connect()
         try:
             rows = conn.execute(
@@ -163,8 +163,8 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         finally:
             conn.close()
 
-        self.assertEqual([row[0] for row in rows], ['state', 'action', 'audit', 'policy'])
-        self.assertTrue(any('beliefs' in row[1] and 'convictions' in row[2] for row in rows if row[0] == 'state'))
+        self.assertEqual([row[0] for row in rows], ['state', 'identity', 'policy', 'action', 'audit'])
+        self.assertTrue(any('beliefs' in row[1] and 'convictions' in row[1] and 'canonical semantic ownership' in row[2] for row in rows if row[0] == 'state'))
         self.assertTrue(any('work_plans' in row[1] and 'plans' in row[2] for row in rows if row[0] == 'action'))
         self.assertTrue(any('epistemic_receipts' in row[1] and 'episodes' in row[2] for row in rows if row[0] == 'audit'))
         self.assertTrue(any('metacognitive_state' in row[1] and 'persona' in row[2] for row in rows if row[0] == 'policy'))
@@ -431,19 +431,19 @@ class ContinuityDbHardeningTests(unittest.TestCase):
                 "select concept_key, object_type, object_key, relation from concept_links where concept_key in ('system','canonical_home_enforcement','overlap_reduction','schema_catalog','entrypoint','correction') order by concept_key, object_key"
             ).fetchall()
             tag_rows = conn.execute(
-                "select tag_key, label from epistemic_tags where tag_key in ('persona','system','trait') order by tag_key"
+                "select tag_key, label from epistemic_tags where tag_key in ('persona','kind:system','trait') order by tag_key"
             ).fetchall()
             persona_tagged = conn.execute(
                 "select count(*) from object_epistemic_tags where tag_key='persona' and object_type='metacognitive_state'"
             ).fetchone()[0]
             system_tagged = conn.execute(
-                "select count(*) from object_epistemic_tags where tag_key='system' and object_type='metacognitive_state' and object_key like 'persona_%'"
+                "select count(*) from object_epistemic_tags where tag_key='kind:system' and object_type='metacognitive_state' and object_key like 'persona:%'"
             ).fetchone()[0]
             trait_tagged = conn.execute(
-                "select count(*) from object_epistemic_tags where tag_key='trait' and object_type='metacognitive_state' and object_key like 'persona_%'"
+                "select count(*) from object_epistemic_tags where tag_key='trait' and object_type='metacognitive_state' and object_key like 'persona:%'"
             ).fetchone()[0]
             system_concept_tagged = conn.execute(
-                "select count(*) from object_epistemic_tags where tag_key='system' and object_type='concept' and object_key='system'"
+                "select count(*) from object_epistemic_tags where tag_key='kind:system' and object_type='concept' and object_key='system'"
             ).fetchone()[0]
             influence_tagged = conn.execute(
                 "select count(*) from object_epistemic_tags where object_type='concept' and object_key='influence' and tag_key in ('epistemic:reasoning','epistemic:state','epistemic:constraint')"
@@ -452,7 +452,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
                 "select label, description from epistemic_tags where tag_key='persona'"
             ).fetchone()
             system = conn.execute(
-                "select label, description from epistemic_tags where tag_key='system'"
+                "select label, description from epistemic_tags where tag_key='kind:system'"
             ).fetchone()
             trait = conn.execute(
                 "select label, description from epistemic_tags where tag_key='trait'"
@@ -461,7 +461,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
                 "select count(*) from object_epistemic_tags where tag_key='persona' and object_type='metacognitive_state'"
             ).fetchone()[0]
             persona_system_analyst_tags = conn.execute(
-                "select object_key, tag_key from object_epistemic_tags where object_type='metacognitive_state' and object_key='persona_system_analyst'"
+                "select object_key, tag_key from object_epistemic_tags where object_type='metacognitive_state' and object_key='persona:system_analyst'"
             ).fetchall()
             policy = conn.execute(
                 "select enabled, description from recording_policy where trigger='mistake_discovered'"
@@ -497,7 +497,7 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertTrue(any(r[0] == 'schema_catalog' and r[2] == 'discovery' for r in db_links))
         self.assertTrue(any(r[0] == 'entrypoint' and r[2] == 'discovery' for r in db_links))
         self.assertTrue(any(r[0] == 'correction' and r[2] == 'overlap_reduction' for r in db_links))
-        self.assertEqual(tag_rows, [('persona', 'Persona'), ('system', 'System'), ('trait', 'Trait')])
+        self.assertEqual(tag_rows, [('kind:system', 'System'), ('persona', 'Persona'), ('trait', 'Trait')])
         self.assertIsNotNone(canonical_tag)
         self.assertEqual(canonical_tag, ('Canonical', 'Marks default-facing objects and surfaces.'))
         self.assertIn(('v_core_model',), canonical_schema_objects)
@@ -523,10 +523,10 @@ class ContinuityDbHardeningTests(unittest.TestCase):
         self.assertGreaterEqual(system_tagged, 1)
         self.assertGreaterEqual(trait_tagged, 1)
         self.assertEqual(persona, ('Persona', 'Marks persona-mode metacognitive state entries.'))
-        self.assertEqual(system, ('System', 'Marks system-level metacognitive state entries, including derived persona-to-system classification.'))
+        self.assertEqual(system, ('System', 'Identifies a system-level database object.'))
         self.assertEqual(trait, ('Trait', 'Marks reusable persona traits such as curiosity, caution, structure, and patience.'))
         self.assertGreaterEqual(persona_count, 1)
-        self.assertTrue(any(r[0] == 'persona_system_analyst' and r[1] == 'persona' for r in persona_system_analyst_tags))
+        self.assertTrue(any(r[0] == 'persona:system_analyst' and r[1] == 'persona' for r in persona_system_analyst_tags))
         self.assertEqual(system_concept_tagged, 1)
         self.assertEqual(influence_tagged, 3)
         self.assertEqual(policy, (1, 'Record when a mistake, omission, or missed link is discovered.'))
@@ -659,9 +659,9 @@ class ContinuityDbHardeningTests(unittest.TestCase):
             conn.close()
 
         self.assertGreaterEqual(len(rows), 10)
-        self.assertIn(('persona_builder', 'persona_builder'), rows)
-        self.assertIn(('persona_moderator', 'persona_moderator'), rows)
-        self.assertIn(('persona_system_analyst', 'persona_system_analyst'), rows)
+        self.assertIn(('persona:builder', 'persona:builder'), rows)
+        self.assertIn(('persona:moderator', 'persona:moderator'), rows)
+        self.assertIn(('persona:system_analyst', 'persona:system_analyst'), rows)
 
     def test_quality_work_plans_are_linked(self):
         conn = hardening.connect()

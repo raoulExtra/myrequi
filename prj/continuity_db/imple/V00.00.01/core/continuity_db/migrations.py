@@ -27,7 +27,7 @@ from .schema import (
     TABLE_CONTRACT_ROWS,
     COMPONENT_INFLUENCE_SCHEMA_SQL,
 )
-from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, SCHEMA_CATALOG_ALL_VIEW_SQL, TAG_SEARCH_VIEW_SQL, CONCEPT_SEARCH_VIEW_SQL, DECISION_OVERVIEW_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL, REASONING_QUALITY_VIEWS_SQL, MODEL_IDENTITY_VIEW_SQL
+from .views import FRAME_VIEWS_SQL, CORE_MODEL_VIEW_SQL, SEMANTIC_RECORDS_VIEW_SQL, SEMANTIC_OVERLAP_VIEW_SQL, GLOSSARY_TERMS_VIEW_SQL, LEAN_THINKING_PATTERNS_VIEW_SQL, DECISION_PATTERNS_VIEW_SQL, PROBLEM_SOLVING_PATTERNS_VIEW_SQL, PROBLEM_UNDERSTANDING_PATTERNS_VIEW_SQL, PROVENANCE_SUMMARY_VIEW_SQL, SCHEMA_CATALOG_VIEW_SQL, SCHEMA_CATALOG_ALL_VIEW_SQL, TAG_SEARCH_VIEW_SQL, EPISTEMIC_TAG_PREFIXES_VIEW_SQL, CONCEPT_SEARCH_VIEW_SQL, DECISION_OVERVIEW_VIEW_SQL, COMPONENT_INFLUENCE_VIEWS_SQL, REASONING_QUALITY_VIEWS_SQL, MODEL_IDENTITY_VIEW_SQL
 
 _MODULE_PATH = Path(__file__).resolve()
 ROOT = next(
@@ -1218,6 +1218,50 @@ def seed_fairness_action_check(cur):
     )
 
 
+def ensure_concept_link_relations(cur):
+    """Allow the controlled ``enables`` concept-link relation."""
+    table_sql = cur.execute(
+        "SELECT sql FROM sqlite_master WHERE type='table' AND name='concept_links'"
+    ).fetchone()
+    legacy_exists = cur.execute(
+        "SELECT 1 FROM sqlite_master WHERE type='table' AND name='concept_links_legacy'"
+    ).fetchone()
+    if not table_sql:
+        return
+    if "'enables'" in (table_sql[0] or ''):
+        if legacy_exists:
+            cur.execute(
+                """INSERT OR IGNORE INTO concept_links(id,concept_key,object_type,object_key,relation,note,created_at)
+                   SELECT l.id,l.concept_key,l.object_type,l.object_key,l.relation,l.note,l.created_at
+                   FROM concept_links_legacy l
+                   WHERE EXISTS (SELECT 1 FROM concepts c WHERE c.concept_key=l.concept_key)"""
+            )
+            cur.execute("DROP TABLE concept_links_legacy")
+        return
+    cur.execute("ALTER TABLE concept_links RENAME TO concept_links_legacy")
+    cur.execute(
+        """
+        CREATE TABLE concept_links (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          concept_key TEXT NOT NULL REFERENCES concepts(concept_key) ON DELETE CASCADE,
+          object_type TEXT NOT NULL,
+          object_key TEXT NOT NULL,
+          relation TEXT NOT NULL CHECK(relation IN ('supports','defines','motivates','depends_on','refines','tags','build','deploy','approves','enables')),
+          note TEXT NOT NULL,
+          created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          UNIQUE(concept_key, object_type, object_key, relation)
+        )
+        """
+    )
+    cur.execute(
+        """INSERT INTO concept_links(id,concept_key,object_type,object_key,relation,note,created_at)
+           SELECT id,concept_key,object_type,object_key,relation,note,created_at
+           FROM concept_links_legacy l
+           WHERE EXISTS (SELECT 1 FROM concepts c WHERE c.concept_key=l.concept_key)"""
+    )
+    cur.execute("DROP TABLE concept_links_legacy")
+
+
 def create_storage_map_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_storage_map")
     cur.execute(STORAGE_MAP_VIEW_SQL)
@@ -1226,6 +1270,77 @@ def create_storage_map_view(cur):
 def create_core_model_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_core_model")
     cur.execute(CORE_MODEL_VIEW_SQL)
+
+
+def create_semantic_ownership_contract(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_ownership_contract (
+          semantic_type TEXT PRIMARY KEY,
+          canonical_role TEXT NOT NULL,
+          prohibited_role TEXT NOT NULL,
+          contract_version INTEGER NOT NULL
+        )
+        """
+    )
+    rows = [
+        ('concept', 'vocabulary, categories, and definitions', 'claim or runtime state'),
+        ('belief', 'revisable proposition with confidence', 'definition, policy, or decision record'),
+        ('conviction', 'durable endorsed principle', 'duplicate belief without endorsement'),
+        ('metacognitive_state', 'mutable engine policy and runtime self-model', 'identity fact or ordinary world claim'),
+        ('identity', 'stable identity commitment or continuity rule', 'transient policy state'),
+        ('decision', 'choice with alternatives, rationale, and status', 'belief or definition'),
+    ]
+    cur.executemany(
+        """INSERT INTO semantic_ownership_contract
+           (semantic_type, canonical_role, prohibited_role, contract_version)
+           VALUES (?,?,?,1)
+           ON CONFLICT(semantic_type) DO UPDATE SET
+             canonical_role=excluded.canonical_role,
+             prohibited_role=excluded.prohibited_role,
+             contract_version=excluded.contract_version""",
+        rows,
+    )
+
+
+def create_semantic_overlap_classifications(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_overlap_classifications (
+          left_type TEXT NOT NULL,
+          left_key TEXT NOT NULL,
+          right_type TEXT NOT NULL,
+          right_key TEXT NOT NULL,
+          classification TEXT NOT NULL CHECK(classification IN ('intentional_relation','duplicate','refinement','contradiction','unresolved')),
+          rationale TEXT NOT NULL,
+          review_status TEXT NOT NULL DEFAULT 'classified',
+          PRIMARY KEY(left_type, left_key, right_type, right_key)
+        )
+        """
+    )
+    cur.execute(
+        """
+        INSERT OR IGNORE INTO semantic_overlap_classifications
+          (left_type,left_key,right_type,right_key,classification,rationale)
+        SELECT a.semantic_type,a.semantic_key,b.semantic_type,b.semantic_key,
+          CASE WHEN a.semantic_type='metacognitive_state' AND b.semantic_type='metacognitive_state'
+               THEN 'duplicate' ELSE 'intentional_relation' END,
+          CASE WHEN a.semantic_type='metacognitive_state' AND b.semantic_type='metacognitive_state'
+               THEN 'Same policy-state statement retained for historical continuity.'
+               ELSE 'The records have distinct semantic roles and are retained with an explicit relationship.' END
+        FROM v_semantic_overlap_candidates a
+        JOIN v_semantic_overlap_candidates b
+          ON a.normalized_statement=b.normalized_statement
+         AND (a.semantic_type || ':' || a.semantic_key) < (b.semantic_type || ':' || b.semantic_key)
+        """
+    )
+
+
+def create_semantic_records_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_semantic_overlap_candidates")
+    cur.execute("DROP VIEW IF EXISTS v_semantic_records")
+    cur.execute(SEMANTIC_RECORDS_VIEW_SQL)
+    cur.execute(SEMANTIC_OVERLAP_VIEW_SQL)
 
 
 def create_model_identity_view(cur):
@@ -1282,6 +1397,11 @@ def create_schema_catalog_view(cur):
 def create_tag_search_view(cur):
     cur.execute("DROP VIEW IF EXISTS v_tag_search")
     cur.execute(TAG_SEARCH_VIEW_SQL)
+
+
+def create_epistemic_tag_prefixes_view(cur):
+    cur.execute("DROP VIEW IF EXISTS v_epistemic_tag_prefixes")
+    cur.execute(EPISTEMIC_TAG_PREFIXES_VIEW_SQL)
 
 
 def create_concept_search_view(cur):
@@ -1564,7 +1684,7 @@ def seed_db_optimization_concepts(cur):
                 ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                     note=excluded.note
                 """,
-                ('concept', 'system', 'system', 'System concept tagged as system.'),
+                ('concept', 'system', 'kind:system', 'System concept tagged as kind:system.'),
             )
         if concept_key == 'influence':
             for tag_key, note in [
@@ -1730,7 +1850,7 @@ def seed_persona_tag(cur):
             label=excluded.label,
             description=excluded.description
         """,
-        ('system', 'System', 'Marks system-level metacognitive state entries, including derived persona-to-system classification.'),
+        ('kind:system', 'System', 'Identifies a system-level database object.'),
     )
     cur.execute(
         """
@@ -1742,11 +1862,11 @@ def seed_persona_tag(cur):
         """,
         ('trait', 'Trait', 'Marks reusable persona traits such as curiosity, caution, structure, and patience.'),
     )
-    personas = ['persona_alien','persona_builder','persona_child','persona_explorer','persona_insect','persona_moderator','persona_scholar','persona_skeptic','persona_super_ai','persona_synthesizer','persona_system_analyst']
+    personas = ['persona:alien','persona:builder','persona:child','persona:explorer','persona:insect','persona:moderator','persona:scholar','persona:skeptic','persona:super_ai','persona:synthesizer','persona:system_analyst']
     for state_key in personas:
         row = cur.execute("select 1 from metacognitive_state where state_key=?", (state_key,)).fetchone()
         if row:
-            for tag_key, note in [('persona', 'Persona-mode state entry.'), ('system', 'Derived system-level classification for persona-mode state entry.'), ('trait', 'Derived trait classification from persona-mode text.')]:
+            for tag_key, note in [('persona', 'Persona-mode state entry.'), ('kind:system', 'Derived system-level classification for persona-mode state entry.'), ('trait', 'Derived trait classification from persona-mode text.')]:
                 cur.execute(
                     """
                     INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
@@ -1853,21 +1973,21 @@ def seed_memory_mvp_requirements(cur):
 
 def seed_scientist_mode_routes(cur):
     routes = [
-        ('scientist_on', r'^(mode\s+scientist\s+on|scientist\s+on)$', "python3 mode_command.py scientist on --db continuity.db", 'Enable scientist mode and switch the active role state to scientist.'),
-        ('scientist_off', r'^(mode\s+scientist\s+off|scientist\s+off)$', "python3 mode_command.py scientist off --db continuity.db", 'Disable scientist mode and reset the active role state to general.'),
-        ('scientist_status', r'^(mode\s+scientist\s+status|scientist\s+status)$', "python3 mode_command.py scientist status --db continuity.db", 'Show scientist mode and active role state.'),
-        ('route_on', r'^(?:mode\s+)?route(?:\s+mode)?\s+on$', "python3 mode_command.py route on --db continuity.db", 'Enable route-recognition mode so normal chat can match routes.'),
-        ('route_off', r'^(?:mode\s+)?route(?:\s+mode)?\s+off$', "python3 mode_command.py route off --db continuity.db", 'Disable route-recognition mode so normal chat is treated as plain chat.'),
-        ('route_status', r'^(?:mode\s+)?route(?:\s+mode)?\s+status$', "python3 mode_command.py route status --db continuity.db", 'Show route-recognition mode status.'),
-        ('scientist_analyse', r'^scientist\s+analyse\s+.+$', "python3 scientist_command.py analyse <topic-or-file> --db continuity.db", 'Create a scientist Markdown analysis for a topic or file.'),
-        ('memory_recall', r'^(memory\s+recall\s+.+|recall\s+.+)$', "python3 memory_command.py recall <query> --db continuity.db", 'Recall the most relevant stored memory-like items for a query.'),
-        ('plan_status', r'^plan\s+status$', "python3 plan_command.py status --db continuity.db", 'Show the current primary goal, active plans, steps, and blockers.'),
-        ('plan_goal_set', r'^plan\s+goal\s+set\s+.+$', "python3 plan_command.py goal set <goal> --db continuity.db", 'Set the durable primary goal and record a lightweight planning episode.'),
-        ('plan_plan_start', r'^plan\s+plan\s+start\s+.+$', "python3 plan_command.py plan start <plan_key> <title> <objective> --db continuity.db", 'Start or update a lightweight active work plan.'),
-        ('plan_step_add', r'^plan\s+step\s+add\s+.+$', "python3 plan_command.py step add <plan_key> <step_key> <description> --db continuity.db", 'Add a pending step to an active plan.'),
-        ('plan_step_done', r'^plan\s+step\s+done\s+.+$', "python3 plan_command.py step done <plan_key> <step_key> --db continuity.db", 'Mark a plan step as completed.'),
-        ('plan_step_block', r'^plan\s+step\s+block\s+.+$', "python3 plan_command.py step block <plan_key> <step_key> <question> --db continuity.db", 'Record a blocker as an open question.'),
-        ('synthesis_promote', r'^synthesis\s+promote\s+.+$', "python3 plan_command.py synthesis promote <synthesis_key> [state_key] --db continuity.db", 'Promote a settled synthesis into metacognitive state when no policy row exists yet.'),
+        ('scientist_on', r'^(mode\s+scientist\s+on|scientist\s+on)$', "python3 prj/continuity_db/imple/V00.00.01/core/mode_command.py scientist on --db continuity.db", 'Enable scientist mode and switch the active role state to scientist.'),
+        ('scientist_off', r'^(mode\s+scientist\s+off|scientist\s+off)$', "python3 prj/continuity_db/imple/V00.00.01/core/mode_command.py scientist off --db continuity.db", 'Disable scientist mode and reset the active role state to general.'),
+        ('scientist_status', r'^(mode\s+scientist\s+status|scientist\s+status)$', "python3 prj/continuity_db/imple/V00.00.01/core/mode_command.py scientist status --db continuity.db", 'Show scientist mode and active role state.'),
+        ('route_on', r'^(?:mode\s+)?route(?:\s+mode)?\s+on$', "python3 prj/continuity_db/imple/V00.00.01/core/mode_command.py route on --db continuity.db", 'Enable route-recognition mode so normal chat can match routes.'),
+        ('route_off', r'^(?:mode\s+)?route(?:\s+mode)?\s+off$', "python3 prj/continuity_db/imple/V00.00.01/core/mode_command.py route off --db continuity.db", 'Disable route-recognition mode so normal chat is treated as plain chat.'),
+        ('route_status', r'^(?:mode\s+)?route(?:\s+mode)?\s+status$', "python3 prj/continuity_db/imple/V00.00.01/core/mode_command.py route status --db continuity.db", 'Show route-recognition mode status.'),
+        ('scientist_analyse', r'^scientist\s+analyse\s+.+$', "python3 prj/continuity_db/imple/V00.00.01/core/scientist_command.py analyse <topic-or-file> --db continuity.db", 'Create a scientist Markdown analysis for a topic or file.'),
+        ('memory_recall', r'^(memory\s+recall\s+.+|recall\s+.+)$', "python3 prj/continuity_db/imple/V00.00.01/core/memory_command.py recall <query> --db continuity.db", 'Recall the most relevant stored memory-like items for a query.'),
+        ('plan_status', r'^plan\s+status$', "python3 prj/continuity_db/imple/V00.00.01/core/plan_command.py status --db continuity.db", 'Show the current primary goal, active plans, steps, and blockers.'),
+        ('plan_goal_set', r'^plan\s+goal\s+set\s+.+$', "python3 prj/continuity_db/imple/V00.00.01/core/plan_command.py goal set <goal> --db continuity.db", 'Set the durable primary goal and record a lightweight planning episode.'),
+        ('plan_plan_start', r'^plan\s+plan\s+start\s+.+$', "python3 prj/continuity_db/imple/V00.00.01/core/plan_command.py plan start <plan_key> <title> <objective> --db continuity.db", 'Start or update a lightweight active work plan.'),
+        ('plan_step_add', r'^plan\s+step\s+add\s+.+$', "python3 prj/continuity_db/imple/V00.00.01/core/plan_command.py step add <plan_key> <step_key> <description> --db continuity.db", 'Add a pending step to an active plan.'),
+        ('plan_step_done', r'^plan\s+step\s+done\s+.+$', "python3 prj/continuity_db/imple/V00.00.01/core/plan_command.py step done <plan_key> <step_key> --db continuity.db", 'Mark a plan step as completed.'),
+        ('plan_step_block', r'^plan\s+step\s+block\s+.+$', "python3 prj/continuity_db/imple/V00.00.01/core/plan_command.py step block <plan_key> <step_key> <question> --db continuity.db", 'Record a blocker as an open question.'),
+        ('synthesis_promote', r'^synthesis\s+promote\s+.+$', "python3 prj/continuity_db/imple/V00.00.01/core/plan_command.py synthesis promote <synthesis_key> [state_key] --db continuity.db", 'Promote a settled synthesis into metacognitive state when no policy row exists yet.'),
         ('project_goal_set', r'^project\s+goal\s+set\s+.+$', "python3 project_command.py goal set <project_name> <goal> --db continuity.db", 'Set a project-specific goal for a mission.'),
     ]
     cur.executemany(
@@ -1889,7 +2009,7 @@ def seed_session_prompt_routes(cur):
         (
             'session_prompt',
             r'^(?:session\s+prompt|p)\s+(.+)$',
-            'python3 pi_session.py <prompt>',
+            'python3 prj/continuity_db/imple/V00.00.01/core/pi_session.py <prompt>',
             'Prompt the live Pi session bridge and return the bridge state plus send response.',
         ),
         (
@@ -2195,6 +2315,9 @@ def validate(conn):
             where p.state_key is null
               and h.state_key not in (
                   'persona_editor',
+                  'persona_alien', 'persona_builder', 'persona_child', 'persona_explorer',
+                  'persona_insect', 'persona_moderator', 'persona_scholar', 'persona_skeptic',
+                  'persona_super_ai', 'persona_synthesizer', 'persona_system_analyst',
                   'convention:requirements:separate-sr-ac-files'
               )
         """,
@@ -2278,6 +2401,7 @@ def validate(conn):
         "v_schema_catalog_all",
         "v_schema_catalog",
         "v_tag_search",
+        "v_epistemic_tag_prefixes",
         "v_component_influence_modes",
         "v_component_influence",
         "v_component_influence_history",
@@ -2343,9 +2467,9 @@ def validate(conn):
     persona_tag = cur.execute("select label, description from epistemic_tags where tag_key='persona'").fetchone()
     if not persona_tag:
         issues.append(("persona_tag", persona_tag, ('Persona', 'Marks persona-mode metacognitive state entries.')))
-    system_tag = cur.execute("select label, description from epistemic_tags where tag_key='system'").fetchone()
+    system_tag = cur.execute("select label, description from epistemic_tags where tag_key='kind:system'").fetchone()
     if not system_tag:
-        issues.append(("system_tag", system_tag, ('System', 'Marks system-level metacognitive state entries, including derived persona-to-system classification.')))
+        issues.append(("system_tag", system_tag, ('System', 'Identifies a system-level database object.')))
     trait_tag = cur.execute("select label, description from epistemic_tags where tag_key='trait'").fetchone()
     if not trait_tag:
         issues.append(("trait_tag", trait_tag, ('Trait', 'Marks reusable persona traits such as curiosity, caution, structure, and patience.')))
@@ -2370,7 +2494,7 @@ def validate(conn):
     influence_concept = cur.execute("select name, description from concepts where concept_key='influence'").fetchone()
     if not influence_concept:
         issues.append(("influence_concept", influence_concept, ('Influence', 'How internal engine elements or external forces change thinking, state, or outcomes.')))
-    system_concept_tagged = cur.execute("select count(*) from object_epistemic_tags where tag_key='system' and object_type='concept' and object_key='system'").fetchone()[0]
+    system_concept_tagged = cur.execute("select count(*) from object_epistemic_tags where tag_key='kind:system' and object_type='concept' and object_key='system'").fetchone()[0]
     if system_concept_tagged != 1:
         issues.append(("system_concept_tagged", system_concept_tagged, 1))
     influence_tagged = cur.execute("select count(*) from object_epistemic_tags where object_type='concept' and object_key='influence' and tag_key in ('epistemic:reasoning','epistemic:state','epistemic:constraint')").fetchone()[0]
@@ -2454,11 +2578,10 @@ def validate(conn):
         if demo_links < 8:
             issues.append(("evolved_baseline_demo_links", demo_links, '>=8'))
 
-    system_tagged = cur.execute("select count(*) from object_epistemic_tags where tag_key='system' and object_type='metacognitive_state' and object_key like 'persona_%'").fetchone()[0]
-    persona_system_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='system' and object_type='metacognitive_state' and object_key like 'persona_%'").fetchone()[0]
+    persona_system_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='kind:system' and object_type='metacognitive_state' and object_key like 'persona:%'").fetchone()[0]
     if persona_system_count < 1:
         issues.append(("persona_system_tag_links", persona_system_count, '>=1'))
-    persona_trait_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='trait' and object_type='metacognitive_state' and object_key like 'persona_%'").fetchone()[0]
+    persona_trait_count = cur.execute("select count(*) from object_epistemic_tags where tag_key='trait' and object_type='metacognitive_state' and object_key like 'persona:%'").fetchone()[0]
     if persona_trait_count < 1:
         issues.append(("persona_trait_tag_links", persona_trait_count, '>=1'))
 
@@ -2598,6 +2721,7 @@ def apply_migration():
     cur = conn.cursor()
     add_receipt_kind_column(cur)
     add_action_check_principle_column(cur)
+    ensure_concept_link_relations(cur)
     backfill_receipt_kind(cur)
     backfill_belief_version_evidence_summary(cur)
     backfill_epistemic_receipt_provenance(cur)
@@ -2688,7 +2812,10 @@ def apply_migration():
     seed_session_model_routes(cur)
     seed_canonical_tag(cur)
     create_storage_map_view(cur)
+    create_semantic_ownership_contract(cur)
     create_core_model_view(cur)
+    create_semantic_records_view(cur)
+    create_semantic_overlap_classifications(cur)
     create_model_identity_view(cur)
     create_frame_views(cur)
     create_problem_solving_patterns_view(cur)
@@ -2702,6 +2829,7 @@ def apply_migration():
     create_provenance_summary_view(cur)
     create_schema_catalog_view(cur)
     create_tag_search_view(cur)
+    create_epistemic_tag_prefixes_view(cur)
     create_concept_search_view(cur)
     create_decision_overview_view(cur)
     create_component_influence_views(cur)
