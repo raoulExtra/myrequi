@@ -29,6 +29,26 @@ DEFAULT_DB = PROJECT_ROOT / "continuity.db"
 ARTIFACT_NAME = "messenger-adapter.telegramm"
 
 
+async def receive_one_async(bot: Any) -> dict[str, Any]:
+    """Receive one pending Telegram update without persisting it."""
+    updates = await bot.get_updates(limit=1)
+    if not updates:
+        raise LookupError("Telegram getUpdates returned no pending message")
+    update = updates[0]
+    chat = getattr(getattr(update, "effective_chat", None), "id", None)
+    message = getattr(getattr(update, "effective_message", None), "text", None)
+    return {
+        "update_id": getattr(update, "update_id", None),
+        "chat_id": str(chat) if chat is not None else None,
+        "text": message,
+    }
+
+
+def receive_one(bot: Any) -> dict[str, Any]:
+    """Synchronously expose one asynchronous Telegram update."""
+    return asyncio.run(receive_one_async(bot))
+
+
 def get_default_chat_id(bot: Any) -> str:
     """Return the latest chat ID exposed by Telegram getUpdates."""
     async def _updates() -> Any:

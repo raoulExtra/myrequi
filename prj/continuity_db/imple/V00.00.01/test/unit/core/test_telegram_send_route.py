@@ -14,14 +14,24 @@ def load_adapter():
 
 
 class FakeBot:
-    async def get_updates(self):
-        return [type("Update", (), {"effective_chat": type("Chat", (), {"id": 987})()})()]
+    async def get_updates(self, **kwargs):
+        update = type("Update", (), {
+            "update_id": 7,
+            "effective_chat": type("Chat", (), {"id": 987})(),
+            "effective_message": type("Message", (), {"text": "incoming"})(),
+        })()
+        return [update]
 
     async def send_message(self, *, chat_id, text):
         return type("Message", (), {"message_id": 42, "chat_id": chat_id, "text": text})()
 
     async def send_document(self, *, chat_id, document):
         return type("Message", (), {"message_id": 43, "chat_id": chat_id, "name": document.name})()
+
+
+def test_receive_one_uses_async_get_updates():
+    adapter = load_adapter()
+    assert adapter.receive_one(FakeBot()) == {"update_id": 7, "chat_id": "987", "text": "incoming"}
 
 
 def test_send_message_uses_python_telegram_bot_shape():
@@ -42,6 +52,19 @@ def test_send_document_uses_python_telegram_bot_shape():
         result = adapter.send_document(FakeBot(), "987", file.name)
     assert result.message_id == 43
     assert result.chat_id == "987"
+
+
+def test_receive_route_matches():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "core"))
+    from route.input_action_matching import match_routing_rule
+
+    matched, _ = match_routing_rule(
+        {"pattern_type": "json_regex", "pattern_spec": r"^telegram\s+receive$"},
+        "telegram receive",
+        None,
+    )
+    assert matched
 
 
 def test_document_route_extracts_path():
