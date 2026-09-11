@@ -1542,6 +1542,7 @@ def ensure_telegram_dependency_and_route(cur):
         ('telegram_send_document', r'^telegram\s+send\s+doc\s+(.+)$', 'telegram_send_document'),
         ('telegram_receive_one', r'^telegram\s+receive$', 'telegram_receive_one'),
         ('telegram_poll', r'^telegram\s+poll$', 'telegram_poll'),
+        ('telegram_stop_poll', r'^telegram\s+stop\s+poll$', 'telegram_stop_poll'),
     ): 
         cur.execute(
             """INSERT INTO agent_tool_routes

@@ -1,10 +1,15 @@
 """Execution services for agent-tool routing decisions."""
 
 import importlib.util
+import os
+import signal
 import sqlite3
 import time
 from pathlib import Path
 from typing import Any, Dict
+
+
+TELEGRAM_POLL_PID_PATH = Path('/tmp/myrequi-telegram-poll.pid')
 
 
 def execute_agent_tool(
@@ -38,6 +43,17 @@ def execute_agent_tool(
         }
     if handler == "context_info":
         return execute_context_info_tool(decision, bridge_client)
+    if handler == "telegram_stop_poll":
+        if not TELEGRAM_POLL_PID_PATH.exists():
+            return {"status": "telegram_poll_not_running", "handler": handler}
+        try:
+            poll_pid = int(TELEGRAM_POLL_PID_PATH.read_text().strip())
+            os.kill(poll_pid, signal.SIGTERM)
+            TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
+            return {"status": "telegram_poll_stopped", "handler": handler, "pid": poll_pid}
+        except (ValueError, ProcessLookupError):
+            TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
+            return {"status": "telegram_poll_not_running", "handler": handler}
     if handler == "telegram_poll":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
         spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
@@ -50,18 +66,28 @@ def execute_agent_tool(
         if bot is None:
             token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
             bot = adapter.create_bot(token)
-        received = adapter.receive_one(bot)
-        text = received.get("text") or ""
-        result = {"status": "telegram_polled", "handler": handler, "message": received, "token_persisted": False}
-        if text.startswith("echo "):
-            from pi_session import prompt_session
-            select_pid = getattr(bridge_client, "_select_bridge_pid", None)
-            pid = select_pid() if select_pid else None
-            prompt = text[5:]
-            result["session_prompt"] = prompt
-            result["session_result"] = prompt_session(prompt, pid=pid)
-            result["status"] = "telegram_polled_session_prompt"
-        return result
+        TELEGRAM_POLL_PID_PATH.write_text(str(os.getpid()))
+        try:
+            while True:
+                try:
+                    received = adapter.receive_one(bot)
+                except LookupError:
+                    time.sleep(2)
+                    continue
+                text = received.get("text") or ""
+                result = {"status": "telegram_polled", "handler": handler, "message": received, "token_persisted": False}
+                if text.startswith("echo "):
+                    from pi_session import prompt_session
+                    select_pid = getattr(bridge_client, "_select_bridge_pid", None)
+                    pid = select_pid() if select_pid else None
+                    prompt = text[5:]
+                    result["session_prompt"] = prompt
+                    result["session_result"] = prompt_session(prompt, pid=pid)
+                    result["status"] = "telegram_polled_session_prompt"
+                # Keep polling; each processed update is acknowledged server-side.
+        finally:
+            TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
+        return {"status": "telegram_poll_stopped", "handler": handler}
     if handler == "telegram_receive_one":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
         spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
