@@ -70,11 +70,18 @@ def execute_agent_tool(
         TELEGRAM_POLL_PID_PATH.write_text(str(os.getpid()))
 
         async def poll_forever() -> None:
+            allowed_chat_id = None
             while True:
                 try:
                     received = await adapter.receive_one_async(bot)
                 except LookupError:
                     await asyncio.sleep(2)
+                    continue
+                chat_id = received.get("chat_id")
+                if allowed_chat_id is None:
+                    allowed_chat_id = chat_id
+                if chat_id != allowed_chat_id:
+                    # Acknowledge but never forward another chat's message.
                     continue
                 text = received.get("text") or ""
                 if text.startswith("echo "):
