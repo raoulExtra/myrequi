@@ -1536,23 +1536,26 @@ def ensure_telegram_dependency_and_route(cur):
                dependency_spec='python-telegram-bot==22.8'
            WHERE name='messenger-adapter.telegramm'"""
     )
-    for route_name, pattern in (
-        ('telegram_send_message', r'^telegram\s+send\s+(-?\d+)\s+(.+)$'),
-        ('telegram_send_message_default', r'^telegram\s+send\s+(?!-?\d+\s)(.+)$'),
-        ('telegram_send_document', r'^telegram\s+send\s+doc\s+(.+)$'),
+    for route_name, pattern, handler in (
+        ('telegram_send_message', r'^telegram\s+send\s+(-?\d+)\s+(.+)$', 'telegram_send_message'),
+        ('telegram_send_message_default', r'^telegram\s+send\s+(?!-?\d+\s)(.+)$', 'telegram_send_message'),
+        ('telegram_send_document', r'^telegram\s+send\s+doc\s+(.+)$', 'telegram_send_document'),
     ): 
         cur.execute(
             """INSERT INTO agent_tool_routes
               (route_name,input_pattern,handler,required_capability,output_contract,enabled)
-              VALUES (?, ?, 'telegram_send_message', 'telegram_send', 'json', 1)
+              VALUES (?, ?, ?, 'telegram_send', 'json', 1)
               ON CONFLICT(route_name) DO UPDATE SET
                 input_pattern=excluded.input_pattern,
                 handler=excluded.handler,
                 required_capability=excluded.required_capability,
                 output_contract=excluded.output_contract,
                 enabled=1""",
-            (route_name, pattern),
+            (route_name, pattern, handler),
         )
+    cur.execute(
+        "UPDATE input_patterns SET priority=20 WHERE route_name='telegram_send_document'"
+    )
 
 
 def ensure_semantic_history_consolidation(cur):
