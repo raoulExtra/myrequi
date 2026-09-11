@@ -14,3 +14,7 @@ timestamp | plan.step | phase | action | command | expected | actual | status
 For Git actions record the target repository, branch, pre-stage status, exact
 `git add`, exact `git commit -m`, exit status, commit ID, and post-commit status.
 Use the concrete plan ID in commit subjects, for example `<PLAN-ID>: ...`.
+
+The final successful step must produce a concise completion-summary payload
+containing the plan ID, end condition, work completed, tests, commits, paths,
+and limitations for the Telegram completion notification contract.

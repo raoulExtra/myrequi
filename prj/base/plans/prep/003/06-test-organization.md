@@ -7,3 +7,5 @@
 5. Move files only after path assumptions are tested; commit organization separately.
 
 Do not assume a particular extension name, directory layout, or marker set.
+
+Provide the step summary, test result, commit, and affected paths as inputs to the final Telegram completion summary.

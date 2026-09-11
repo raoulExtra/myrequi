@@ -3,3 +3,5 @@
 1. Discover numbered plan files deterministically while ignoring non-plan files.
 2. Report RED, GREEN, REFACTOR, and commit evidence in structured output.
 3. Preserve both machine-readable results and concise human summaries, then commit.
+
+Provide the step summary, test result, commit, and affected paths as inputs to the final Telegram completion summary.
