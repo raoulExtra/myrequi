@@ -14,6 +14,28 @@ def execute_agent_tool(
 ) -> Any:
     """Execute an agent-tool decision without depending on the router class."""
     handler = decision.get("handler")
+    if handler == "prj/continuity_db/imple/V00.00.01/extension/extension_state.py":
+        params = decision.get("parameters") or {}
+        artifact_name = params.get("group1") or params.get("artifact_name")
+        import sys
+        extension_root = Path(__file__).resolve().parents[2] / "extension"
+        if str(extension_root) not in sys.path:
+            sys.path.insert(0, str(extension_root))
+        from extension_state import disable_extension, enable_extension, resolve_object_alias
+        route_name = decision.get("route_name")
+        if route_name == "disable_extension":
+            tags = disable_extension(db_path, artifact_name)
+        elif route_name == "enable_extension":
+            tags = enable_extension(db_path, artifact_name)
+        else:
+            return {"status": "rejected", "error": f"Unsupported extension state route: {route_name}"}
+        return {
+            "status": "extension_state_updated",
+            "route": route_name,
+            "requested_name": artifact_name,
+            "artifact_name": resolve_object_alias(artifact_name),
+            "tags": sorted(tags),
+        }
     if handler == "context_info":
         return execute_context_info_tool(decision, bridge_client)
     if handler == "telegram_receive_one":

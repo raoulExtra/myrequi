@@ -4,7 +4,17 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import helper_for_db
+import continuity_db_helper
+
+
+OBJECT_ALIASES = {
+    "telegram": "messenger-adapter.telegramm",
+}
+
+
+def resolve_object_alias(name: str) -> str:
+    """Resolve a stable local alias to its canonical artifact name."""
+    return OBJECT_ALIASES.get(name.strip().lower(), name.strip())
 
 
 class ExtensionStateError(RuntimeError):
@@ -32,7 +42,7 @@ def artifact_object_key(artifact_name: str) -> str:
 
 def extension_tags(db_path: str | Path, artifact_name: str) -> set[str]:
     """Return current tags for a code-artifact extension."""
-    con = helper_for_db.connect(Path(db_path))
+    con = continuity_db_helper.connect(Path(db_path))
     try:
         rows = con.execute(
             """SELECT tag_key FROM object_epistemic_tags
@@ -67,7 +77,8 @@ def disable_extension(
     artifact_name: str,
 ) -> set[str]:
     """Disable a tagged extension and return its resulting tags."""
-    con = helper_for_db.connect(Path(db_path))
+    artifact_name = resolve_object_alias(artifact_name)
+    con = continuity_db_helper.connect(Path(db_path))
     object_key = artifact_object_key(artifact_name)
     try:
         artifact = con.execute(
@@ -103,7 +114,7 @@ def disable_extension(
                 "Activation state: disabled and not available for use.",
             ),
         )
-        helper_for_db._controlled_tag_assign(
+        continuity_db_helper._controlled_tag_assign(
             con,
             "row",
             object_key,
@@ -127,7 +138,8 @@ def enable_extension(
     artifact_name: str,
 ) -> set[str]:
     """Enable an installed, tagged extension and return its resulting tags."""
-    con = helper_for_db.connect(Path(db_path))
+    artifact_name = resolve_object_alias(artifact_name)
+    con = continuity_db_helper.connect(Path(db_path))
     object_key = artifact_object_key(artifact_name)
     try:
         artifact = con.execute(
@@ -160,7 +172,7 @@ def enable_extension(
                 "Activation state: enabled and available for use.",
             ),
         )
-        helper_for_db._controlled_tag_assign(
+        continuity_db_helper._controlled_tag_assign(
             con,
             "row",
             object_key,
@@ -186,7 +198,7 @@ def set_configuration_state(
     missing_tag: str = "configuration:credential_missing",
 ) -> None:
     """Replace a configuration-missing tag with a configured tag."""
-    con = helper_for_db.connect(Path(db_path))
+    con = continuity_db_helper.connect(Path(db_path))
     object_key = artifact_object_key(artifact_name)
     try:
         con.execute(
@@ -198,7 +210,7 @@ def set_configuration_state(
                 "Extension configuration state: required configuration is present.",
             ),
         )
-        helper_for_db._controlled_tag_assign(
+        continuity_db_helper._controlled_tag_assign(
             con,
             "row",
             object_key,
