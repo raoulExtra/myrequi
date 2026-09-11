@@ -38,6 +38,30 @@ def execute_agent_tool(
         }
     if handler == "context_info":
         return execute_context_info_tool(decision, bridge_client)
+    if handler == "telegram_poll":
+        adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
+        spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
+        if spec is None or spec.loader is None:
+            return {"status": "unavailable", "handler": handler, "error": "Telegram adapter could not be loaded"}
+        adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+        bridge = getattr(bridge_client, "_bridge_client", bridge_client)
+        bot = getattr(bridge, "telegram_bot", None)
+        if bot is None:
+            token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
+            bot = adapter.create_bot(token)
+        received = adapter.receive_one(bot)
+        text = received.get("text") or ""
+        result = {"status": "telegram_polled", "handler": handler, "message": received, "token_persisted": False}
+        if text.startswith("echo "):
+            from pi_session import prompt_session
+            select_pid = getattr(bridge_client, "_select_bridge_pid", None)
+            pid = select_pid() if select_pid else None
+            prompt = text[5:]
+            result["session_prompt"] = prompt
+            result["session_result"] = prompt_session(prompt, pid=pid)
+            result["status"] = "telegram_polled_session_prompt"
+        return result
     if handler == "telegram_receive_one":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
         spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
