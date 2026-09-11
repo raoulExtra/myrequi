@@ -29,6 +29,19 @@ DEFAULT_DB = PROJECT_ROOT / "continuity.db"
 ARTIFACT_NAME = "messenger-adapter.telegramm"
 
 
+def get_default_chat_id(bot: Any) -> str:
+    """Return the latest chat ID exposed by Telegram getUpdates."""
+    async def _updates() -> Any:
+        return await bot.get_updates()
+
+    updates = asyncio.run(_updates())
+    for update in reversed(updates or []):
+        chat = getattr(getattr(update, "effective_chat", None), "id", None)
+        if chat is not None:
+            return str(chat)
+    raise LookupError("Telegram getUpdates returned no chat id")
+
+
 def send_message(
     bot: Any,
     chat_id: str | int,

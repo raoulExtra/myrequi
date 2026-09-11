@@ -24,13 +24,21 @@ def execute_agent_tool(
         adapter = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(adapter)
         params = decision.get("parameters") or {}
-        chat_id = params.get("group1") or params.get("chat_id")
-        message = params.get("group2") or params.get("message")
+        chat_id = params.get("chat_id")
+        message = params.get("message")
+        if not message:
+            if params.get("group2"):
+                chat_id = params.get("group1")
+                message = params.get("group2")
+            else:
+                message = params.get("group1")
         bridge = getattr(bridge_client, "_bridge_client", bridge_client)
         bot = getattr(bridge, "telegram_bot", None)
         if bot is None:
             token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
             bot = adapter.create_bot(token)
+        if not chat_id:
+            chat_id = adapter.get_default_chat_id(bot)
         result = adapter.send_message(bot, chat_id, str(message or ""))
         return {
             "status": "telegram_message_sent",
