@@ -1,5 +1,6 @@
 """Execution services for agent-tool routing decisions."""
 
+import asyncio
 import importlib.util
 import os
 import signal
@@ -67,24 +68,23 @@ def execute_agent_tool(
             token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
             bot = adapter.create_bot(token)
         TELEGRAM_POLL_PID_PATH.write_text(str(os.getpid()))
-        try:
+
+        async def poll_forever() -> None:
             while True:
                 try:
-                    received = adapter.receive_one(bot)
+                    received = await adapter.receive_one_async(bot)
                 except LookupError:
-                    time.sleep(2)
+                    await asyncio.sleep(2)
                     continue
                 text = received.get("text") or ""
-                result = {"status": "telegram_polled", "handler": handler, "message": received, "token_persisted": False}
                 if text.startswith("echo "):
                     from pi_session import prompt_session
                     select_pid = getattr(bridge_client, "_select_bridge_pid", None)
                     pid = select_pid() if select_pid else None
-                    prompt = text[5:]
-                    result["session_prompt"] = prompt
-                    result["session_result"] = prompt_session(prompt, pid=pid)
-                    result["status"] = "telegram_polled_session_prompt"
-                # Keep polling; each processed update is acknowledged server-side.
+                    prompt_session(text[5:], pid=pid)
+
+        try:
+            asyncio.run(poll_forever())
         finally:
             TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
         return {"status": "telegram_poll_stopped", "handler": handler}
