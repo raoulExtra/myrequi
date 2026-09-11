@@ -73,7 +73,10 @@ def execute_agent_tool(
 
         async def poll_forever() -> None:
             allowed_chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID")
+            user_file_exists = TELEGRAM_POLL_USER_PATH.exists()
             allowed_user_id = os.environ.get("TELEGRAM_ALLOWED_USER_ID")
+            if allowed_user_id is None and user_file_exists:
+                allowed_user_id = TELEGRAM_POLL_USER_PATH.read_text().strip() or None
             require_private = os.environ.get("TELEGRAM_REQUIRE_PRIVATE", "1") != "0"
             while True:
                 try:
@@ -91,8 +94,9 @@ def execute_agent_tool(
                     allowed_chat_id = chat_id
                 if allowed_user_id is None:
                     allowed_user_id = user_id
-                    TELEGRAM_POLL_USER_PATH.write_text(str(allowed_user_id))
-                    TELEGRAM_POLL_USER_PATH.chmod(0o600)
+                    if not user_file_exists:
+                        TELEGRAM_POLL_USER_PATH.write_text(str(allowed_user_id))
+                        TELEGRAM_POLL_USER_PATH.chmod(0o600)
                 if chat_id != allowed_chat_id or user_id != allowed_user_id:
                     # Acknowledge but never forward another chat's message.
                     continue
