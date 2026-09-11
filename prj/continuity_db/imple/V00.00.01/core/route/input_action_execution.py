@@ -70,8 +70,9 @@ def execute_agent_tool(
         TELEGRAM_POLL_PID_PATH.write_text(str(os.getpid()))
 
         async def poll_forever() -> None:
-            allowed_chat_id = None
-            allowed_user_id = None
+            allowed_chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID")
+            allowed_user_id = os.environ.get("TELEGRAM_ALLOWED_USER_ID")
+            require_private = os.environ.get("TELEGRAM_REQUIRE_PRIVATE", "1") != "0"
             while True:
                 try:
                     received = await adapter.receive_one_async(bot)
@@ -80,8 +81,13 @@ def execute_agent_tool(
                     continue
                 chat_id = received.get("chat_id")
                 user_id = received.get("user_id")
+                if require_private and received.get("chat_type") != "private":
+                    continue
+                if received.get("user_is_bot") is True:
+                    continue
                 if allowed_chat_id is None:
                     allowed_chat_id = chat_id
+                if allowed_user_id is None:
                     allowed_user_id = user_id
                 if chat_id != allowed_chat_id or user_id != allowed_user_id:
                     # Acknowledge but never forward another chat's message.

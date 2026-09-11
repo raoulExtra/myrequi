@@ -36,7 +36,11 @@ async def receive_one_async(bot: Any) -> dict[str, Any]:
         raise LookupError("Telegram getUpdates returned no pending message")
     update = updates[0]
     chat = getattr(getattr(update, "effective_chat", None), "id", None)
-    user = getattr(getattr(update, "effective_user", None), "id", None)
+    effective_user = getattr(update, "effective_user", None)
+    user = getattr(effective_user, "id", None)
+    is_bot = getattr(effective_user, "is_bot", None)
+    chat_object = getattr(update, "effective_chat", None)
+    chat_type = getattr(chat_object, "type", None)
     message = getattr(getattr(update, "effective_message", None), "text", None)
     update_id = getattr(update, "update_id", None)
     if update_id is not None:
@@ -47,6 +51,8 @@ async def receive_one_async(bot: Any) -> dict[str, Any]:
         "update_id": update_id,
         "chat_id": str(chat) if chat is not None else None,
         "user_id": str(user) if user is not None else None,
+        "user_is_bot": is_bot,
+        "chat_type": chat_type,
         "text": message,
     }
 
