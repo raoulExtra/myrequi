@@ -1426,6 +1426,104 @@ def ensure_shared_semantic_records(cur):
         cur.executescript(sql)
 
 
+def ensure_typed_semantic_records(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_record_details (
+          semantic_type TEXT NOT NULL,
+          semantic_key TEXT NOT NULL,
+          concept_glossary_term INTEGER,
+          metacognitive_category TEXT,
+          identity_rule_kind TEXT,
+          decision_rationale TEXT,
+          decision_alternatives TEXT,
+          decision_uncertainty TEXT,
+          decision_origin_reasoning_episode_id INTEGER,
+          belief_current_version INTEGER,
+          conviction_current_version INTEGER,
+          PRIMARY KEY(semantic_type, semantic_key),
+          FOREIGN KEY(semantic_type, semantic_key) REFERENCES semantic_records(semantic_type, semantic_key) ON DELETE CASCADE,
+          CHECK(semantic_type='concept' OR concept_glossary_term IS NULL),
+          CHECK(semantic_type='metacognitive_state' OR metacognitive_category IS NULL),
+          CHECK(semantic_type='identity' OR identity_rule_kind IS NULL),
+          CHECK(semantic_type='decision' OR decision_rationale IS NULL),
+          CHECK(semantic_type='decision' OR decision_alternatives IS NULL),
+          CHECK(semantic_type='decision' OR decision_uncertainty IS NULL),
+          CHECK(semantic_type='decision' OR decision_origin_reasoning_episode_id IS NULL),
+          CHECK(semantic_type='belief' OR belief_current_version IS NULL),
+          CHECK(semantic_type='conviction' OR conviction_current_version IS NULL)
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS semantic_record_history (
+          history_id INTEGER PRIMARY KEY AUTOINCREMENT,
+          semantic_type TEXT NOT NULL,
+          semantic_key TEXT NOT NULL,
+          statement TEXT NOT NULL,
+          confidence REAL,
+          status TEXT NOT NULL,
+          provenance TEXT,
+          version INTEGER,
+          source_table TEXT NOT NULL,
+          source_id TEXT NOT NULL,
+          change_kind TEXT NOT NULL CHECK(change_kind IN ('backfill','insert','update','delete')),
+          recorded_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+        """
+    )
+    cur.execute("DELETE FROM semantic_record_details")
+    cur.executescript(
+        """
+        INSERT INTO semantic_record_details(semantic_type,semantic_key,concept_glossary_term)
+          SELECT 'concept',concept_key,glossary_term FROM concepts;
+        INSERT INTO semantic_record_details(semantic_type,semantic_key,metacognitive_category)
+          SELECT 'metacognitive_state',state_key,category FROM metacognitive_state;
+        INSERT INTO semantic_record_details(semantic_type,semantic_key,identity_rule_kind)
+          SELECT 'identity',key,'identity_rule' FROM identity;
+        INSERT INTO semantic_record_details(semantic_type,semantic_key,decision_rationale,decision_alternatives,decision_uncertainty,decision_origin_reasoning_episode_id)
+          SELECT 'decision',CAST(id AS TEXT),rationale_summary,alternatives,uncertainty,origin_reasoning_episode_id FROM decisions;
+        INSERT INTO semantic_record_details(semantic_type,semantic_key,belief_current_version)
+          SELECT 'belief',slug,current_version FROM beliefs;
+        INSERT INTO semantic_record_details(semantic_type,semantic_key,conviction_current_version)
+          SELECT 'conviction',slug,current_version FROM convictions;
+        """
+    )
+    cur.execute(
+        """INSERT INTO semantic_record_history
+          (semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind)
+          SELECT r.semantic_type,r.semantic_key,r.statement,r.confidence,r.status,r.provenance,r.version,r.source_table,r.source_id,'backfill'
+          FROM semantic_records r
+          WHERE NOT EXISTS (
+            SELECT 1 FROM semantic_record_history h
+            WHERE h.semantic_type=r.semantic_type AND h.semantic_key=r.semantic_key AND h.change_kind='backfill'
+          )"""
+    )
+    cur.executescript(
+        """
+        CREATE TRIGGER IF NOT EXISTS semantic_record_history_ai AFTER INSERT ON semantic_records BEGIN
+          INSERT INTO semantic_record_history(semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind)
+          VALUES(NEW.semantic_type,NEW.semantic_key,NEW.statement,NEW.confidence,NEW.status,NEW.provenance,NEW.version,NEW.source_table,NEW.source_id,'insert');
+        END;
+        CREATE TRIGGER IF NOT EXISTS semantic_record_history_au AFTER UPDATE ON semantic_records BEGIN
+          INSERT INTO semantic_record_history(semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind)
+          VALUES(NEW.semantic_type,NEW.semantic_key,NEW.statement,NEW.confidence,NEW.status,NEW.provenance,NEW.version,NEW.source_table,NEW.source_id,'update');
+        END;
+        CREATE TRIGGER IF NOT EXISTS semantic_record_history_ad AFTER DELETE ON semantic_records BEGIN
+          INSERT INTO semantic_record_history(semantic_type,semantic_key,statement,confidence,status,provenance,version,source_table,source_id,change_kind)
+          VALUES(OLD.semantic_type,OLD.semantic_key,OLD.statement,OLD.confidence,OLD.status,OLD.provenance,OLD.version,OLD.source_table,OLD.source_id,'delete');
+        END;
+        CREATE TRIGGER IF NOT EXISTS semantic_record_history_immutable_update BEFORE UPDATE ON semantic_record_history BEGIN
+          SELECT RAISE(ABORT,'semantic_record_history is immutable');
+        END;
+        CREATE TRIGGER IF NOT EXISTS semantic_record_history_immutable_delete BEFORE DELETE ON semantic_record_history BEGIN
+          SELECT RAISE(ABORT,'semantic_record_history is immutable');
+        END;
+        """
+    )
+
+
 def create_semantic_ownership_contract(cur):
     cur.execute(
         """
@@ -2968,6 +3066,7 @@ def apply_migration():
     seed_canonical_tag(cur)
     create_storage_map_view(cur)
     ensure_shared_semantic_records(cur)
+    ensure_typed_semantic_records(cur)
     create_semantic_ownership_contract(cur)
     create_core_model_view(cur)
     create_semantic_records_view(cur)
