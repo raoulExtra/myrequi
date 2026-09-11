@@ -59,6 +59,27 @@ def send_message(
     return asyncio.run(_send())
 
 
+def send_document(
+    bot: Any,
+    chat_id: str | int,
+    file_path: str | Path,
+    *,
+    max_bytes: int = 50 * 1024 * 1024,
+) -> Any:
+    """Send a validated local document through python-telegram-bot."""
+    path = Path(file_path).expanduser().resolve()
+    if not path.is_file():
+        raise FileNotFoundError(f"Telegram document is not a regular file: {path}")
+    if path.stat().st_size > max_bytes:
+        raise ValueError(f"Telegram document exceeds {max_bytes} bytes")
+
+    async def _send() -> Any:
+        with path.open("rb") as document:
+            return await bot.send_document(chat_id=chat_id, document=document)
+
+    return asyncio.run(_send())
+
+
 def create_bot(token: str) -> Any:
     """Create a python-telegram-bot Bot without persisting the token."""
     from telegram import Bot

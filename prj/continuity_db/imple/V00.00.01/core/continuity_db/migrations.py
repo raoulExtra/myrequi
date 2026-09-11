@@ -1539,7 +1539,8 @@ def ensure_telegram_dependency_and_route(cur):
     for route_name, pattern in (
         ('telegram_send_message', r'^telegram\s+send\s+(-?\d+)\s+(.+)$'),
         ('telegram_send_message_default', r'^telegram\s+send\s+(?!-?\d+\s)(.+)$'),
-    ):
+        ('telegram_send_document', r'^telegram\s+send\s+doc\s+(.+)$'),
+    ): 
         cur.execute(
             """INSERT INTO agent_tool_routes
               (route_name,input_pattern,handler,required_capability,output_contract,enabled)

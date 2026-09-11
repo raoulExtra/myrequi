@@ -1,6 +1,6 @@
-import asyncio
 import importlib.util
 from pathlib import Path
+import tempfile
 
 
 ADAPTER = Path(__file__).resolve().parents[5] / "imple/V00.00.01/extension/messenger-adapter/telegram/telegram_adapter.py"
@@ -20,6 +20,9 @@ class FakeBot:
     async def send_message(self, *, chat_id, text):
         return type("Message", (), {"message_id": 42, "chat_id": chat_id, "text": text})()
 
+    async def send_document(self, *, chat_id, document):
+        return type("Message", (), {"message_id": 43, "chat_id": chat_id, "name": document.name})()
+
 
 def test_send_message_uses_python_telegram_bot_shape():
     adapter = load_adapter()
@@ -29,6 +32,30 @@ def test_send_message_uses_python_telegram_bot_shape():
     assert result.message_id == 42
     assert result.chat_id == "123"
     assert result.text == "hello"
+
+
+def test_send_document_uses_python_telegram_bot_shape():
+    adapter = load_adapter()
+    with tempfile.NamedTemporaryFile() as file:
+        file.write(b"document")
+        file.flush()
+        result = adapter.send_document(FakeBot(), "987", file.name)
+    assert result.message_id == 43
+    assert result.chat_id == "987"
+
+
+def test_document_route_extracts_path():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "core"))
+    from route.input_action_matching import match_routing_rule
+
+    matched, params = match_routing_rule(
+        {"pattern_type": "json_regex", "pattern_spec": r"^telegram\s+send\s+doc\s+(.+)$"},
+        "telegram send doc /tmp/report.txt",
+        None,
+    )
+    assert matched
+    assert params["group1"] == "/tmp/report.txt"
 
 
 def test_default_route_pattern_extracts_message_without_chat_id():

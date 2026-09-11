@@ -16,6 +16,30 @@ def execute_agent_tool(
     handler = decision.get("handler")
     if handler == "context_info":
         return execute_context_info_tool(decision, bridge_client)
+    if handler == "telegram_send_document":
+        adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
+        spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
+        if spec is None or spec.loader is None:
+            return {"status": "unavailable", "handler": handler, "error": "Telegram adapter could not be loaded"}
+        adapter = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(adapter)
+        params = decision.get("parameters") or {}
+        file_path = params.get("group1") or params.get("file_path")
+        bridge = getattr(bridge_client, "_bridge_client", bridge_client)
+        bot = getattr(bridge, "telegram_bot", None)
+        if bot is None:
+            token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
+            bot = adapter.create_bot(token)
+        chat_id = adapter.get_default_chat_id(bot)
+        result = adapter.send_document(bot, chat_id, str(file_path or ""))
+        return {
+            "status": "telegram_document_sent",
+            "handler": handler,
+            "chat_id": str(chat_id),
+            "file_path": str(file_path),
+            "message_id": getattr(result, "message_id", None),
+            "token_persisted": False,
+        }
     if handler == "telegram_send_message":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
         spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
