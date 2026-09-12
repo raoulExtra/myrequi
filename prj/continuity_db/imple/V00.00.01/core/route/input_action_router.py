@@ -13,7 +13,9 @@ Usage:
 """
 
 import argparse
+import importlib.util
 import json
+import os
 import re
 import sqlite3
 import subprocess
@@ -1464,6 +1466,91 @@ class InputActionRouter:
                 "command": command,
                 "pid": session_pid,
                 "assistant_text": assistant_text,
+            }
+        if route_name == "chat_trace_telegram":
+            from route.input_action_execution import _telegram_debug_enabled, _telegram_formatted_chunks
+            trace_decision = {
+                "route_name": "chat_trace",
+                "parameters": {
+                    "group1": params.get("group1"),
+                    "group2": params.get("group2"),
+                },
+                "command_template": "chat trace",
+            }
+            trace = self._execute_control_command(trace_decision, pid=pid)
+            debug = _telegram_debug_enabled(self)
+            message = json.dumps(trace, ensure_ascii=False) if debug else str(trace.get("result") or "")
+            if not message:
+                return {"status": "telegram_trace_not_sent", "reason": "No completed chat messages."}
+            adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
+            spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
+            if spec is None or spec.loader is None:
+                return {"status": "unavailable", "handler": route_name}
+            adapter = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(adapter)
+            bridge = getattr(self._bridge_client, "_bridge_client", self._bridge_client)
+            bot = getattr(bridge, "telegram_bot", None)
+            if bot is None:
+                token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=self.db_path)
+                bot = adapter.create_bot(token)
+            chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID") or adapter.get_default_chat_id(bot)
+            sent = []
+            for chunk in _telegram_formatted_chunks(message):
+                result = adapter.send_message(bot, chat_id, chunk)
+                sent.append(getattr(result, "message_id", None))
+            return {
+                "status": "telegram_trace_sent",
+                "chat_id": str(chat_id),
+                "message_ids": sent,
+                "next_cursor": trace.get("next_cursor"),
+            }
+        if route_name == "chat_trace":
+            since = str(params.get("group1") or "").strip() or None
+            raw_pid = params.get("group2") or params.get("pid") or pid
+            session_pid = str(raw_pid).strip() if raw_pid is not None else None
+            if session_pid in {"", "None", "null"}:
+                session_pid = None
+            from pi_session import get_session_history
+            history = get_session_history(
+                pid=session_pid,
+                limit=500,
+                since=since,
+                event="message_end",
+                max_bytes=20_000_000,
+            )
+            events = ((history.get("data") or {}).get("events") or [])
+            trace_events = []
+            for event in events:
+                message = event.get("message") or (event.get("data") or {}).get("message") or {}
+                role = message.get("role")
+                if role not in {"user", "assistant"}:
+                    continue
+                content = message.get("content") or []
+                if isinstance(content, str):
+                    text = content
+                else:
+                    text = "\n".join(
+                        chunk.get("text", "")
+                        for chunk in content
+                        if isinstance(chunk, dict) and chunk.get("type") == "text"
+                    )
+                text = str(text).strip()
+                if not text:
+                    continue
+                trace_events.append({
+                    "event_id": event.get("id") or event.get("event_id") or event.get("timestamp"),
+                    "timestamp": event.get("timestamp"),
+                    "role": role,
+                    "text": text,
+                })
+            latest = trace_events[-1] if trace_events else None
+            return {
+                "status": "executed_control",
+                "command": self._render_command_template(command_template, {**params, "pid": session_pid or ""}),
+                "pid": session_pid,
+                "events": trace_events,
+                "next_cursor": latest.get("event_id") if latest else since,
+                "result": latest.get("text") if latest else "No completed chat messages.",
             }
         if route_name == "session_chat_at":
             raw_index = params.get("group1") or "-1"

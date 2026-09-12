@@ -2378,9 +2378,21 @@ def seed_session_prompt_routes(cur):
         ),
         (
             'session_latest_answer',
-            r'^(?:pi_session\.latest_assistant_text|latest\s+answer|latest\s+assistant\s+text)(?:\s*\(\s*pid\s*=\s*"?([^\)"\']+)"?\s*\))?$',
+            r'^(?:chat\s+latest|pi_session\.latest_assistant_text|latest\s+answer|latest\s+assistant\s+text)(?:\s*\(\s*pid\s*=\s*"?([^\)"\']+)"?\s*\))?$',
             'python3 -c "import pi_session; print(pi_session.latest_assistant_text(pid=<pid>))"',
             'Return the latest assistant text from the live Pi session bridge.',
+        ),
+        (
+            'chat_trace',
+            r'^chat\s+trace(?:\s+since\s+(\S+))?(?:\s+--pid\s+(\S+))?$',
+            'python3 -c "import pi_session; print(pi_session.chat_trace())"',
+            'Return completed AI chat events for Telegram trace delivery.',
+        ),
+        (
+            'chat_trace_telegram',
+            r'^chat\s+trace\s+telegram(?:\s+since\s+(\S+))?(?:\s+--pid\s+(\S+))?$',
+            'telegram send latest completed chat trace',
+            'Send the latest completed AI chat trace directly to Telegram.',
         ),
     ]
     cur.executemany(

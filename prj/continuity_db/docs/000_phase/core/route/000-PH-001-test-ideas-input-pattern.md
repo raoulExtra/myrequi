@@ -1,5 +1,5 @@
 '''yaml
-title: 000-PH-test-ideas-input-pattern
+title: 000-PH-001-test-ideas-input-pattern
 document_type: test_ideas
 phase: 000_phase
 for_version: default_version
@@ -102,6 +102,8 @@ Tests should use a temporary SQLite database and mocked external services. Do no
 | `session_latest_answer` | latest-answer aliases/optional PID | Test all aliases, quoted PID, absent PID, and empty history. |
 | `session_model_set` | model name capture | Preserve model identifier; reject missing/whitespace model. |
 | `session_prompt` | prompt capture | Preserve complete prompt including punctuation; verify `prompt_session` receives it. |
+| `chat_trace` | optional cursor/PID | Return completed user/assistant events; debug off returns latest text, debug on returns trace JSON; advance cursor without duplicate delivery. |
+| `chat_trace_telegram` | optional cursor/PID | Send the latest completed trace directly to the configured Telegram chat when no poller is active; do not send when there are no new events. |
 | `session_reload` | exact `/reload` | Match exact command; reject missing slash or extra text. |
 | `set_phase` | JSON phase template | Test valid project/phase values, missing keys, and malformed JSON. |
 | `set_topic` | topic capture | Preserve spaces and symbols; reject missing topic. |

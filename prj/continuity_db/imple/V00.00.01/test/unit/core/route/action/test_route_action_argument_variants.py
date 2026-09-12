@@ -12,7 +12,7 @@ from route.input_action_router import InputActionRouter
 from route.input_action_execution import _telegram_action_response, _telegram_update_is_new
 
 sys.path.insert(0, str(Path(__file__).parent))
-from mocks import MockBridgeClient
+from mocks import MockBridgeClient, mock_pi_session
 
 
 USE_MOCKS = os.getenv("ROUTE_ACTION_USE_MOCKS", "1").lower() not in {"0", "false", "no"}
@@ -29,6 +29,9 @@ ROUTE_ACTION_VARIANTS = (
     ("project off demo", "project_off", {"group1": "demo"}),
     ("research SQLite testing", "research", {"group1": "SQLite testing"}),
     ("ctx", "context_info", {}),
+    ("chat latest", "session_latest_answer", {}),
+    ("chat trace", "chat_trace", {}),
+    ("chat trace telegram", "chat_trace_telegram", {}),
     ("context info", "context_info", {}),
     ("usage percent", "context_info", {}),
     ("s telegram bot token", "telegram_bot_token", {}),
@@ -80,6 +83,23 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
         self.assertNotEqual(decision.get("route_name"), "telegram_poll")
         self.assertNotEqual(decision.get("route_name"), "telegram_receive_one")
         self.assertFalse((decision.get("recall_packet") or {}).get("recursion_blocked", False))
+
+    def test_chat_trace_returns_completed_chat_events(self):
+        decision = self.router.match_input_to_route("chat trace", "text")
+        self.assertEqual(decision["route_name"], "chat_trace")
+        with mock_pi_session():
+            with patch(
+                "pi_session.get_session_history",
+                return_value={"data": {"events": [
+                    {"id": "evt-1", "timestamp": "2026-09-12T10:00:00Z", "message": {"role": "user", "content": [{"type": "text", "text": "hello"}]}},
+                    {"id": "evt-2", "timestamp": "2026-09-12T10:00:01Z", "message": {"role": "assistant", "content": [{"type": "text", "text": "hi <Peter>"}]}},
+                ]}},
+            ):
+                result = self.router.execute_routing_decision(decision, "chat trace")
+        action = result["action_result"]
+        self.assertEqual(action["result"], "hi <Peter>")
+        self.assertEqual(action["next_cursor"], "evt-2")
+        self.assertEqual([event["role"] for event in action["events"]], ["user", "assistant"])
 
     def test_duplicate_telegram_update_is_not_new(self):
         is_new, last_id = _telegram_update_is_new(42, None)
