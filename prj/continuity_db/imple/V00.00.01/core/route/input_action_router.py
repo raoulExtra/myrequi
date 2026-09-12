@@ -19,6 +19,7 @@ import os
 import re
 import sqlite3
 import subprocess
+import signal
 import sys
 import threading
 import time
@@ -55,10 +56,51 @@ U_ACTION = "uaction"
 ROOT = Path(__file__).resolve().parents[5]
 DB_PATH = ROOT / "continuity.db"
 PLANS_DIR = ROOT / "plans"
+CHAT_TRACE_POLL_PID_PATH = Path("/tmp/myrequi-chat-trace-poll.pid")
+CHAT_TRACE_CURSOR_PATH = Path("/tmp/myrequi-chat-trace-cursor")
+CHAT_POLLER_ROUTE_KEY = "chat_poller_exists"
+CHAT_POLLER_PRESENT_TAG = "status:chat_poller_present"
+CHAT_POLLER_ABSENT_TAG = "status:chat_poller_absent"
+
+
+def _find_chat_pollers(exclude_pid: Optional[int] = None) -> List[Dict[str, Any]]:
+    """Find active chat/Telegram pollers by behavior, not only by filename."""
+    matches: List[Dict[str, Any]] = []
+    for proc_dir in Path("/proc").glob("[0-9]*"):
+        try:
+            pid = int(proc_dir.name)
+            if exclude_pid is not None and pid == exclude_pid:
+                continue
+            raw = (proc_dir / "cmdline").read_bytes()
+            argv = [part.decode("utf-8", "replace") for part in raw.split(b"\\0") if part]
+        except (OSError, ValueError):
+            continue
+        if not argv:
+            continue
+        lowered_argv = [arg.lower() for arg in argv]
+        text = " ".join(lowered_argv)
+        command_tokens = []
+        for arg in lowered_argv:
+            command_tokens.extend(re.findall(r"[a-z0-9_:-]+", arg))
+        is_trace_poller = "chat_trace_poller.py" in text
+        is_status_check = any(
+            phrase in text for phrase in ("chat poller exists", "telegram poller exists")
+        )
+        poll_tokens = {"poll", "poller", "receive", "getupdates", "webhook"}
+        is_telegram_poll = not is_status_check and "telegram" in command_tokens and bool(poll_tokens.intersection(command_tokens))
+        is_router_poll = not is_status_check and "input_action_router.py" in text and "poll" in command_tokens
+        if is_trace_poller or is_telegram_poll or is_router_poll:
+            matches.append({"pid": pid, "command": " ".join(argv), "kind": (
+                "trace" if is_trace_poller else "telegram" if is_telegram_poll else "router"
+            )})
+    return sorted(matches, key=lambda item: item["pid"])
 
 
 class InputActionRouter:
     """Continuous input action router with JSON pattern matching."""
+
+    _active_route_names = set()
+    _active_route_lock = threading.RLock()
 
     def __init__(self, db_path: Path = DB_PATH, pid: Optional[str] = None, verbose: bool = True):
         self.db_path = Path(db_path)
@@ -85,9 +127,88 @@ class InputActionRouter:
         self._seed_science_routes()
         self._seed_promotion_routes()
         self._seed_media_routes()
+        self._seed_messenger_control_route()
+        self._seed_chat_trace_detail_route()
+        self._seed_chat_poller_route()
+        self._seed_trust_advisory_route()
         self._seed_echo_route()
         self.seed_patterns_from_routes()
         self.setup_views()
+
+    def _seed_trust_advisory_route(self):
+        """Install the advisory-only trust assessment command."""
+        self.conn.execute(
+            """INSERT INTO command_routes(route_name, input_pattern, route_type, command_template, scope, output_contract)
+               VALUES(?, ?, 'control_command', ?, ?, ?)
+               ON CONFLICT(route_name) DO UPDATE SET input_pattern=excluded.input_pattern,
+                 command_template=excluded.command_template, scope=excluded.scope,
+                 output_contract=excluded.output_contract, enabled=1""",
+            ('trust_assess', r'^trust\s+assess\s+(medical_advice|high_impact_software)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$',
+             'trust assess <domain> <Q> <P> <D> <F> <C> <R>',
+             'Advisory-only trust assessment; never authorizes execution.',
+             'JSON posture, scores, failed floors, and uncertainty.'),
+        )
+        self.conn.commit()
+
+    def _seed_chat_poller_route(self):
+        """Install the broad chat-poller existence/status command."""
+        self.conn.execute(
+            """INSERT INTO command_routes(route_name, input_pattern, route_type, command_template, scope)
+               VALUES(?, ?, 'control_command', ?, ?)
+               ON CONFLICT(route_name) DO UPDATE SET input_pattern=excluded.input_pattern,
+                 command_template=excluded.command_template, scope=excluded.scope, enabled=1""",
+            (CHAT_POLLER_ROUTE_KEY, r"^(?:chat|telegram)\s+poller\s+exists$", "inspect active chat pollers and set status tag", "Report all detected chat pollers and tag the route."),
+        )
+        for tag_key, label, description in (
+            (CHAT_POLLER_PRESENT_TAG, "Chat poller present", "A behavior-based process audit found an active chat poller."),
+            (CHAT_POLLER_ABSENT_TAG, "Chat poller absent", "A behavior-based process audit found no active chat poller."),
+        ):
+            self.conn.execute(
+                """INSERT INTO epistemic_tags(tag_key, label, description) VALUES(?,?,?)
+                   ON CONFLICT(tag_key) DO UPDATE SET label=excluded.label, description=excluded.description""",
+                (tag_key, label, description),
+            )
+        self.conn.commit()
+
+    def _seed_chat_trace_detail_route(self):
+        """Install detailed chat-trace commands."""
+        for route_name, pattern, template, scope in (
+            (
+                "chat_trace_detail",
+                r"^chat\s+trace\s+detail$",
+                'python3 -c "import pi_session; print(pi_session.chat_trace(detail=True))"',
+                "Return chat and tool execution status details.",
+            ),
+            (
+                "chat_trace_detail_debug",
+                r"^chat\s+trace\s+detail\s+debug$",
+                'python3 -c "import pi_session; print(pi_session.chat_trace(detail=True))"',
+                "Send bounded tool arguments and results; requires debug mode.",
+            ),
+        ):
+            self.conn.execute(
+                """INSERT INTO command_routes(route_name, input_pattern, route_type, command_template, scope, enabled)
+                   VALUES(?, ?, 'control_command', ?, ?, 1)
+                   ON CONFLICT(route_name) DO UPDATE SET input_pattern=excluded.input_pattern,
+                     command_template=excluded.command_template, scope=excluded.scope, enabled=1""",
+                (route_name, pattern, template, scope),
+            )
+        self.conn.commit()
+        self._invalidate_routing_cache()
+
+    def _seed_messenger_control_route(self):
+        """Install the messenger prefix-release control command."""
+        self.conn.execute(
+            "INSERT OR IGNORE INTO feature_flags(feature_key, enabled, switchable, scope, updated_by) VALUES('messenger_prefix_required', 1, 1, 'delivery', 'system')"
+        )
+        self.conn.execute(
+            """INSERT INTO command_routes(route_name, input_pattern, route_type, command_template, scope, enabled)
+               VALUES('free_me', '^free_me$', 'control_command', 'disable messenger command prefix', 'delivery', 1)
+               ON CONFLICT(route_name) DO UPDATE SET input_pattern=excluded.input_pattern,
+                 command_template=excluded.command_template, scope=excluded.scope, enabled=1"""
+        )
+        self.conn.commit()
+        self._invalidate_routing_cache()
 
     def _seed_echo_route(self):
         """Install a safe literal echo route; never execute shell input."""
@@ -493,6 +614,12 @@ class InputActionRouter:
         """Match one routing rule using the matching module."""
         return match_routing_rule(pattern, normalized_text, parsed_input)
 
+    def _debug_mode_enabled(self) -> bool:
+        row = self.conn.execute(
+            "SELECT enabled FROM feature_flags WHERE feature_key='debug_mode' LIMIT 1"
+        ).fetchone()
+        return bool(row and row[0])
+
     def _route_mode_enabled(self) -> bool:
         cur = self.conn.cursor()
         row = cur.execute(
@@ -684,6 +811,9 @@ class InputActionRouter:
 
         # No pattern matched: try memory recall as a DB key/content search fallback.
         recall_packet = self._recall_for_unmatched_input(normalized_text)
+        delegated = self._delegate_exact_recalled_route(normalized_text, recall_packet, patterns)
+        if delegated is not None:
+            return delegated
         if recall_packet.get("hit_count", 0) > 0:
             return {
                 "matched_pattern": "memory_recall_fallback",
@@ -708,6 +838,57 @@ class InputActionRouter:
             "recall_packet": recall_packet,
         }
 
+    def _delegate_exact_recalled_route(self, normalized_text: str,
+                                       recall_packet: Dict[str, Any],
+                                       patterns: list) -> Optional[Dict[str, Any]]:
+        """Delegate only an exact, enabled procedural route found by recall."""
+        if not self._route_mode_enabled():
+            return None
+        lookup = self._load_route_lookup_cache()
+        for hit in recall_packet.get("hits") or []:
+            if not isinstance(hit, dict) or hit.get("source_type") != "route":
+                continue
+            route_name = str(hit.get("source_key") or "").removeprefix("route:")
+            route = lookup.get(route_name) or {}
+            if route.get("enabled") is not None and not route.get("enabled"):
+                continue
+            if route.get("route_type") not in {"control_command", "agent_tool"}:
+                continue
+            if self._no_recursion_route_hit({"route_name": route_name}) and self._route_in_flight(route_name):
+                continue
+            input_pattern = route.get("input_pattern")
+            if not input_pattern:
+                continue
+            try:
+                match = re.fullmatch(input_pattern, normalized_text)
+            except re.error:
+                continue
+            if not match:
+                continue
+            groups = list(match.groups())
+            return {
+                "matched_pattern": f"recalled_{route_name}",
+                "route_name": route_name,
+                "route_type": route.get("route_type"),
+                "command_template": route.get("command_template"),
+                "handler": route.get("handler"),
+                "required_capability": route.get("required_capability"),
+                "output_contract": route.get("output_contract"),
+                "input_pattern": input_pattern,
+                "parameters": {"input_text": normalized_text, "groups": groups, **{
+                    f"group{i}": value for i, value in enumerate(groups, 1)
+                }},
+                "priority": route.get("priority", 0),
+                "description": route.get("description"),
+                "delegated_from_recall": True,
+            }
+        return None
+
+    @classmethod
+    def _route_in_flight(cls, route_name: str) -> bool:
+        with cls._active_route_lock:
+            return route_name in cls._active_route_names
+
     def _no_recursion_route_hit(self, hit: Dict[str, Any]) -> bool:
         """Keep no-recursion action routes out of unmatched-input recall."""
         candidates = set()
@@ -727,7 +908,9 @@ class InputActionRouter:
         return False
 
     def _filter_recallable_hits(self, hits: Any) -> list:
-        return [hit for hit in (hits or []) if isinstance(hit, dict) and not self._no_recursion_route_hit(hit)]
+        # no_recursion controls delegation while a route is in flight; it does
+        # not suppress ordinary recall visibility.
+        return [hit for hit in (hits or []) if isinstance(hit, dict)]
 
     def _recall_for_unmatched_input(self, normalized_text: str, limit: int = 5) -> Dict[str, Any]:
         """Use memory recall while excluding no-recursion action routes."""
@@ -743,6 +926,7 @@ class InputActionRouter:
             table_packet["hits"] = self._filter_recallable_hits(table_hits)
             table_packet["recursion_blocked"] = any(
                 self._no_recursion_route_hit(hit)
+                and self._route_in_flight(str(hit.get("source_key") or "").removeprefix("route:"))
                 and hit.get("match_class") != "incidental"
                 for hit in table_packet["hits"]
             )
@@ -770,6 +954,7 @@ class InputActionRouter:
                     strict_hits.append(hit)
             packet["recursion_blocked"] = any(
                 self._no_recursion_route_hit(hit)
+                and self._route_in_flight(str(hit.get("source_key") or "").removeprefix("route:"))
                 and hit.get("match_class") != "incidental"
                 for hit in strict_hits
             )
@@ -837,6 +1022,16 @@ class InputActionRouter:
         success = False
         error_message = None
         action_result = None
+        active_route_name = decision.get("route_name") if decision.get("route_type") in {"control_command", "agent_tool"} else None
+        route_claimed = False
+        if active_route_name:
+            with self._active_route_lock:
+                if active_route_name in self._active_route_names:
+                    decision = dict(decision)
+                    decision["route_type"] = "route_in_flight"
+                else:
+                    self._active_route_names.add(active_route_name)
+                    route_claimed = True
 
         # Pattern recognition notification
         pattern_name = decision.get("matched_pattern")
@@ -844,7 +1039,11 @@ class InputActionRouter:
             print(f"{U_ACTION}: pattern found: {pattern_name}")
 
         try:
-            if decision["route_type"] == "control_command":
+            if decision["route_type"] == "route_in_flight":
+                action_result = {"status": "blocked", "message": "Route command is already in flight; no recursion."}
+                error_message = action_result["message"]
+                success = False
+            elif decision["route_type"] == "control_command":
                 if self.verbose:
                     print(f"{U_ACTION}: working on: {decision.get('route_name')}")
                 action_result = self._execute_control_command(decision, pid=pid)
@@ -888,6 +1087,9 @@ class InputActionRouter:
                 success = False
             
         finally:
+            if route_claimed:
+                with self._active_route_lock:
+                    self._active_route_names.discard(active_route_name)
             cur = self.conn.cursor()
             receipt_reason = self._importance_reason(decision, success, action_result, error_message)
             input_action_log_id = None
@@ -896,7 +1098,7 @@ class InputActionRouter:
             self._record_route_usage(decision, input_text, timestamp, success, action_result, error_message)
 
             # Detailed per-execution rows are only for important events.
-            if receipt_reason:
+            if self._debug_mode_enabled() and receipt_reason:
                 cur.execute("""
                     INSERT INTO input_action_log 
                     (timestamp, input_text, input_type, matched_route_name, 
@@ -1282,6 +1484,30 @@ class InputActionRouter:
         route_name = decision.get("route_name")
         params = decision.get("parameters", {})
         input_text = params.get("input_text", "")
+        if route_name == "trust_assess":
+            from trust_advisory import assess
+            match = re.match(r"^trust\s+assess\s+(medical_advice|high_impact_software)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: trust assess <domain> <Q> <P> <D> <F> <C> <R>"}
+            try:
+                assessment = assess(domain=match.group(1), quality=float(match.group(2)), provenance=float(match.group(3)), domain_fit=float(match.group(4)), freshness=float(match.group(5)), conflict=float(match.group(6)), risk=float(match.group(7)))
+            except ValueError as error:
+                return {"status": "rejected", "handler": route_name, "error": str(error), "advisory_only": True}
+            self.conn.execute(
+                """INSERT INTO trust_advisory_assessments
+                   (domain, risk, quality, provenance, domain_fit, freshness, conflict,
+                    base_confidence, adjusted_confidence, posture,
+                    failed_floors_json, uncertainty_json)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                (assessment.domain, float(match.group(7)), float(match.group(2)),
+                 float(match.group(3)), float(match.group(4)), float(match.group(5)),
+                 assessment.conflict,
+                 assessment.base_confidence, assessment.adjusted_confidence,
+                 assessment.posture, json.dumps(assessment.failed_floors),
+                 json.dumps(assessment.uncertainty)),
+            )
+            self.conn.commit()
+            return {"status": "trust_advisory_assessment", "handler": route_name, **assessment.__dict__}
         if route_name == "echo_text":
             match = re.match(r"^echo\s+(.+)$", input_text, re.IGNORECASE)
             value = match.group(1) if match else ""
@@ -1472,6 +1698,181 @@ class InputActionRouter:
                 "pid": session_pid,
                 "assistant_text": assistant_text,
             }
+        if route_name in {"chat_trace_detail", "chat_trace_detail_debug"}:
+            if route_name == "chat_trace_detail_debug" and not self._debug_mode_enabled():
+                return {"status": "debug_required", "error": "Enable debug mode first: debug on"}
+            from pi_session import get_session_history
+            details = []
+            for event_name in ("tool_execution_start", "tool_execution_update", "tool_execution_end"):
+                history = get_session_history(
+                    pid=pid, limit=500, event=event_name, max_bytes=10_000_000
+                )
+                for event in ((history.get("data") or {}).get("events") or []):
+                    data = event.get("data") or {}
+                    detail = {
+                        "event_id": event.get("id") or event.get("event_id") or event.get("timestamp"),
+                        "timestamp": event.get("timestamp"),
+                        "event": event_name,
+                        "tool": data.get("toolName"),
+                        "status": data.get("status") or ("started" if event_name.endswith("start") else None),
+                    }
+                    if self._debug_mode_enabled():
+                        debug_fields = {}
+                        for field in ("args", "partialResult", "result", "error"):
+                            if field in data:
+                                debug_fields[field] = self._preview_text(data.get(field), 4000)
+                        if debug_fields:
+                            detail["debug"] = debug_fields
+                    details.append(detail)
+            details.sort(key=lambda item: str(item.get("timestamp") or ""))
+            result_text = (
+                json.dumps(details, ensure_ascii=False)
+                if route_name == "chat_trace_detail_debug"
+                else "\n".join(
+                    f"{item['event']}: {item.get('tool') or 'unknown tool'}"
+                    for item in details
+                )
+            ) or "No tool execution events found."
+            result = {
+                "status": route_name,
+                "command": command_template,
+                "details": details,
+                "result": result_text,
+            }
+            if route_name == "chat_trace_detail_debug" and details:
+                extension_root = Path(__file__).resolve().parents[2] / "extension"
+                if str(extension_root) not in sys.path:
+                    sys.path.insert(0, str(extension_root))
+                from message_adapter_registry import send_to_active_adapters
+                delivery_text = result_text
+                if len(delivery_text) > 3800:
+                    delivery_text = delivery_text[:3800] + "\n...[debug trace truncated for Telegram]"
+                result["automatic_delivery"] = send_to_active_adapters(
+                    self.db_path, self, delivery_text
+                )
+            return result
+        if route_name == "free_me":
+            self.conn.execute(
+                "UPDATE feature_flags SET enabled=0, updated_by='Peter', updated_at=CURRENT_TIMESTAMP WHERE feature_key='messenger_prefix_required'"
+            )
+            self.conn.commit()
+            return {
+                "status": "messenger_prefix_disabled",
+                "command": command_template,
+                "result": "messenger prefix disabled.",
+            }
+        if route_name == "chat_trace_auto":
+            action = str(params.get("group1") or "").lower()
+            delivery_result = None
+            if action in {"on", "off"}:
+                enabled = 1 if action == "on" else 0
+                self.conn.execute(
+                    "UPDATE feature_flags SET enabled=?, updated_by='Peter', updated_at=CURRENT_TIMESTAMP WHERE feature_key='chat_trace_auto'",
+                    (enabled,),
+                )
+                self.conn.commit()
+                if action == "off" and CHAT_TRACE_POLL_PID_PATH.exists():
+                    try:
+                        os.kill(int(CHAT_TRACE_POLL_PID_PATH.read_text().strip()), signal.SIGTERM)
+                    except (ValueError, ProcessLookupError):
+                        pass
+                    CHAT_TRACE_POLL_PID_PATH.unlink(missing_ok=True)
+                if action == "on":
+                    trace = self._execute_control_command(
+                        {
+                            "route_name": "chat_trace",
+                            "parameters": {},
+                            "command_template": "chat trace",
+                        },
+                        pid=pid,
+                    )
+                    message = str(trace.get("result") or "") if trace.get("events") else ""
+                    if self._debug_mode_enabled() and trace.get("events"):
+                        message = json.dumps(trace, ensure_ascii=False)
+                    extension_root = Path(__file__).resolve().parents[2] / "extension"
+                    if str(extension_root) not in sys.path:
+                        sys.path.insert(0, str(extension_root))
+                    from message_adapter_registry import send_to_active_adapters
+                    delivery_result = {
+                        "status": "chat_trace_auto_initial_delivery",
+                        "sent": send_to_active_adapters(self.db_path, self, message),
+                        "next_cursor": trace.get("next_cursor"),
+                    }
+                    next_cursor = trace.get("next_cursor")
+                    if next_cursor:
+                        CHAT_TRACE_CURSOR_PATH.write_text(str(next_cursor))
+                        CHAT_TRACE_CURSOR_PATH.chmod(0o600)
+                    if not CHAT_TRACE_POLL_PID_PATH.exists():
+                        poller = Path(__file__).resolve().parents[1] / "chat_trace_poller.py"
+                        process = subprocess.Popen(
+                            [sys.executable, str(poller), "--db", str(self.db_path)],
+                            stdin=subprocess.DEVNULL,
+                            stdout=subprocess.DEVNULL,
+                            stderr=subprocess.DEVNULL,
+                            start_new_session=True,
+                        )
+                        delivery_result["poller_pid"] = process.pid
+            row = self.conn.execute(
+                "SELECT enabled FROM feature_flags WHERE feature_key='chat_trace_auto' LIMIT 1"
+            ).fetchone()
+            enabled = bool(row and row[0])
+            return {
+                "status": "chat_trace_auto_status",
+                "result": f"chat trace auto: {'on' if enabled else 'off'}.",
+                "automatic_delivery": enabled,
+                "initial_delivery": delivery_result,
+            }
+        if route_name == "extension_status":
+            rows = self.conn.execute(
+                """SELECT name, active_version, ethics_tier FROM code_artifacts
+                   WHERE EXISTS (
+                       SELECT 1 FROM object_epistemic_tags t
+                       WHERE t.object_type='row'
+                         AND t.object_key='code_artifacts:name=' || code_artifacts.name
+                         AND t.tag_key='activation:enabled'
+                   ) ORDER BY name"""
+            ).fetchall()
+            lines = []
+            extensions = []
+            for row in rows:
+                tags = {
+                    tag[0] for tag in self.conn.execute(
+                        "SELECT tag_key FROM object_epistemic_tags WHERE object_type='row' AND object_key=?",
+                        (f"code_artifacts:name={row[0]}",),
+                    )
+                }
+                kind = next((tag.split(":", 1)[1] for tag in tags if tag.startswith("kind:")), "unknown")
+                artifact_type = "code_artifact"
+                extensions.append({
+                    "name": row[0],
+                    "kind": kind,
+                    "type": artifact_type,
+                    "version": row[1],
+                    "tags": sorted(tags),
+                })
+                lines.append(
+                    f"{row[0]} — kind={kind}, type={artifact_type}, version={row[1]}, "
+                    f"tags={', '.join(sorted(tags))}"
+                )
+            return {
+                "status": "extension_status",
+                "result": "\n".join(lines) if lines else "No active extensions.",
+                "extensions": extensions,
+            }
+        if route_name == CHAT_POLLER_ROUTE_KEY:
+            pollers = _find_chat_pollers(os.getpid())
+            tag_key = CHAT_POLLER_PRESENT_TAG if pollers else CHAT_POLLER_ABSENT_TAG
+            self.conn.execute(
+                "DELETE FROM object_epistemic_tags WHERE object_type='route' AND object_key=? AND tag_key IN (?, ?)",
+                (CHAT_POLLER_ROUTE_KEY, CHAT_POLLER_PRESENT_TAG, CHAT_POLLER_ABSENT_TAG),
+            )
+            self.conn.execute(
+                "INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note) VALUES(?,?,?,?)",
+                ("route", CHAT_POLLER_ROUTE_KEY, tag_key, "Updated by chat poller exists process audit."),
+            )
+            self.conn.commit()
+            result = f"chat poller: {'present' if pollers else 'absent'}; tag: {tag_key}; matches: {len(pollers)}."
+            return {"status": CHAT_POLLER_ROUTE_KEY, "result": result, "tag_key": tag_key, "pollers": pollers}
         if route_name == "chat_trace_status":
             trace_enabled = bool(self.conn.execute(
                 "SELECT enabled FROM command_routes WHERE route_name='chat_trace' LIMIT 1"
@@ -1479,14 +1880,24 @@ class InputActionRouter:
             telegram_enabled = bool(self.conn.execute(
                 "SELECT enabled FROM command_routes WHERE route_name='chat_trace_telegram' LIMIT 1"
             ).fetchone()[0])
+            extension_root = Path(__file__).resolve().parents[2] / "extension"
+            if str(extension_root) not in sys.path:
+                sys.path.insert(0, str(extension_root))
+            from message_adapter_registry import active_message_adapters
+            active_adapter_count = len(active_message_adapters(self.db_path))
             poll_pid_path = Path("/tmp/myrequi-telegram-poll.pid")
             poller_active = poll_pid_path.exists()
-            auto_delivery = False
+            trace_poller_active = CHAT_TRACE_POLL_PID_PATH.exists()
+            auto_row = self.conn.execute(
+                "SELECT enabled FROM feature_flags WHERE feature_key='chat_trace_auto' LIMIT 1"
+            ).fetchone()
+            auto_delivery = bool(auto_row and auto_row[0])
             result = (
                 f"chat trace auto: {'on' if auto_delivery else 'off'}; "
-                f"route: {'available' if trace_enabled else 'off'}; "
-                f"telegram: {'on' if telegram_enabled else 'off'}; "
-                f"poller: {'on' if poller_active else 'off'}."
+                f"active adapters: {active_adapter_count}; "
+                f"telegram route: {'on' if telegram_enabled else 'off'}; "
+                f"poller: {'on' if poller_active else 'off'}; "
+                f"trace poller: {'on' if trace_poller_active else 'off'}."
             )
             return {
                 "status": "chat_trace_status",
@@ -1494,7 +1905,9 @@ class InputActionRouter:
                 "chat_trace_enabled": trace_enabled,
                 "automatic_delivery": auto_delivery,
                 "telegram_enabled": telegram_enabled,
+                "active_adapter_count": active_adapter_count,
                 "poller_active": poller_active,
+                "trace_poller_active": trace_poller_active,
             }
         if route_name == "chat_trace_telegram":
             from route.input_action_execution import _telegram_debug_enabled, _telegram_formatted_chunks
@@ -1572,7 +1985,7 @@ class InputActionRouter:
                     "text": text,
                 })
             latest = trace_events[-1] if trace_events else None
-            return {
+            result = {
                 "status": "executed_control",
                 "command": self._render_command_template(command_template, {**params, "pid": session_pid or ""}),
                 "pid": session_pid,
@@ -1580,6 +1993,18 @@ class InputActionRouter:
                 "next_cursor": latest.get("event_id") if latest else since,
                 "result": latest.get("text") if latest else "No completed chat messages.",
             }
+            auto_row = self.conn.execute(
+                "SELECT enabled FROM feature_flags WHERE feature_key='chat_trace_auto' LIMIT 1"
+            ).fetchone()
+            if auto_row and auto_row[0] and trace_events:
+                extension_root = Path(__file__).resolve().parents[2] / "extension"
+                if str(extension_root) not in sys.path:
+                    sys.path.insert(0, str(extension_root))
+                from message_adapter_registry import send_to_active_adapters
+                result["automatic_delivery"] = send_to_active_adapters(
+                    self.db_path, self, result["result"]
+                )
+            return result
         if route_name == "session_chat_at":
             raw_index = params.get("group1") or "-1"
             try:
@@ -1810,7 +2235,7 @@ def _redact_chat_ids(value: Any) -> Any:
         return {
             key: _redact_chat_ids(item)
             for key, item in value.items()
-            if key != "chat_id"
+            if key not in {"chat_id", "user_id"}
         }
     if isinstance(value, list):
         return [_redact_chat_ids(item) for item in value]
