@@ -227,3 +227,6 @@ __marimo__/
 
 # Local continuity database backups
 continuity.db.backup-*
+
+# The only project database is the repository-root continuity.db.
+/prj/continuity.db

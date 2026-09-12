@@ -789,7 +789,7 @@ def backfill_open_question_flow(cur):
         cur.execute(
             """
             INSERT INTO open_questions(question, status, origin_reasoning_episode_id, resolution_note)
-            VALUES(?,?,?,?)
+            VALUES(?, ?, 'control_command', ?, ?)
             """,
             (question, 'open', episode_id, ''),
         )
@@ -1524,6 +1524,42 @@ def ensure_typed_semantic_records(cur):
     )
 
 
+def ensure_command_routes(cur):
+    """Unify command and agent-tool route metadata into one table."""
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS command_routes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            route_name TEXT NOT NULL UNIQUE,
+            input_pattern TEXT NOT NULL,
+            route_type TEXT NOT NULL DEFAULT 'control_command'
+                CHECK(route_type IN ('control_command', 'agent_tool')),
+            command_template TEXT,
+            scope TEXT,
+            handler TEXT,
+            required_capability TEXT,
+            output_contract TEXT,
+            enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        )
+    """)
+    if table_exists(cur, 'control_command_routes'):
+        cur.execute("""
+            INSERT OR IGNORE INTO command_routes
+              (route_name, input_pattern, route_type, command_template, scope, enabled)
+            SELECT route_name, input_pattern, 'control_command', command_template, scope, enabled
+            FROM control_command_routes
+        """)
+        cur.execute("DROP TABLE control_command_routes")
+    if table_exists(cur, 'agent_tool_routes'):
+        cur.execute("""
+            INSERT OR IGNORE INTO command_routes
+              (route_name, input_pattern, route_type, handler, required_capability, output_contract, enabled)
+            SELECT route_name, input_pattern, 'agent_tool', handler, required_capability, output_contract, enabled
+            FROM agent_tool_routes
+        """)
+        cur.execute("DROP TABLE agent_tool_routes")
+
+
 def ensure_telegram_dependency_and_route(cur):
     try:
         cur.execute('ALTER TABLE code_artifacts ADD COLUMN dependency_spec TEXT')
@@ -1545,11 +1581,12 @@ def ensure_telegram_dependency_and_route(cur):
         ('telegram_stop_poll', r'^telegram\s+stop(?:\s+poll)?$', 'telegram_stop_poll'),
     ): 
         cur.execute(
-            """INSERT INTO agent_tool_routes
-              (route_name,input_pattern,handler,required_capability,output_contract,enabled)
-              VALUES (?, ?, ?, 'telegram_send', 'json', 1)
+            """INSERT INTO command_routes
+              (route_name,input_pattern,route_type,handler,required_capability,output_contract,enabled)
+              VALUES (?, ?, 'agent_tool', ?, 'telegram_send', 'json', 1)
               ON CONFLICT(route_name) DO UPDATE SET
                 input_pattern=excluded.input_pattern,
+                route_type='agent_tool',
                 handler=excluded.handler,
                 required_capability=excluded.required_capability,
                 output_contract=excluded.output_contract,
@@ -1864,7 +1901,7 @@ def seed_plan_concept(cur):
         cur.execute(
             """
             INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-            VALUES(?,?,?,?)
+            VALUES(?, ?, 'control_command', ?, ?)
             ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                 note=excluded.note
             """,
@@ -1915,7 +1952,7 @@ def seed_goal_mission_taxonomy_concepts(cur):
             cur.execute(
                 """
                 INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                VALUES(?,?,?,?)
+                VALUES(?, ?, 'control_command', ?, ?)
                 ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                     note=excluded.note
                 """,
@@ -2007,7 +2044,7 @@ def seed_db_optimization_concepts(cur):
             cur.execute(
                 """
                 INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                VALUES(?,?,?,?)
+                VALUES(?, ?, 'control_command', ?, ?)
                 ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                     note=excluded.note
                 """,
@@ -2022,7 +2059,7 @@ def seed_db_optimization_concepts(cur):
                 cur.execute(
                     """
                     INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                    VALUES(?,?,?,?)
+                    VALUES(?, ?, 'control_command', ?, ?)
                     ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                         note=excluded.note
                     """,
@@ -2124,7 +2161,7 @@ def seed_canonical_tag(cur):
         cur.execute(
             """
             INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-            VALUES(?,?,?,?)
+            VALUES(?, ?, 'control_command', ?, ?)
             ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                 note=excluded.note
             """,
@@ -2150,7 +2187,7 @@ def seed_canonical_tag(cur):
         cur.execute(
             """
             INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-            VALUES(?,?,?,?)
+            VALUES(?, ?, 'control_command', ?, ?)
             ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                 note=excluded.note
             """,
@@ -2197,7 +2234,7 @@ def seed_persona_tag(cur):
                 cur.execute(
                     """
                     INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                    VALUES(?,?,?,?)
+                    VALUES(?, ?, 'control_command', ?, ?)
                     ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                         note=excluded.note
                     """,
@@ -2319,8 +2356,8 @@ def seed_scientist_mode_routes(cur):
     ]
     cur.executemany(
         """
-        INSERT INTO control_command_routes(route_name,input_pattern,command_template,scope)
-        VALUES(?,?,?,?)
+        INSERT INTO command_routes(route_name,input_pattern,route_type,command_template,scope)
+        VALUES(?, ?, 'control_command', ?, ?)
         ON CONFLICT(route_name) DO UPDATE SET
             input_pattern=excluded.input_pattern,
             command_template=excluded.command_template,
@@ -2348,8 +2385,8 @@ def seed_session_prompt_routes(cur):
     ]
     cur.executemany(
         """
-        INSERT INTO control_command_routes(route_name,input_pattern,command_template,scope)
-        VALUES(?,?,?,?)
+        INSERT INTO command_routes(route_name,input_pattern,route_type,command_template,scope)
+        VALUES(?, ?, 'control_command', ?, ?)
         ON CONFLICT(route_name) DO UPDATE SET
             input_pattern=excluded.input_pattern,
             command_template=excluded.command_template,
@@ -2371,8 +2408,8 @@ def seed_session_model_routes(cur):
     ]
     cur.executemany(
         """
-        INSERT INTO control_command_routes(route_name,input_pattern,command_template,scope)
-        VALUES(?,?,?,?)
+        INSERT INTO command_routes(route_name,input_pattern,route_type,command_template,scope)
+        VALUES(?, ?, 'control_command', ?, ?)
         ON CONFLICT(route_name) DO UPDATE SET
             input_pattern=excluded.input_pattern,
             command_template=excluded.command_template,
@@ -2919,10 +2956,10 @@ def validate(conn):
     if hard_row != ('fairness', 'unjust_disparate_treatment', 1):
         issues.append(("fairness_hard_row", hard_row, ('fairness', 'unjust_disparate_treatment', 1)))
 
-    route_count = cur.execute("select count(*) from control_command_routes where route_name in ('scientist_on','scientist_off','scientist_status','scientist_analyse')").fetchone()[0]
+    route_count = cur.execute("select count(*) from command_routes where route_name in ('scientist_on','scientist_off','scientist_status','scientist_analyse')").fetchone()[0]
     if route_count != 4:
         issues.append(("scientist_routes", route_count, 4))
-    route_mode_count = cur.execute("select count(*) from control_command_routes where route_name in ('route_on','route_off','route_status')").fetchone()[0]
+    route_mode_count = cur.execute("select count(*) from command_routes where route_name in ('route_on','route_off','route_status')").fetchone()[0]
     if route_mode_count != 3:
         issues.append(("route_mode_routes", route_mode_count, 3))
 
@@ -2935,7 +2972,7 @@ def validate(conn):
     memory_mvp_req = cur.execute("select count(*) from continuity_requirements where requirement_key in ('CDB-01.3','CDB-01.4','CDB-01.5','CDB-01.6','CDB-01.7') and status='active'").fetchone()[0]
     if memory_mvp_req != 5:
         issues.append(("memory_mvp_requirements", memory_mvp_req, 5))
-    route_count = cur.execute("select count(*) from control_command_routes where route_name in ('scientist_on','scientist_off','scientist_status','scientist_analyse','memory_recall')").fetchone()[0]
+    route_count = cur.execute("select count(*) from command_routes where route_name in ('scientist_on','scientist_off','scientist_status','scientist_analyse','memory_recall')").fetchone()[0]
     if route_count != 5:
         issues.append(("memory_and_scientist_routes", route_count, 5))
 
@@ -3046,6 +3083,7 @@ def validate(conn):
 def apply_migration():
     conn = connect()
     cur = conn.cursor()
+    ensure_command_routes(cur)
     drop_shared_semantic_triggers(cur)
     add_receipt_kind_column(cur)
     add_action_check_principle_column(cur)

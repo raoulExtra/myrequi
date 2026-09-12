@@ -318,7 +318,9 @@ def prompt_session(prompt: str, pid: Optional[str] = None) -> Dict[str, Any]:
     broad_history = None
     for _ in range(20):
         try:
-            history = get_session_history(pid=session_pid, limit=20, since=started_at)
+            history = get_session_history(
+                pid=session_pid, limit=20, since=started_at, event="message_end"
+            )
         except Exception:
             history = None
         assistant_text = _extract_assistant_text(history or {}, since=started_at)
@@ -328,7 +330,7 @@ def prompt_session(prompt: str, pid: Optional[str] = None) -> Dict[str, Any]:
 
     if not assistant_text:
         try:
-            broad_history = get_session_history(pid=session_pid, limit=50, event="message_update")
+            broad_history = get_session_history(pid=session_pid, limit=50, event="message_end")
             assistant_text = _extract_assistant_text(broad_history or {}, since=None)
         except Exception:
             broad_history = None

@@ -12,7 +12,7 @@ class MemoryCommandTests(unittest.TestCase):
         conn = memory_command.connect()
         try:
             route = conn.execute(
-                "select command_template from control_command_routes where route_name='memory_recall'"
+                "select command_template from command_routes where route_name='memory_recall'"
             ).fetchone()
             requirement = conn.execute(
                 "select requirement_key, title from continuity_requirements where requirement_key='CDB-01.3'"

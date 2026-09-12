@@ -52,7 +52,7 @@ These are part of how the engine is tuned and steered, not core facts.
 ### Policy and posture
 - `metacognitive_state` / `metacognitive_state_history`
 - `ethical_principles` / `ethical_action_checks`
-- `control_command_routes`
+- `command_routes`
 
 ## Synthesis → policy promotion
 When a synthesis is settled and should become an active rule, copy it into `metacognitive_state` instead of overwriting history.

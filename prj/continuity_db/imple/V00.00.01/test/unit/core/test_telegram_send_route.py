@@ -51,6 +51,53 @@ def test_send_message_uses_python_telegram_bot_shape():
     assert result.text == "hello"
 
 
+def test_telegram_formatting_preserves_plan_listing_text():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "core"))
+    from route.input_action_execution import _telegram_format_text
+
+    text = "Plans: prj/base/plans/001-plan-telegram-special-character-testing.md\n- p ls"
+    assert _telegram_format_text(text) == text
+
+
+def test_telegram_formatting_escapes_special_characters_and_renders_bold():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "core"))
+    from route.input_action_execution import _telegram_format_text
+
+    assert _telegram_format_text("**bold** <tag> & 'quote'") == "<b>bold</b> &lt;tag&gt; &amp; 'quote'"
+
+
+def test_telegram_formatted_chunks_count_escaped_special_characters():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "core"))
+    from route.input_action_execution import _telegram_formatted_chunks
+
+    chunks = _telegram_formatted_chunks("&" * 4096)
+    assert "".join(chunks) == "&amp;" * 4096
+    assert all(len(chunk.encode("utf-16-le")) // 2 <= 4096 for chunk in chunks)
+    assert len(chunks) > 1
+
+
+def test_telegram_chunks_respect_utf16_limit_and_preserve_text():
+    import sys
+    sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "core"))
+    from route.input_action_execution import _telegram_chunks
+
+    text = "a" * 4094 + "🚀" + "日本語"
+    chunks = _telegram_chunks(text)
+    assert "".join(chunks) == text
+    assert all(len(chunk.encode("utf-16-le")) // 2 <= 4096 for chunk in chunks)
+    assert len(chunks) == 2
+
+
+def test_send_message_preserves_special_characters_and_unicode():
+    adapter = load_adapter()
+    text = "<tag> & 'quote' \"double\" _brackets_ [x] \\slash 日本語 🚀"
+    result = adapter.send_message(FakeBot(), "123", text)
+    assert result.text == text
+
+
 def test_send_document_uses_python_telegram_bot_shape():
     adapter = load_adapter()
     with tempfile.NamedTemporaryFile() as file:

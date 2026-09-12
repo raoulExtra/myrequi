@@ -12,8 +12,8 @@ class PlanCommandTests(unittest.TestCase):
     def test_plan_routes_are_registered(self):
         conn = plan_command.connect()
         try:
-            status = conn.execute("select command_template from control_command_routes where route_name='plan_status'").fetchone()
-            goal = conn.execute("select command_template from control_command_routes where route_name='plan_goal_set'").fetchone()
+            status = conn.execute("select command_template from command_routes where route_name='plan_status'").fetchone()
+            goal = conn.execute("select command_template from command_routes where route_name='plan_goal_set'").fetchone()
         finally:
             conn.close()
 

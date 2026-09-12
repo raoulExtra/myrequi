@@ -1,5 +1,14 @@
 #!/usr/bin/env python3
-"""Version, approve, and execute small trusted Python snippets from continuity.db.
+"""Continuity database helper and guarded project-control CLI.
+
+important:with the recall argument you can query the db perfectly for all unkown things.
+
+In addition to versioning, approving, and executing small trusted Python
+snippets, this module initializes and maintains continuity.db metadata,
+model/session links, memory recall, research jobs and sources, ethics state,
+feature flags, controlled tags, route/version records, self-checks, snapshots,
+and tool export/restore metadata.  It also provides the database-backed
+safety gate and audit trail for code artifacts and runs.
 
 This is a safety gate and audit tool, not a hardened hostile-code sandbox.
 """
@@ -280,7 +289,7 @@ def connect(path: Path) -> sqlite3.Connection:
 
 def ensure_route_placeholder_entries(con: sqlite3.Connection) -> None:
     route_queries = [
-        "SELECT command_template AS command FROM control_command_routes WHERE enabled=1",
+        "SELECT COALESCE(command_template, handler) AS command FROM command_routes WHERE enabled=1",
         "SELECT invocation_template AS command FROM tool_routes WHERE enabled=1",
     ]
     scripts: set[str] = set()
@@ -588,8 +597,8 @@ CONTROLLED_TAG_OBJECT_TABLES = {
     "tag": ("epistemic_tags", "tag_key"),
 }
 CONTROLLED_TAG_ROUTE_TABLES = (
-    ("agent_tool_routes", "route_name"),
-    ("control_command_routes", "route_name"),
+    ("command_routes", "route_name"),
+    ("command_routes", "route_name"),
     ("tool_routes", "route_name"),
 )
 CONTROLLED_TAG_OBJECT_TYPES = frozenset(("concept", "glossary_term", "route", "file", "tag", "row"))
@@ -606,7 +615,8 @@ def _controlled_tag_assign(con, object_type, object_key, tag_key, note="Controll
     """Assign one existing tag to one validated object; never create tags."""
     if object_type not in CONTROLLED_TAG_OBJECT_TYPES:
         raise ValueError(f"object type is not allowlisted: {object_type}")
-    if object_type != "row" and not re.fullmatch(r"[A-Za-z0-9_./-]+", object_key or ""):
+    object_key_pattern = r"[A-Za-z0-9_:-]+" if object_type == "tag" else r"[A-Za-z0-9_./-]+"
+    if object_type != "row" and not re.fullmatch(object_key_pattern, object_key or ""):
         raise _tagging_rejection("invalid_object_key", "object key contains disallowed characters", object_type, object_key, tag_key)
     if not re.fullmatch(r"[A-Za-z0-9_:-]+", tag_key or ""):
         raise ValueError("tag key contains disallowed characters")
@@ -697,6 +707,45 @@ def cmd_controlled_tag_assign(args: argparse.Namespace) -> None:
         print(json.dumps({"status": "rejected", "code": getattr(error, "code", "tagging_not_possible"), "message": str(error), "details": getattr(error, "details", {})}, indent=2, sort_keys=True))
         return
     print(json.dumps(result, indent=2, sort_keys=True))
+
+
+def cmd_tag_create(args: argparse.Namespace) -> None:
+    """Create or refresh a tag definition through the database helper."""
+    with connect(args.db) as con:
+        con.execute(
+            "INSERT INTO epistemic_tags(tag_key, label, description) VALUES (?, ?, ?) "
+            "ON CONFLICT(tag_key) DO UPDATE SET label=excluded.label, description=excluded.description",
+            (args.tag_key, args.label, args.description),
+        )
+        con.commit()
+    print(json.dumps({"status": "tag_ready", "tag_key": args.tag_key}, indent=2))
+
+
+def cmd_tag_deassign(args: argparse.Namespace) -> None:
+    """Remove a tag assignment from an object through the database helper."""
+    with connect(args.db) as con:
+        cursor = con.execute(
+            "DELETE FROM object_epistemic_tags WHERE object_type=? AND object_key=? AND tag_key=?",
+            (args.object_type, args.object_key, args.tag_key),
+        )
+        con.commit()
+    print(json.dumps({
+        "status": "deassigned" if cursor.rowcount else "not_assigned",
+        "object_type": args.object_type,
+        "object_key": args.object_key,
+        "tag_key": args.tag_key,
+    }, indent=2, sort_keys=True))
+
+
+def cmd_journal_add(args: argparse.Namespace) -> None:
+    """Record a concise continuity journal entry through the database helper."""
+    with connect(args.db) as con:
+        cur = con.execute(
+            "INSERT INTO journal(category, summary, status) VALUES (?, ?, ?)",
+            (args.category, args.summary, args.status),
+        )
+        con.commit()
+    print(json.dumps({"status": "journal_recorded", "id": cur.lastrowid, "category": args.category}, indent=2))
 
 
 def cmd_create(args: argparse.Namespace) -> None:
@@ -805,7 +854,7 @@ def cmd_version_info(args: argparse.Namespace) -> None:
         )]
         if not route_rows:
             route_rows = [dict(r) for r in con.execute(
-                "SELECT route_name, input_pattern FROM control_command_routes WHERE command_template LIKE ? AND enabled=1 ORDER BY route_name",
+                "SELECT route_name, input_pattern FROM command_routes WHERE command_template LIKE ? AND enabled=1 ORDER BY route_name",
                 (f"%{args.name}%",),
             )]
         payload = {
@@ -828,20 +877,21 @@ def cmd_show_routes(args: argparse.Namespace) -> None:
     wildcard = args.wildcard or "%"
     show_status = getattr(args, "route_status", False)
     with connect(args.db) as con:
-        # control_command_routes
+        # command_routes
+        detail_filter = "COALESCE(command_template, handler)"
         if show_status:
             rows = con.execute(
-                "SELECT route_name, input_pattern, command_template AS detail, enabled FROM control_command_routes WHERE (route_name LIKE ? OR input_pattern LIKE ? OR command_template LIKE ?)",
+                f"SELECT route_name, input_pattern, {detail_filter} AS detail, route_type, enabled FROM command_routes WHERE (route_name LIKE ? OR input_pattern LIKE ? OR {detail_filter} LIKE ?)",
                 (wildcard, wildcard, wildcard),
             ).fetchall()
         else:
             rows = con.execute(
-                "SELECT route_name, input_pattern, command_template AS detail, enabled FROM control_command_routes WHERE enabled=1 AND (route_name LIKE ? OR input_pattern LIKE ? OR command_template LIKE ?)",
+                f"SELECT route_name, input_pattern, {detail_filter} AS detail, route_type, enabled FROM command_routes WHERE enabled=1 AND (route_name LIKE ? OR input_pattern LIKE ? OR {detail_filter} LIKE ?)",
                 (wildcard, wildcard, wildcard),
             ).fetchall()
         for r in rows:
             status = f" [{'on' if r['enabled'] else 'off'}]" if show_status else ""
-            print(f"[control] {r['route_name']} | {r['input_pattern']} | {r['detail']}{status}")
+            print(f"[{r['route_type']}] {r['route_name']} | {r['input_pattern']} | {r['detail']}{status}")
         # tool_routes
         if show_status:
             rows = con.execute(
@@ -856,20 +906,6 @@ def cmd_show_routes(args: argparse.Namespace) -> None:
         for r in rows:
             status = f" [{'on' if r['enabled'] else 'off'}]" if show_status else ""
             print(f"[tool] {r['route_name']} | {r['input_pattern']} | {r['detail']}{status}")
-        # agent_tool_routes
-        if show_status:
-            rows = con.execute(
-                "SELECT route_name, input_pattern, handler AS detail, enabled FROM agent_tool_routes WHERE (route_name LIKE ? OR input_pattern LIKE ? OR handler LIKE ?)",
-                (wildcard, wildcard, wildcard),
-            ).fetchall()
-        else:
-            rows = con.execute(
-                "SELECT route_name, input_pattern, handler AS detail, enabled FROM agent_tool_routes WHERE enabled=1 AND (route_name LIKE ? OR input_pattern LIKE ? OR handler LIKE ?)",
-                (wildcard, wildcard, wildcard),
-            ).fetchall()
-        for r in rows:
-            status = f" [{'on' if r['enabled'] else 'off'}]" if show_status else ""
-            print(f"[agent] {r['route_name']} | {r['input_pattern']} | {r['detail']}{status}")
 
 
 def limits() -> None:
@@ -1031,6 +1067,21 @@ def parser() -> argparse.ArgumentParser:
     ta.add_argument("tag_key")
     ta.add_argument("--note", default="Controlled tag assignment")
     ta.set_defaults(func=cmd_controlled_tag_assign)
+    tc = sub.add_parser("tag-create")
+    tc.add_argument("tag_key")
+    tc.add_argument("--label", required=True)
+    tc.add_argument("--description", required=True)
+    tc.set_defaults(func=cmd_tag_create)
+    td = sub.add_parser("tag-deassign")
+    td.add_argument("object_type", choices=sorted(CONTROLLED_TAG_OBJECT_TYPES))
+    td.add_argument("object_key")
+    td.add_argument("tag_key")
+    td.set_defaults(func=cmd_tag_deassign)
+    ja = sub.add_parser("journal-add")
+    ja.add_argument("category")
+    ja.add_argument("summary")
+    ja.add_argument("--status", default="active")
+    ja.set_defaults(func=cmd_journal_add)
 
     c = sub.add_parser("create")
     c.add_argument("name"); c.add_argument("--description", default="")

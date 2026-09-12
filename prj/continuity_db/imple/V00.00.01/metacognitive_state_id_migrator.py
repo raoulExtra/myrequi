@@ -6,7 +6,7 @@ import sqlite3
 from pathlib import Path
 from typing import Iterable
 
-DEFAULT_DB = Path("continuity.db")
+DEFAULT_DB = Path(__file__).resolve().parents[4] / "continuity.db"
 
 METACOGNITIVE_STATE_COLUMNS = (
     "state_key",

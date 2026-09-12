@@ -86,44 +86,34 @@ def _extract_groups(pattern: str, text: str) -> dict[str, Any]:
 def _decision_for_route(con: sqlite3.Connection, route_name: str, routearg: str) -> Optional[dict[str, Any]]:
     """Build an InputActionRouter decision for a named route without per-route code."""
     row = con.execute(
-        "SELECT route_name, input_pattern, command_template, scope FROM control_command_routes WHERE route_name=? AND enabled=1 LIMIT 1",
+        """SELECT route_name, input_pattern, route_type, command_template, scope,
+                  handler, required_capability, output_contract
+           FROM command_routes WHERE route_name=? AND enabled=1 LIMIT 1""",
         (route_name,),
     ).fetchone()
-    if row is not None:
-        params = _extract_groups(row["input_pattern"], routearg or "")
-        if routearg and "group1" not in params:
-            params["group1"] = routearg
-        return {
-            "matched_pattern": "watch_trigger",
-            "route_name": row["route_name"],
-            "route_type": "control_command",
-            "command_template": row["command_template"],
-            "input_pattern": row["input_pattern"],
-            "parameters": params,
-            "priority": 100,
-            "description": row["scope"],
-        }
-
-    row = con.execute(
-        "SELECT route_name, input_pattern, handler, required_capability, output_contract FROM agent_tool_routes WHERE route_name=? AND enabled=1 LIMIT 1",
-        (route_name,),
-    ).fetchone()
-    if row is not None:
-        params = _extract_groups(row["input_pattern"], routearg or "")
-        if routearg and "group1" not in params:
-            params["group1"] = routearg
-        return {
-            "matched_pattern": "watch_trigger",
-            "route_name": row["route_name"],
-            "route_type": "agent_tool",
-            "handler": row["handler"],
-            "required_capability": row["required_capability"],
-            "output_contract": row["output_contract"],
-            "input_pattern": row["input_pattern"],
-            "parameters": params,
-            "priority": 100,
-            "description": row["output_contract"],
-        }
+    if row is None:
+        return None
+    params = _extract_groups(row["input_pattern"], routearg or "")
+    if routearg and "group1" not in params:
+        params["group1"] = routearg
+    decision = {
+        "matched_pattern": "watch_trigger",
+        "route_name": row["route_name"],
+        "route_type": row["route_type"],
+        "input_pattern": row["input_pattern"],
+        "parameters": params,
+        "priority": 100,
+    }
+    if row["route_type"] == "control_command":
+        decision.update(command_template=row["command_template"], description=row["scope"])
+    else:
+        decision.update(
+            handler=row["handler"],
+            required_capability=row["required_capability"],
+            output_contract=row["output_contract"],
+            description=row["output_contract"],
+        )
+    return decision
 
     return None
 

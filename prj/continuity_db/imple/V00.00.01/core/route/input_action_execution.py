@@ -1,10 +1,15 @@
 """Execution services for agent-tool routing decisions."""
 
 import asyncio
+import html
 import importlib.util
+import json
 import os
+import re
 import signal
 import sqlite3
+import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict
@@ -12,6 +17,111 @@ from typing import Any, Dict
 
 TELEGRAM_POLL_PID_PATH = Path('/tmp/myrequi-telegram-poll.pid')
 TELEGRAM_POLL_USER_PATH = Path('/tmp/myrequi-telegram-poll-user.id')
+TELEGRAM_REJECTED_DIR = Path('/tmp/myrequi-telegram-rejected')
+
+
+def _record_rejected_telegram_message(message: Dict[str, Any], reason: str) -> str:
+    """Write a restricted audit record for an unauthorized Telegram message."""
+    TELEGRAM_REJECTED_DIR.mkdir(mode=0o700, parents=True, exist_ok=True)
+    timestamp = time.strftime('%Y%m%dT%H%M%SZ', time.gmtime())
+    update_id = str(message.get('update_id') or 'unknown')
+    path = TELEGRAM_REJECTED_DIR / f'{timestamp}-{update_id}.json'
+    payload = {
+        'timestamp': timestamp,
+        'reason': reason,
+        'user_id': message.get('user_id'),
+        'chat_id': message.get('chat_id'),
+        'chat_type': message.get('chat_type'),
+        'text': message.get('text'),
+        'update_id': message.get('update_id'),
+    }
+    path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + '\\n')
+    path.chmod(0o600)
+    return str(path)
+
+
+def _telegram_message_is_allowed(message: Dict[str, Any]) -> tuple[bool, str | None]:
+    """Enforce Telegram identity restrictions before exposing a message."""
+    allowed_user_id = os.environ.get("TELEGRAM_ALLOWED_USER_ID")
+    allowed_chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID")
+    require_private = os.environ.get("TELEGRAM_REQUIRE_PRIVATE", "1") != "0"
+    if not allowed_user_id:
+        return False, "TELEGRAM_ALLOWED_USER_ID is not configured"
+    if require_private and message.get("chat_type") != "private":
+        return False, "Telegram message is not from a private chat"
+    if message.get("user_is_bot") is True:
+        return False, "Telegram message is from a bot"
+    if str(message.get("user_id")) != str(allowed_user_id):
+        return False, "Telegram message user is not allowed"
+    if allowed_chat_id is not None and str(message.get("chat_id")) != str(allowed_chat_id):
+        return False, "Telegram message chat is not allowed"
+    return True, None
+
+
+def _telegram_package_command_is_blocked(text: str) -> bool:
+    """Block package-install command forms while leaving future routes available."""
+    return re.search(
+        r"(?:^|[;&|`\s])(?:sudo\s+)?(?:pip3?|python(?:3)?\s+-m\s+pip)(?=\s|$)",
+        text.strip(),
+        re.IGNORECASE,
+    ) is not None
+
+
+def _telegram_sandbox_notice_required(text: str) -> bool:
+    """Give a fixed sandbox response for non-command pip questions."""
+    return re.search(r"\bpip3?\b", text, re.IGNORECASE) is not None
+
+
+def _telegram_debug_enabled(router: Any) -> bool:
+    row = router.conn.execute(
+        "SELECT enabled FROM feature_flags WHERE feature_key='debug_mode' LIMIT 1"
+    ).fetchone()
+    return bool(row and row[0])
+
+
+def _telegram_format_text(text: str) -> str:
+    """Convert common Markdown bold to safe Telegram HTML."""
+    escaped = html.escape(str(text), quote=False)
+    return re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", escaped, flags=re.DOTALL)
+
+
+def _telegram_chunks(text: str, limit: int = 4096) -> list[str]:
+    """Split text without exceeding Telegram's UTF-16 code-unit limit."""
+    chunks, current, units = [], [], 0
+    for character in str(text):
+        width = len(character.encode("utf-16-le")) // 2
+        if current and units + width > limit:
+            chunks.append("".join(current))
+            current, units = [], 0
+        current.append(character)
+        units += width
+    if current:
+        chunks.append("".join(current))
+    return chunks
+
+
+def _telegram_formatted_chunks(text: str, limit: int = 4096) -> list[str]:
+    """Format first so escaped HTML is included in the Telegram limit."""
+    return _telegram_chunks(_telegram_format_text(text), limit=limit)
+
+
+def _telegram_action_response(result: Dict[str, Any], debug: bool) -> str:
+    if debug:
+        return json.dumps(result, ensure_ascii=False)
+    action_result = result.get("action_result") or result.get("mode_result")
+    if isinstance(action_result, dict) and isinstance(action_result.get("mode_result"), dict):
+        action_result = action_result["mode_result"]
+    if isinstance(action_result, dict):
+        message = action_result.get("message")
+        if message:
+            return str(message)
+        output = action_result.get("result")
+        if isinstance(output, str) and output:
+            return output
+        status = action_result.get("status")
+        if status:
+            return str(status).replace("_", " ").capitalize() + "."
+    return "Action completed." if result.get("success", True) else "Action failed."
 
 
 def execute_agent_tool(
@@ -24,7 +134,6 @@ def execute_agent_tool(
     if handler == "prj/continuity_db/imple/V00.00.01/extension/extension_state.py":
         params = decision.get("parameters") or {}
         artifact_name = params.get("group1") or params.get("artifact_name")
-        import sys
         extension_root = Path(__file__).resolve().parents[2] / "extension"
         if str(extension_root) not in sys.path:
             sys.path.insert(0, str(extension_root))
@@ -45,6 +154,40 @@ def execute_agent_tool(
         }
     if handler == "context_info":
         return execute_context_info_tool(decision, bridge_client)
+    if handler == "play_media":
+        params = decision.get("parameters") or {}
+        bell_volume = params.get("group1")
+        file_name = params.get("group2")
+        file_volume = params.get("group3")
+        media_kind = "file" if file_name else "bell"
+        volume_value = file_volume if file_name else bell_volume
+        try:
+            volume = max(0, min(100, int(volume_value or 100)))
+        except (TypeError, ValueError):
+            return {"status": "rejected", "handler": handler, "error": "volume must be 0-100"}
+        project_root = Path(__file__).resolve().parents[6]
+        if media_kind == "bell":
+            media_path = project_root / "prj/continuity_db/assets/media/ui_noti_bell.mp3"
+        else:
+            media_path = Path(str(file_name)).expanduser()
+            if not media_path.is_absolute():
+                media_path = project_root / media_path
+            media_path = media_path.resolve()
+        if not media_path.is_file():
+            return {"status": "unavailable", "handler": handler, "error": f"media file not found: {media_path}"}
+        process = subprocess.Popen(
+            ["ffplay", "-nodisp", "-autoexit", "-loglevel", "error", "-volume", str(volume), str(media_path)],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return {
+            "status": "media_playback_started",
+            "handler": handler,
+            "media": media_kind,
+            "file": str(media_path),
+            "volume": volume,
+            "pid": process.pid,
+        }
     if handler == "telegram_stop_poll":
         if not TELEGRAM_POLL_PID_PATH.exists():
             return {"status": "telegram_poll_not_running", "handler": handler}
@@ -101,11 +244,63 @@ def execute_agent_tool(
                     # Acknowledge but never forward another chat's message.
                     continue
                 text = received.get("text") or ""
-                if text.startswith("echo "):
+                if text.startswith("X "):
+                    prompt = text[2:].strip()
+                    if _telegram_package_command_is_blocked(prompt):
+                        await bot.send_message(
+                            chat_id=chat_id,
+                            text="Blocked: package-install commands are unavailable from Telegram.",
+                            parse_mode="HTML",
+                        )
+                        continue
+                    if _telegram_sandbox_notice_required(prompt):
+                        await bot.send_message(
+                            chat_id=chat_id,
+                            text="You are in a sandbox.",
+                            parse_mode="HTML",
+                        )
+                        continue
+                    router = bridge_client if hasattr(bridge_client, "match_input_to_route") else None
+                    if router is not None and router._route_mode_enabled():
+                        decision = router.match_input_to_route(prompt, "text")
+                        if (decision.get("recall_packet") or {}).get("recursion_blocked"):
+                            await bot.send_message(chat_id=chat_id, text="No recursion here.", parse_mode="HTML")
+                            continue
+                        if (
+                            decision.get("route_type") in {"control_command", "agent_tool"}
+                            and decision.get("route_name") != "session_prompt"
+                            and router._no_recursion_route_hit({"route_name": decision.get("route_name")})
+                        ):
+                            await bot.send_message(chat_id=chat_id, text="No recursion here.", parse_mode="HTML")
+                            continue
+                        if decision.get("route_type") in {"control_command", "agent_tool"} and decision.get("route_name") != "session_prompt":
+                            routed_result = router.execute_routing_decision(decision, prompt)
+                            response_text = _telegram_action_response(
+                                routed_result, _telegram_debug_enabled(router)
+                            )
+                            for chunk in _telegram_formatted_chunks(response_text):
+                                await bot.send_message(
+                                    chat_id=chat_id,
+                                    text=chunk,
+                                    parse_mode="HTML",
+                                )
+                            continue
+                    project_root = Path(__file__).resolve().parents[6]
+                    if str(project_root) not in sys.path:
+                        sys.path.insert(0, str(project_root))
                     from pi_session import prompt_session
                     select_pid = getattr(bridge_client, "_select_bridge_pid", None)
                     pid = select_pid() if select_pid else None
-                    prompt_session(text[5:], pid=pid)
+                    session_result = prompt_session(prompt, pid=pid)
+                    assistant_text = str(session_result.get("assistant_text") or "").strip()
+                    if assistant_text:
+                        # Telegram limits text messages to 4096 characters.
+                        for chunk in _telegram_formatted_chunks(assistant_text):
+                            await bot.send_message(
+                                chat_id=chat_id,
+                                text=chunk,
+                                parse_mode="HTML",
+                            )
 
         try:
             asyncio.run(poll_forever())
@@ -126,7 +321,51 @@ def execute_agent_tool(
             token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
             bot = adapter.create_bot(token)
         received = adapter.receive_one(bot, db_path=db_path)
+        allowed, rejection_reason = _telegram_message_is_allowed(received)
+        if not allowed:
+            rejection_log_path = _record_rejected_telegram_message(received, rejection_reason or "Telegram message rejected")
+            return {
+                "status": "telegram_message_rejected",
+                "handler": handler,
+                "reason": rejection_reason,
+                "rejection_log_path": rejection_log_path,
+                "message": received,
+                "token_persisted": False,
+            }
         return {"status": "telegram_message_received", "handler": handler, "message": received, "token_persisted": False}
+    if handler == "execute_bash":
+        params = decision.get("parameters") or {}
+        command = params.get("group1") or params.get("command") or ""
+        if not str(command).strip():
+            return {"status": "rejected", "handler": handler, "error": "Bash command is required"}
+        try:
+            completed = subprocess.run(
+                ["bash", "-lc", str(command)],
+                cwd=str(Path(db_path).resolve().parent),
+                capture_output=True,
+                text=True,
+                timeout=20,
+                check=False,
+            )
+        except subprocess.TimeoutExpired as exc:
+            return {
+                "status": "timeout",
+                "handler": handler,
+                "command": str(command),
+                "stdout": (exc.stdout or "") if isinstance(exc.stdout, str) else "",
+                "stderr": (exc.stderr or "") if isinstance(exc.stderr, str) else "",
+            }
+        stdout = completed.stdout or ""
+        stderr = completed.stderr or ""
+        return {
+            "status": "bash_completed" if completed.returncode == 0 else "bash_failed",
+            "handler": handler,
+            "command": str(command),
+            "returncode": completed.returncode,
+            "stdout": stdout,
+            "stderr": stderr,
+            "result": stdout.rstrip("\n") or stderr.rstrip("\n"),
+        }
     if handler == "telegram_send_document":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
         spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)

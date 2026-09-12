@@ -135,10 +135,10 @@ class PiSessionBridgeTests(unittest.TestCase):
         conn = sqlite3.connect("continuity.db")
         try:
             row = conn.execute(
-                "select command_template from control_command_routes where route_name='session_prompt'"
+                "select command_template from command_routes where route_name='session_prompt'"
             ).fetchone()
             latest_row = conn.execute(
-                "select command_template from control_command_routes where route_name='session_latest_answer'"
+                "select command_template from command_routes where route_name='session_latest_answer'"
             ).fetchone()
         finally:
             conn.close()
@@ -208,7 +208,7 @@ class PiSessionBridgeTests(unittest.TestCase):
         conn = sqlite3.connect("continuity.db")
         try:
             row = conn.execute(
-                "select command_template from control_command_routes where route_name='session_model_set'"
+                "select command_template from command_routes where route_name='session_model_set'"
             ).fetchone()
         finally:
             conn.close()

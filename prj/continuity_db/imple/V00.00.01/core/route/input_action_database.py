@@ -8,6 +8,20 @@ def ensure_router_schema(conn: sqlite3.Connection) -> None:
     cur = conn.cursor()
     cur.executescript(
         """
+        CREATE TABLE IF NOT EXISTS command_routes (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            route_name TEXT NOT NULL UNIQUE,
+            input_pattern TEXT NOT NULL,
+            route_type TEXT NOT NULL DEFAULT 'control_command'
+                CHECK(route_type IN ('control_command', 'agent_tool')),
+            command_template TEXT,
+            scope TEXT,
+            handler TEXT,
+            required_capability TEXT,
+            output_contract TEXT,
+            enabled INTEGER NOT NULL DEFAULT 1 CHECK(enabled IN (0,1)),
+            created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
         CREATE TABLE IF NOT EXISTS input_action_log (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,

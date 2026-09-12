@@ -9,6 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from route.input_action_router import InputActionRouter
+from route.input_action_execution import _telegram_action_response
 
 sys.path.insert(0, str(Path(__file__).parent))
 from mocks import MockBridgeClient
@@ -18,6 +19,7 @@ USE_MOCKS = os.getenv("ROUTE_ACTION_USE_MOCKS", "1").lower() not in {"0", "false
 
 
 ROUTE_ACTION_VARIANTS = (
+    ("echo h", "echo_text", {"group1": "h"}),
     ("ethics on", "ethics_on", {}),
     ("ethics status", "ethics_status", {}),
     ("self-check", "self_check", {}),
@@ -57,6 +59,22 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
                 for key, value in expected_parameters.items():
                     self.assertEqual(decision["parameters"].get(key), value)
 
+    def test_telegram_bash_response_returns_real_result(self):
+        decision = self.router.match_input_to_route("b echo h", "text")
+        result = self.router.execute_routing_decision(decision, "b echo h")
+        self.assertEqual(_telegram_action_response(result, debug=False), "h")
+
+    def test_bash_echo_returns_stdout(self):
+        decision = self.router.match_input_to_route("b echo h", "text")
+        result = self.router.execute_routing_decision(decision, "b echo h")
+        self.assertEqual(result["action_result"]["stdout"], "h\n")
+        self.assertEqual(result["action_result"]["result"], "h")
+
+    def test_echo_returns_literal_output_without_shell_execution(self):
+        decision = self.router.match_input_to_route("echo h", "text")
+        result = self.router.execute_routing_decision(decision, "echo h")
+        self.assertEqual(result["action_result"]["result"], "h")
+
     def test_context_info_action_uses_mock_or_real_bridge(self):
         decision = self.router.match_input_to_route("ctx", "text")
         result = self.router._execute_agent_tool(decision)
@@ -65,6 +83,21 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
         if USE_MOCKS:
             self.assertTrue(result["available"])
             self.assertEqual(result["result"], "mock context info")
+
+    def test_telegram_route_status_is_concise_when_debug_off(self):
+        decision = self.router.match_input_to_route("route status", "text")
+        result = self.router.execute_routing_decision(decision, "route status")
+        response = _telegram_action_response(result, debug=False)
+        self.assertIn("route mode", response.lower())
+        self.assertNotIn("feature_key", response)
+        self.assertNotIn("active_route_version", response)
+
+    def test_telegram_route_status_response_value(self):
+        decision = self.router.match_input_to_route("route status", "text")
+        result = self.router.execute_routing_decision(decision, "route status")
+        response = _telegram_action_response(result, debug=False)
+        print(f"Telegram route status response: {response}")
+        self.assertEqual(response, "route mode status")
 
     def test_telegram_token_action_calls_adapter(self):
         decision = self.router.match_input_to_route("s telegram bot token", "text")

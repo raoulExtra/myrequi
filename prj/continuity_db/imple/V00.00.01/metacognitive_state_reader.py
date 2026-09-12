@@ -7,7 +7,7 @@ import sqlite3
 from pathlib import Path
 from typing import Any
 
-DEFAULT_DB = Path("continuity.db")
+DEFAULT_DB = Path(__file__).resolve().parents[4] / "continuity.db"
 
 
 def fetch_metacognitive_state(conn: sqlite3.Connection) -> list[dict[str, Any]]:

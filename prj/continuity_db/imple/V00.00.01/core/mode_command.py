@@ -17,6 +17,7 @@ SCIENTIST_FLAG_KEY = 'scientist_mode'
 SCIENTIST_STATE_KEY = 'active_role_mode'
 ROUTE_FLAG_KEY = 'route_mode'
 ROUTE_STATE_KEY = 'active_route_mode'
+DEBUG_FLAG_KEY = 'debug_mode'
 
 
 def connect(db_path=DB_PATH):
@@ -193,6 +194,53 @@ def toggle_route_mode(conn, enabled, actor='Peter', reason='Explicit mode comman
     }
 
 
+def ensure_debug_mode_support(cur):
+    cur.execute(
+        '''
+        INSERT INTO feature_flags(feature_key, enabled, switchable, scope, updated_by)
+        VALUES(?,?,?,?,?)
+        ON CONFLICT(feature_key) DO UPDATE SET
+            switchable=excluded.switchable,
+            scope=excluded.scope
+        ''',
+        (DEBUG_FLAG_KEY, 0, 1, 'Technical Telegram response details.', 'system'),
+    )
+
+
+def toggle_debug_mode(conn, enabled, actor='Peter', reason='Explicit mode command'):
+    cur = conn.cursor()
+    ensure_debug_mode_support(cur)
+    current = cur.execute('SELECT enabled FROM feature_flags WHERE feature_key=?', (DEBUG_FLAG_KEY,)).fetchone()[0]
+    if current != enabled:
+        cur.execute(
+            'UPDATE feature_flags SET enabled=?, updated_by=?, updated_at=CURRENT_TIMESTAMP WHERE feature_key=?',
+            (enabled, actor, DEBUG_FLAG_KEY),
+        )
+        conn.commit()
+    return {
+        'feature_key': DEBUG_FLAG_KEY,
+        'enabled': bool(enabled),
+        'changed': current != enabled,
+        'message': f'debug mode {"enabled" if enabled else "disabled"}',
+    }
+
+
+def debug_status(conn):
+    cur = conn.cursor()
+    ensure_debug_mode_support(cur)
+    row = cur.execute(
+        'SELECT enabled, switchable, updated_by, updated_at FROM feature_flags WHERE feature_key=?',
+        (DEBUG_FLAG_KEY,),
+    ).fetchone()
+    return {
+        'feature_key': DEBUG_FLAG_KEY,
+        'enabled': bool(row[0]),
+        'switchable': bool(row[1]),
+        'updated_by': row[2],
+        'updated_at': row[3],
+    }
+
+
 def route_status(conn):
     cur = conn.cursor()
     ensure_route_mode_support(cur)
@@ -226,12 +274,12 @@ def run_mode_command(argv=None, db_path=DB_PATH):
     if argv[:1] == ['mode']:
         argv = argv[1:]
     if not argv:
-        raise ValueError('expected: scientist on|off|status')
+        raise ValueError('expected: scientist, route, or debug on|off|status')
 
     role = argv[0]
     action = argv[1] if len(argv) > 1 else 'status'
-    if role not in {'scientist', 'route'}:
-        raise ValueError('only scientist and route modes are supported right now')
+    if role not in {'scientist', 'route', 'debug'}:
+        raise ValueError('only scientist, route, and debug modes are supported right now')
 
     conn = connect(db_path)
     try:
@@ -246,7 +294,7 @@ def run_mode_command(argv=None, db_path=DB_PATH):
                 result['message'] = 'scientist mode status'
             else:
                 raise ValueError('expected on, off, or status')
-        else:
+        elif role == 'route':
             if action == 'on':
                 result = toggle_route_mode(conn, 1)
             elif action == 'off':
@@ -255,6 +303,17 @@ def run_mode_command(argv=None, db_path=DB_PATH):
                 result = route_status(conn)
                 result['changed'] = False
                 result['message'] = 'route mode status'
+            else:
+                raise ValueError('expected on, off, or status')
+        else:
+            if action == 'on':
+                result = toggle_debug_mode(conn, 1)
+            elif action == 'off':
+                result = toggle_debug_mode(conn, 0)
+            elif action == 'status':
+                result = debug_status(conn)
+                result['changed'] = False
+                result['message'] = 'debug mode status'
             else:
                 raise ValueError('expected on, off, or status')
     finally:

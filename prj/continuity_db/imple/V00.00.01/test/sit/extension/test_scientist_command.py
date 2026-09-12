@@ -80,7 +80,7 @@ class ScientistCommandTests(unittest.TestCase):
         conn = scientist_command.connect()
         try:
             route = conn.execute(
-                "select command_template from control_command_routes where route_name='scientist_analyse'"
+                "select command_template from command_routes where route_name='scientist_analyse'"
             ).fetchone()
             requirement = conn.execute(
                 "select requirement_key, title from continuity_requirements where requirement_key in ('CDB-13.5','CDB-13.6') order by requirement_key"

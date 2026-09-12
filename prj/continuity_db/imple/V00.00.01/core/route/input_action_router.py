@@ -3,8 +3,8 @@
 
 This module continuously reads user input, uses JSON pattern matching to decide what
 engine action or trigger should happen, and supports loop planning workflows.
-It integrates with the existing continuity.db routing system (control_command_routes
-and agent_tool_routes) and supports both immediate actions and iterative planning.
+It integrates with the existing continuity.db routing system (command_routes
+and command_routes) and supports both immediate actions and iterative planning.
 
 Usage:
     python3 input_action_router.py --continuous
@@ -80,8 +80,40 @@ class InputActionRouter:
         self.conn.commit()
         self._seed_science_routes()
         self._seed_promotion_routes()
+        self._seed_media_routes()
+        self._seed_echo_route()
         self.seed_patterns_from_routes()
         self.setup_views()
+
+    def _seed_echo_route(self):
+        """Install a safe literal echo route; never execute shell input."""
+        self.add_route_if_missing(
+            "echo_text",
+            "control_command",
+            r"^echo\s+(.+)$",
+            command_template="echo <text>",
+        )
+        self.conn.execute(
+            "UPDATE command_routes SET input_pattern=?, command_template=?, route_type='control_command', enabled=1 WHERE route_name='echo_text'",
+            (r"^echo\s+(.+)$", "echo <text>"),
+        )
+        self.conn.commit()
+        self._invalidate_routing_cache()
+
+    def _seed_media_routes(self):
+        """Install safe local-media playback routes if absent."""
+        self.add_route_if_missing(
+            "media_play",
+            "agent_tool",
+            r"^(?:play\s+bell(?:\s+([0-9]{1,3}))?|play\s+file\s+(.+?)(?:\s+([0-9]{1,3}))?)$",
+            handler="play_media",
+        )
+        self.conn.execute(
+            "UPDATE command_routes SET input_pattern=?, handler='play_media', enabled=1 WHERE route_name='media_play'",
+            (r"^(?:play\s+bell(?:\s+([0-9]{1,3}))?|play\s+file\s+(.+?)(?:\s+([0-9]{1,3}))?)$",),
+        )
+        self.conn.commit()
+        self._invalidate_routing_cache()
 
     def _seed_science_routes(self):
         """Install built-in scientific-method commands if absent."""
@@ -120,8 +152,8 @@ class InputActionRouter:
         ]
         for route_name, pattern, command_template, scope in routes:
             cur.execute("""
-                INSERT INTO control_command_routes (route_name, input_pattern, command_template, scope, enabled)
-                VALUES (?, ?, ?, ?, 1)
+                INSERT INTO command_routes (route_name, input_pattern, route_type, command_template, scope, enabled)
+                VALUES (?, ?, 'control_command', ?, ?, 1)
                 ON CONFLICT(route_name) DO UPDATE SET
                     input_pattern=excluded.input_pattern,
                     command_template=excluded.command_template,
@@ -162,8 +194,8 @@ class InputActionRouter:
         ]
         for route_name, pattern, command_template, scope in routes:
             cur.execute("""
-                INSERT INTO control_command_routes (route_name, input_pattern, command_template, scope, enabled)
-                VALUES (?, ?, ?, ?, 1)
+                INSERT INTO command_routes (route_name, input_pattern, route_type, command_template, scope, enabled)
+                VALUES (?, ?, 'control_command', ?, ?, 1)
                 ON CONFLICT(route_name) DO UPDATE SET
                     input_pattern=excluded.input_pattern,
                     command_template=excluded.command_template,
@@ -179,32 +211,16 @@ class InputActionRouter:
         """
         cur = self.conn.cursor()
 
-        # Auto-seed from control_command_routes
+        # Auto-seed from the unified command_routes table.
         try:
-            control_routes = cur.execute(
-                "SELECT route_name, input_pattern FROM control_command_routes WHERE enabled=1"
+            routes = cur.execute(
+                "SELECT route_name, input_pattern, route_type FROM command_routes WHERE enabled=1"
             ).fetchall()
-            for row in control_routes:
+            for row in routes:
                 self._ensure_pattern_for_route(
                     pattern_name=f"auto_{row['route_name']}",
                     route_name=row['route_name'],
-                    route_type='control_command',
-                    pattern_spec=row['input_pattern'],
-                    pattern_type='json_regex',
-                )
-        except sqlite3.OperationalError:
-            pass
-
-        # Auto-seed from agent_tool_routes
-        try:
-            agent_routes = cur.execute(
-                "SELECT route_name, input_pattern FROM agent_tool_routes WHERE enabled=1"
-            ).fetchall()
-            for row in agent_routes:
-                self._ensure_pattern_for_route(
-                    pattern_name=f"auto_{row['route_name']}",
-                    route_name=row['route_name'],
-                    route_type='agent_tool',
+                    route_type=row['route_type'],
                     pattern_spec=row['input_pattern'],
                     pattern_type='json_regex',
                 )
@@ -219,12 +235,12 @@ class InputActionRouter:
         cur = self.conn.cursor()
         if route_type == 'control_command':
             exists = cur.execute(
-                "SELECT 1 FROM control_command_routes WHERE route_name=? AND enabled=1",
+                "SELECT 1 FROM command_routes WHERE route_name=? AND enabled=1",
                 (route_name,),
             ).fetchone()
         else:
             exists = cur.execute(
-                "SELECT 1 FROM agent_tool_routes WHERE route_name=? AND enabled=1",
+                "SELECT 1 FROM command_routes WHERE route_name=? AND enabled=1",
                 (route_name,),
             ).fetchone()
 
@@ -251,17 +267,18 @@ class InputActionRouter:
     def add_route_if_missing(self, route_name, route_type, input_pattern, command_template=None, handler=None):
         """Create a route in the proper table if it does not exist; then enable its pattern."""
         cur = self.conn.cursor()
-        if route_type == 'control_command':
-            if not cur.execute("SELECT 1 FROM control_command_routes WHERE route_name=?", (route_name,)).fetchone():
+        if not cur.execute("SELECT 1 FROM command_routes WHERE route_name=?", (route_name,)).fetchone():
+            if route_type == 'control_command':
                 cur.execute("""
-                    INSERT INTO control_command_routes (route_name, input_pattern, command_template, scope, enabled)
-                    VALUES (?, ?, ?, 'auto_added', 1)
+                    INSERT INTO command_routes
+                        (route_name, input_pattern, route_type, command_template, scope, enabled)
+                    VALUES (?, ?, 'control_command', ?, 'auto_added', 1)
                 """, (route_name, input_pattern, command_template or f"echo no-command-for-{route_name}"))
-        elif route_type == 'agent_tool':
-            if not cur.execute("SELECT 1 FROM agent_tool_routes WHERE route_name=?", (route_name,)).fetchone():
+            elif route_type == 'agent_tool':
                 cur.execute("""
-                    INSERT INTO agent_tool_routes (route_name, input_pattern, handler, required_capability, output_contract, enabled)
-                    VALUES (?, ?, ?, 'auto', 'json', 1)
+                    INSERT INTO command_routes
+                        (route_name, input_pattern, route_type, handler, required_capability, output_contract, enabled)
+                    VALUES (?, ?, 'agent_tool', ?, 'auto', 'json', 1)
                 """, (route_name, input_pattern, handler or f"auto_handler_{route_name}"))
         self.conn.commit()
         # Re-evaluate pending patterns for this route_name
@@ -349,8 +366,9 @@ class InputActionRouter:
         """)
         
         # View for active routing patterns (only resolved, non-pending)
+        cur.execute("DROP VIEW IF EXISTS v_active_routing_patterns")
         cur.execute("""
-            CREATE VIEW IF NOT EXISTS v_active_routing_patterns AS
+            CREATE VIEW v_active_routing_patterns AS
             SELECT
                 ip.id,
                 ip.pattern_name,
@@ -361,13 +379,12 @@ class InputActionRouter:
                 ip.priority,
                 ip.description,
                 CASE
-                    WHEN ip.route_type = 'control_command' THEN c.route_name
-                    WHEN ip.route_type = 'agent_tool' THEN a.route_name
+                    WHEN ip.route_type IN ('control_command', 'agent_tool') THEN r.route_name
                     ELSE NULL
                 END as target_route_name
             FROM input_patterns ip
-            LEFT JOIN control_command_routes c ON c.route_name = ip.route_name AND c.enabled = 1
-            LEFT JOIN agent_tool_routes a ON a.route_name = ip.route_name AND a.enabled = 1
+            LEFT JOIN command_routes r ON r.route_name = ip.route_name
+                AND r.route_type = ip.route_type AND r.enabled = 1
             WHERE ip.enabled = 1 AND ip.pending_route = 0
             ORDER BY ip.priority DESC, ip.pattern_name
         """)
@@ -417,24 +434,21 @@ class InputActionRouter:
         lookup: Dict[str, Dict[str, Any]] = {}
         try:
             cur = self.conn.cursor()
-            for row in cur.execute("SELECT route_name, input_pattern, command_template, scope, enabled FROM control_command_routes WHERE enabled = 1"):
+            for row in cur.execute("""
+                SELECT route_name, input_pattern, route_type, command_template, scope,
+                       handler, required_capability, output_contract, enabled
+                FROM command_routes WHERE enabled = 1
+            """):
                 lookup[row[0]] = {
                     "route_name": row[0],
-                    "route_type": "control_command",
+                    "route_type": row[2],
                     "input_pattern": row[1],
-                    "command_template": row[2],
-                    "description": row[3],
-                    "enabled": row[4],
-                }
-            for row in cur.execute("SELECT route_name, input_pattern, handler, required_capability, output_contract, enabled FROM agent_tool_routes WHERE enabled = 1"):
-                lookup[row[0]] = {
-                    "route_name": row[0],
-                    "route_type": "agent_tool",
-                    "input_pattern": row[1],
-                    "handler": row[2],
-                    "required_capability": row[3],
-                    "output_contract": row[4],
-                    "enabled": row[5],
+                    "command_template": row[3],
+                    "description": row[4],
+                    "handler": row[5],
+                    "required_capability": row[6],
+                    "output_contract": row[7],
+                    "enabled": row[8],
                 }
         except sqlite3.OperationalError:
             lookup = {}
@@ -483,19 +497,18 @@ class InputActionRouter:
         return bool(row and row[0] == 1)
 
     def _match_route_mode_command(self, normalized_text: str) -> Optional[Dict[str, Any]]:
-        match = re.match(r'^(?:mode\s+)?route(?:\s+mode)?\s+(on|off|status)$', normalized_text, re.IGNORECASE)
+        match = re.match(r'^(?:mode\s+)?(route|debug)(?:\s+mode)?\s+(on|off|status)$', normalized_text, re.IGNORECASE)
         if not match:
             return None
-        action = match.group(1).lower()
+        mode, action = match.group(1).lower(), match.group(2).lower()
         route_name_map = {
-            'on': 'route_on',
-            'off': 'route_off',
-            'status': 'route_status',
+            'route': {'on': 'route_on', 'off': 'route_off', 'status': 'route_status'},
+            'debug': {'on': 'debug_on', 'off': 'debug_off', 'status': 'debug_status'},
         }
-        route_name = route_name_map[action]
+        route_name = route_name_map[mode][action]
         cur = self.conn.cursor()
         route = cur.execute(
-            "SELECT * FROM control_command_routes WHERE route_name = ? AND enabled = 1",
+            "SELECT * FROM command_routes WHERE route_name = ? AND enabled = 1",
             (route_name,),
         ).fetchone()
         if route is None:
@@ -503,11 +516,11 @@ class InputActionRouter:
                 "matched_pattern": f"route_mode_{action}",
                 "route_name": route_name,
                 "route_type": "control_command",
-                "command_template": f"python3 mode_command.py route {action} --db continuity.db",
+                "command_template": f"python3 mode_command.py {mode} {action} --db continuity.db",
                 "input_pattern": normalized_text,
                 "parameters": {"input_text": normalized_text, "group1": action},
                 "priority": 100,
-                "description": "Toggle or inspect route-recognition mode.",
+                "description": f"Toggle or inspect {mode} mode.",
             }
         return {
             "matched_pattern": f"route_mode_{action}",
@@ -691,8 +704,29 @@ class InputActionRouter:
             "recall_packet": recall_packet,
         }
 
+    def _no_recursion_route_hit(self, hit: Dict[str, Any]) -> bool:
+        """Keep no-recursion action routes out of unmatched-input recall."""
+        candidates = set()
+        for key in ("route_name", "source_key", "source", "key"):
+            value = hit.get(key)
+            if value:
+                text = str(value)
+                candidates.add(text)
+                candidates.add(text.removeprefix("route:"))
+        for route_name in candidates:
+            if self.conn.execute(
+                "SELECT 1 FROM object_epistemic_tags "
+                "WHERE object_type='route' AND object_key=? AND tag_key='route_action:no_recursion' LIMIT 1",
+                (route_name,),
+            ).fetchone():
+                return True
+        return False
+
+    def _filter_recallable_hits(self, hits: Any) -> list:
+        return [hit for hit in (hits or []) if isinstance(hit, dict) and not self._no_recursion_route_hit(hit)]
+
     def _recall_for_unmatched_input(self, normalized_text: str, limit: int = 5) -> Dict[str, Any]:
-        """Use the memory_command recall API when route matching has no immediate hit."""
+        """Use memory recall while excluding no-recursion action routes."""
         query = re.sub(r"^[/?#>:-]+", "", normalized_text or "").strip()
         query = re.sub(r"\s+", " ", query).strip(" ?!.,;:\t\n\r")
         if not query:
@@ -701,6 +735,10 @@ class InputActionRouter:
             from memory_command import build_working_packet, format_table_context, retrieve_memory, retrieve_table_context
 
             table_packet = retrieve_table_context(query, db_path=self.db_path, limit=limit)
+            table_hits = table_packet.get("hits") or []
+            table_packet["recursion_blocked"] = any(self._no_recursion_route_hit(hit) for hit in table_hits)
+            table_packet["hits"] = self._filter_recallable_hits(table_hits)
+            table_packet["hit_count"] = len(table_packet["hits"]) 
             if table_packet.get("hit_count", 0) > 0:
                 table_packet["result"] = format_table_context(table_packet)
                 return table_packet
@@ -710,9 +748,11 @@ class InputActionRouter:
             # items even with no lexical overlap; route fallback should not treat
             # those as a found key.
             packet = retrieve_memory(query, db_path=self.db_path, limit=max(limit, 10))
+            raw_hits = packet.get("hits") or []
+            packet["recursion_blocked"] = any(self._no_recursion_route_hit(hit) for hit in raw_hits)
             tokens = [t.lower() for t in re.findall(r"[A-Za-z][A-Za-z0-9_'-]+", query)]
             strict_hits = []
-            for hit in packet.get("hits") or []:
+            for hit in self._filter_recallable_hits(raw_hits):
                 haystack = " ".join(
                     str(hit.get(key) or "")
                     for key in ("source_type", "source_key", "title", "body", "condition")
@@ -883,8 +923,8 @@ class InputActionRouter:
         route_type = decision.get("route_type")
         route_name = decision.get("route_name")
         table_by_type = {
-            "agent_tool": "agent_tool_routes",
-            "control_command": "control_command_routes",
+            "agent_tool": "command_routes",
+            "control_command": "command_routes",
         }
         route_table = table_by_type.get(route_type)
         if not route_table or not isinstance(route_name, str) or not route_name:
@@ -1225,6 +1265,18 @@ class InputActionRouter:
         route_name = decision.get("route_name")
         params = decision.get("parameters", {})
         input_text = params.get("input_text", "")
+        if route_name == "echo_text":
+            match = re.match(r"^echo\s+(.+)$", input_text, re.IGNORECASE)
+            value = match.group(1) if match else ""
+            return {
+                "status": "echoed",
+                "command": command_template,
+                "result": value,
+            }
+        if route_name == "bash_cmd":
+            bash_decision = dict(decision)
+            bash_decision["handler"] = "execute_bash"
+            return self._execute_agent_tool(bash_decision)
         if route_name in {"pi_agent_on", "pi_agent_off", "pi_agent_status"}:
             if route_name != "pi_agent_status":
                 enabled = 1 if route_name == "pi_agent_on" else 0
@@ -1502,8 +1554,14 @@ class InputActionRouter:
             }
         if route_name == "session_prompt":
             prompt = params.get("group1") or params.get("input_text", "")
-            from pi_session import prompt_session
             from shlex import quote
+            if self._route_mode_enabled():
+                routed = self.match_input_to_route(prompt, "text")
+                routed_type = routed.get("route_type")
+                routed_name = routed.get("route_name")
+                if routed_type in {"control_command", "agent_tool"} and routed_name != "session_prompt":
+                    return self.execute_routing_decision(routed, prompt, pid=pid)
+            from pi_session import prompt_session
             session_result = prompt_session(prompt, pid=pid)
             return {
                 "status": "executed_control",
@@ -1512,14 +1570,15 @@ class InputActionRouter:
                 "assistant_text": session_result.get("assistant_text"),
                 "session_result": session_result,
             }
-        if route_name in {"route_on", "route_off", "route_status"}:
+        if route_name in {"route_on", "route_off", "route_status", "debug_on", "debug_off", "debug_status"}:
             from mode_command import run_mode_command
+            mode = "debug" if route_name.startswith("debug_") else "route"
             action = "status"
             if route_name.endswith("_on"):
                 action = "on"
             elif route_name.endswith("_off"):
                 action = "off"
-            result = json.loads(run_mode_command(["route", action], db_path=self.db_path))
+            result = json.loads(run_mode_command([mode, action], db_path=self.db_path))
             return {
                 "status": "executed_control",
                 "command": command_template,

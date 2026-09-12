@@ -60,7 +60,7 @@
 
 ### Procedural memory
 - `tool_routes`: named tool patterns and invocation templates
-- `control_command_routes`: command hooks and enabled/disabled control actions
+- `command_routes`: command hooks and enabled/disabled control actions
 - `work_plans` / `work_plan_steps`: repeatable process structure
 - `research_jobs` / `research_sources`: reusable evidence-gathering workflow
 

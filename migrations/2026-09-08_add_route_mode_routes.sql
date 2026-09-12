@@ -26,11 +26,12 @@ ON CONFLICT(state_key) DO UPDATE SET
   confidence=excluded.confidence,
   provenance=excluded.provenance;
 
-INSERT INTO control_command_routes (route_name, input_pattern, command_template, scope, enabled)
+INSERT INTO command_routes (route_name, input_pattern, route_type, command_template, scope, enabled)
 VALUES
   (
     'route_on',
     '^(?:mode\\s+)?route(?:\\s+mode)?\\s+on$',
+    'control_command',
     'python3 mode_command.py route on --db continuity.db',
     'Enable route-recognition mode so normal chat can match routes.',
     1
@@ -38,6 +39,7 @@ VALUES
   (
     'route_off',
     '^(?:mode\\s+)?route(?:\\s+mode)?\\s+off$',
+    'control_command',
     'python3 mode_command.py route off --db continuity.db',
     'Disable route-recognition mode so normal chat is treated as plain chat.',
     1
@@ -45,6 +47,7 @@ VALUES
   (
     'route_status',
     '^(?:mode\\s+)?route(?:\\s+mode)?\\s+status$',
+    'control_command',
     'python3 mode_command.py route status --db continuity.db',
     'Show route-recognition mode status.',
     1

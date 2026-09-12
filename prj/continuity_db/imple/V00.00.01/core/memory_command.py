@@ -107,16 +107,12 @@ def ensure_memory_index_view(cur):
                COALESCE(note, '') || ' ' || tag_key, NULL, NULL, created_at
         FROM object_epistemic_tags
         UNION ALL SELECT 'route', route_name, route_name || ' ' || input_pattern,
-               command_template || COALESCE(' ' || scope, ''), enabled, NULL, NULL
-        FROM control_command_routes
-        WHERE enabled=1
-        UNION ALL SELECT 'route', route_name, route_name || ' ' || input_pattern,
-               invocation_template || COALESCE(' ' || argument_description, ''), enabled, NULL, created_at
-        FROM tool_routes
-        WHERE enabled=1
-        UNION ALL SELECT 'route', route_name, route_name || ' ' || input_pattern,
-               handler || COALESCE(' ' || required_capability, '') || COALESCE(' ' || output_contract, ''), enabled, NULL, created_at
-        FROM agent_tool_routes
+               COALESCE(command_template, handler, '')
+               || COALESCE(' ' || scope, '')
+               || COALESCE(' ' || required_capability, '')
+               || COALESCE(' ' || output_contract, ''),
+               enabled, NULL, created_at
+        FROM command_routes
         WHERE enabled=1
         UNION ALL SELECT 'concept', concept_key, name,
                description, confidence, NULL, updated_at

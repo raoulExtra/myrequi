@@ -88,7 +88,7 @@ class RequirementCoverageTests(unittest.TestCase):
         elif kind == "route":
             route = check[1]
             row = conn.execute(
-                "select route_name from control_command_routes where route_name=?",
+                "select route_name from command_routes where route_name=?",
                 (route,),
             ).fetchone()
             self.assertIsNotNone(row, f"route {route} missing")
