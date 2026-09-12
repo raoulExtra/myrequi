@@ -43,6 +43,18 @@ def ensure_schema(conn) -> None:
       created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_clarification_events_lookup ON clarification_events(clarification_id, created_at);
+    CREATE VIEW IF NOT EXISTS clarification_active_flow AS
+    SELECT id, original_input, normalized_input, issue_type, materiality, risk_band,
+           candidates_json, proposed_interpretation, question, options_json,
+           state, authorization, route_name, session_key, resolution_note,
+           created_at, resolved_at
+    FROM interaction_clarifications
+    WHERE state IN ('clarification_required', 'assumption_proposed', 'assumption_authorized');
+    CREATE VIEW IF NOT EXISTS clarification_event_lineage AS
+    SELECT c.id AS clarification_id, c.state, c.authorization, c.route_name,
+           e.id AS event_id, e.event_type, e.payload_json, e.created_at AS event_created_at
+    FROM interaction_clarifications AS c
+    LEFT JOIN clarification_events AS e ON e.clarification_id = c.id;
     CREATE TABLE IF NOT EXISTS clarification_trace_links (
       clarification_id INTEGER PRIMARY KEY REFERENCES interaction_clarifications(id) ON DELETE CASCADE,
       reasoning_trace_id INTEGER NOT NULL REFERENCES reasoning_traces(id) ON DELETE CASCADE,
@@ -52,9 +64,21 @@ def ensure_schema(conn) -> None:
     """)
 
 
+def _materiality_score(issue_type: str, risk_band: str, candidates: list[str]) -> float:
+    base = {"ambiguous": .80, "contradictory": .85, "missing_detail": .70,
+            "unsafe_assumption": .95, "unclear_scope": .80}[issue_type]
+    if risk_band == "very-high":
+        base = max(base, .90)
+    if len(candidates) >= 2:
+        base = min(1.0, base + .05)
+    return round(base, 2)
+
+
 def _finding(issue_type: str, method: str, question: str, options: list[str], *, materiality: str = "high", risk_band: str = "high", candidates: Optional[list[str]] = None) -> dict[str, Any]:
+    candidate_list = candidates or []
     return {"issue_type": issue_type, "detection_method": method, "materiality": materiality,
-            "risk_band": risk_band, "candidates": candidates or [], "question": question,
+            "materiality_score": _materiality_score(issue_type, risk_band, candidate_list),
+            "risk_band": risk_band, "candidates": candidate_list, "question": question,
             "options": options}
 
 
@@ -70,6 +94,34 @@ def classify_input(input_text: str, decision: Optional[dict[str, Any]] = None) -
                         "Which instruction is the current one?",
                         ["Keep the first instruction", "Keep the later instruction", "Neither—revise the request"],
                         candidates=["first instruction", "later instruction", "revised request"])
+
+    safety_action_match = re.search(r"\b(?:prescribe|administer|take|change|stop|adjust)\b[^.!?]*\b(?:medication|medicine|dosage|dose|treatment|therapy)\b|\b(?:deploy|release|push|run|delete|overwrite)\b[^.!?]*\b(?:production|prod)\b", text, re.IGNORECASE)
+    if safety_action_match:
+        return _finding("unsafe_assumption", "high_impact_action_boundary",
+                        "Should this remain advisory, or is a specific authorized action intended?",
+                        ["Advisory information only—take no action", "Specify the authorized action and scope", "Cancel"],
+                        risk_band="very-high", candidates=[safety_action_match.group(0).strip()])
+
+    antecedent_match = re.search(r"\b(?:delete|remove|drop|truncate|destroy|overwrite|send|forward|share|message|update|modify|change|run)\b[^.!?]*\b(it|this|that|them|these|those)\b", text, re.IGNORECASE)
+    if antecedent_match:
+        return _finding("unclear_scope", "unresolved_antecedent",
+                        "What exact target does the referenced item mean?",
+                        ["Specify the exact target", "Inspect the possible target first", "Cancel"],
+                        risk_band="very-high", candidates=[antecedent_match.group(1)])
+
+    recipient_match = re.search(r"\b(?:to|recipient)\s+([^,;]+?)\s+(?:or|either)\s+([^,;]+)", text, re.IGNORECASE)
+    if re.search(r"\b(?:send|forward|share|message)\b", lowered) and recipient_match:
+        candidates = [recipient_match.group(1).strip(), recipient_match.group(2).strip()]
+        return _finding("ambiguous", "multiple_recipient_candidates",
+                        "Which single recipient or chat should receive this?",
+                        candidates + ["Do not send anything"], risk_band="very-high", candidates=candidates)
+
+    destructive_target_match = re.search(r"\b(?:delete|remove|drop|truncate|destroy|overwrite)\b\s+(.+?)\s+(?:or|either)\s+(.+?)(?:\s|$)", text, re.IGNORECASE)
+    if destructive_target_match:
+        candidates = [destructive_target_match.group(1).strip(), destructive_target_match.group(2).strip()]
+        return _finding("ambiguous", "multiple_destructive_target_candidates",
+                        "Which exact target should this affect?",
+                        candidates + ["Preview only—make no change", "Cancel"], risk_band="very-high", candidates=candidates)
 
     if re.search(r"\b(?:send|forward|share|message)\b", lowered) and not re.search(r"\b(?:to|chat|recipient|@)\b", lowered):
         return _finding("missing_detail", "external_recipient_missing",
@@ -91,6 +143,13 @@ def classify_input(input_text: str, decision: Optional[dict[str, Any]] = None) -
                         ["Specify the action", "Inspect only", "Cancel"], risk_band="high")
 
     return None
+
+
+def get_blocking_clarification(conn, session_key: Optional[str] = None):
+    """Return one active clarification that must be resolved before another action."""
+    if session_key is None:
+        return conn.execute("SELECT * FROM interaction_clarifications WHERE state IN ('clarification_required', 'assumption_proposed') AND session_key IS NULL ORDER BY id DESC LIMIT 10").fetchone()
+    return conn.execute("SELECT * FROM interaction_clarifications WHERE state IN ('clarification_required', 'assumption_proposed') AND session_key=? ORDER BY id DESC LIMIT 10", (session_key,)).fetchone()
 
 
 def get_active_clarification(conn, input_text: str, session_key: Optional[str] = None):
@@ -121,18 +180,35 @@ def answer_clarification(conn, clarification_id: int, answer: str, *, authorizat
     match = re.match(r"^([1-9])(?:[.)]|\s|$)", text)
     if match and int(match.group(1)) <= len(options):
         selected = options[int(match.group(1)) - 1]
-    if (selected is not None and any(token in selected.lower() for token in ("cancel", "do not", "neither"))) or (selected is None and lowered in {"cancel", "cancelled", "neither", "no", "do not", "don't"}):
+    contradictory_answer = bool(re.search(r"\b(?:yes\b.*\bno|no\b.*\byes)\b", lowered))
+    if contradictory_answer:
+        conn.execute("INSERT INTO clarification_events(clarification_id,event_type,payload_json) VALUES(?,?,?)",
+                     (clarification_id, "contradictory_answer", json.dumps({"answer": text, "selected": selected})))
+        trace_row = conn.execute("SELECT reasoning_trace_id FROM clarification_trace_links WHERE clarification_id=?", (clarification_id,)).fetchone()
+        if trace_row:
+            add_step(conn, trace_row[0], "observation", f"Contradictory clarification answer received: {text}")
+        conn.commit()
+        return {"status": "clarification_required", "clarification_id": clarification_id, "reasoning_trace_id": trace_row[0] if trace_row else None, "message": "The answer contains conflicting choices; please provide one clear answer."}
+    partial_answer = selected is not None and any(selected.lower().startswith(prefix) for prefix in ("specify", "preview", "inspect"))
+    if authorization == "explicit" and lowered.startswith("assume ") and text[7:].strip():
+        state, auth = "assumption_authorized", "explicit"
+    elif (selected is not None and any(token in selected.lower() for token in ("cancel", "do not", "neither"))) or (selected is None and lowered in {"cancel", "cancelled", "neither", "no", "do not", "don't"}):
         state, auth = "blocked", "none"
-    elif authorization == "explicit" and text:
+    elif authorization == "explicit" and text and not partial_answer:
         state, auth = "resolved", "explicit"
     else:
         conn.execute("INSERT INTO clarification_events(clarification_id,event_type,payload_json) VALUES(?,?,?)",
-                     (clarification_id, "answer_received", json.dumps({"answer": text, "selected": selected})))
+                     (clarification_id, "partial_answer" if partial_answer else "answer_received", json.dumps({"answer": text, "selected": selected})))
         trace_row = conn.execute("SELECT reasoning_trace_id FROM clarification_trace_links WHERE clarification_id=?", (clarification_id,)).fetchone()
         if trace_row:
             add_step(conn, trace_row[0], "observation", f"User answer received: {text}")
         conn.commit()
         return {"status": "clarification_required", "clarification_id": clarification_id, "reasoning_trace_id": trace_row[0] if trace_row else None, "message": "Answer recorded, but explicit authorization or a complete target is still required."}
+    if state == "assumption_authorized":
+        conn.execute("UPDATE interaction_clarifications SET state=?, authorization=?, proposed_interpretation=?, resolution_note=? WHERE id=?", (state, auth, text[7:].strip(), text, clarification_id))
+        conn.execute("INSERT INTO clarification_events(clarification_id,event_type,payload_json) VALUES(?,?,?)", (clarification_id, "assumption_authorized", json.dumps({"assumption": text[7:].strip(), "authorization": auth})))
+        conn.commit()
+        return {"status": state, "clarification_id": clarification_id, "interpretation": text[7:].strip(), "authorization": auth}
     conn.execute("""UPDATE interaction_clarifications SET state=?, authorization=?, proposed_interpretation=?,
                     resolution_note=?, resolved_at=CURRENT_TIMESTAMP WHERE id=?""",
                  (state, auth, selected or text, text, clarification_id))

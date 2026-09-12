@@ -81,7 +81,9 @@ def ensure_router_schema(conn: sqlite3.Connection) -> None:
             warning_message TEXT,
             decision_json TEXT,
             action_result_json TEXT,
-            input_action_log_id INTEGER
+            input_action_log_id INTEGER,
+            clarification_id INTEGER,
+            interpretation_hash TEXT
         );
         CREATE TABLE IF NOT EXISTS promotion_candidates (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -145,6 +147,19 @@ def ensure_router_schema(conn: sqlite3.Connection) -> None:
         """
     )
     migrate_evidence_ledger(cur)
+    migrate_clarification_receipt_fields(cur)
+
+
+def migrate_clarification_receipt_fields(cur: sqlite3.Cursor) -> None:
+    """Add optional clarification lineage fields to execution receipts."""
+    for ddl in (
+        "ALTER TABLE route_execution_receipts ADD COLUMN clarification_id INTEGER",
+        "ALTER TABLE route_execution_receipts ADD COLUMN interpretation_hash TEXT",
+    ):
+        try:
+            cur.execute(ddl)
+        except sqlite3.OperationalError:
+            pass
 
 
 def migrate_evidence_ledger(cur: sqlite3.Cursor) -> None:

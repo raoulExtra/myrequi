@@ -40,7 +40,7 @@ from route.input_action_bridge import PiBridgeClient
 from route.input_action_database import ensure_router_schema
 from route.input_action_execution import execute_agent_tool, execute_context_info_tool
 from route.input_action_output import extract_session_text, format_plain_result
-from clarification import answer_clarification, classify_input, create_clarification, ensure_schema as ensure_clarification_schema
+from clarification import answer_clarification, classify_input, create_clarification, ensure_schema as ensure_clarification_schema, get_blocking_clarification
 from reasoning_trace import add_assumption, add_review, add_step, attach_evidence, audit_trace, conclude, create_trace, ensure_schema as ensure_reasoning_trace_schema, finalize_trace, inspect_trace, update_uncertainty
 from route.input_action_matching import (
     build_routing_indexes,
@@ -1054,6 +1054,13 @@ class InputActionRouter:
             Execution result
         """
         timestamp = datetime.now(timezone.utc).isoformat()
+        route_name = decision.get("route_name")
+        if route_name not in {"clarification_answer", "clarification_inspect"} and decision.get("route_type") in {"control_command", "agent_tool"}:
+            blocking = get_blocking_clarification(self.conn, session_key=pid)
+            if blocking is not None:
+                clarification_id = blocking["id"] if hasattr(blocking, "keys") else blocking[0]
+                return {"status": "clarification_required", "clarification_id": clarification_id,
+                        "message": "Resolve the active clarification before submitting another consequential action."}
         clarification_finding = classify_input(input_text, decision)
         if clarification_finding:
             return create_clarification(self.conn, input_text, clarification_finding, decision, session_key=pid)

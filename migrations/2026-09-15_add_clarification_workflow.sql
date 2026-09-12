@@ -29,3 +29,15 @@ CREATE TABLE IF NOT EXISTS clarification_events (
   created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX IF NOT EXISTS idx_clarification_events_lookup ON clarification_events(clarification_id, created_at);
+CREATE VIEW IF NOT EXISTS clarification_active_flow AS
+SELECT id, original_input, normalized_input, issue_type, materiality, risk_band,
+       candidates_json, proposed_interpretation, question, options_json,
+       state, authorization, route_name, session_key, resolution_note,
+       created_at, resolved_at
+FROM interaction_clarifications
+WHERE state IN ('clarification_required', 'assumption_proposed', 'assumption_authorized');
+CREATE VIEW IF NOT EXISTS clarification_event_lineage AS
+SELECT c.id AS clarification_id, c.state, c.authorization, c.route_name,
+       e.id AS event_id, e.event_type, e.payload_json, e.created_at AS event_created_at
+FROM interaction_clarifications AS c
+LEFT JOIN clarification_events AS e ON e.clarification_id = c.id;

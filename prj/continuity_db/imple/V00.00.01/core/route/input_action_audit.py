@@ -1,5 +1,6 @@
 """Audit and usage-recording helpers for routed actions."""
 
+import hashlib
 import json
 import sqlite3
 from typing import Any, Dict, Optional
@@ -116,6 +117,12 @@ def record_route_usage(
     )
 
 
+def _interpretation_hash(interpretation: Any) -> Optional[str]:
+    if interpretation is None or not str(interpretation).strip():
+        return None
+    return hashlib.sha256(str(interpretation).strip().encode("utf-8")).hexdigest()
+
+
 def record_route_receipt(
     conn: sqlite3.Connection,
     decision: Dict[str, Any],
@@ -133,8 +140,8 @@ def record_route_receipt(
         INSERT INTO route_execution_receipts (
             timestamp, route_name, route_type, input_text, success, importance_reason,
             result_summary, error_message, warning_message, decision_json, action_result_json,
-            input_action_log_id
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            input_action_log_id, clarification_id, interpretation_hash
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             timestamp,
@@ -149,5 +156,7 @@ def record_route_receipt(
             preview_text(decision, 5000),
             preview_text(action_result, 5000),
             input_action_log_id,
+            decision.get("clarification_id"),
+            _interpretation_hash(decision.get("interpretation")),
         ),
     )

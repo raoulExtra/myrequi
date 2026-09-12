@@ -60,7 +60,7 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 - [x] Add a `clarification_events` append-only table for detection, question, user answer, assumption authorization, resolution, block, and execution handoff.
 - [x] Add constraints for valid issue types, states, risk bands, and authorization values.
 - [x] Add indexes for active clarifications, state, risk, session, and unresolved question lookup.
-- [ ] Add views for active clarification flow and clarification-to-execution lineage.
+- [x] Add views for active clarification flow and clarification event lineage; execution receipts remain unlinked until a receipt foreign key is added.
 - [ ] Ensure unresolved clarification records do not automatically create noisy generic open questions; create/link one only when a real user decision is required.
 - [ ] Ensure every resolved clarification points to the resolving answer/episode and retains prior candidate interpretations.
 - [ ] Add provenance/receipt records for clarification state transitions where the existing schema requires them.
@@ -69,14 +69,14 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 
 - [x] Add a pure Python classifier module, separate from execution, that returns structured findings rather than directly acting.
 - [x] Detect the initial MVP cases: missing required arguments, contradictory instruction markers, unsafe recipient ambiguity, destructive target ambiguity, and incomplete Git staging scope.
-- [ ] Extend detection to multiple plausible targets, unresolved antecedents, and active safety/advisory boundary conflicts.
-- [ ] Add deterministic materiality scoring based on consequence differences, not linguistic uncertainty alone.
+- [x] Extend detection to multiple plausible recipients or destructive targets, unresolved antecedents, and high-impact action boundaries.
+- [x] Add deterministic materiality scoring based on issue type, risk band, and candidate count; scores are exposed in classifier findings.
 - [ ] Add contradiction precedence: explicit later instruction may supersede earlier instruction only when the user clearly indicates revision; otherwise ask.
 - [x] Add initial clarification transitions for pending answer, explicit resolution, cancellation/blocking, stale answers, and idempotent active lookup.
-- [ ] Add assumption authorization and full partial-resolution workflow.
+- [x] Add explicit assumption authorization and partial-answer handling; execution handoff remains separate.
 - [x] Add a structured clarification response containing detected issue, materiality/risk, one question, and numbered choices.
 - [x] Add explicit handling for answers that resolve, remain insufficient, or cancel/block.
-- [ ] Add explicit handling for partial answers, contradictory answers, and assumption authorization semantics.
+- [x] Add explicit handling for partial and contradictory answers, plus assumption authorization semantics.
 - [x] Route detected unresolved input to clarification before route execution; recall remains support-only for this gate.
 - [ ] Keep memory recall available as support evidence, never as silent authorization to choose a consequential interpretation.
 - [x] Ensure `--single` uses the same clarification gate as direct router execution.
@@ -87,9 +87,9 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 - [x] Insert the clarification gate before control-command execution or external tool dispatch.
 - [ ] Preserve safe read-only inspection paths where ambiguity cannot cause material harm.
 - [ ] Require explicit authorization for assumptions that affect database writes, file changes, external messages, commands, or high-impact operations.
-- [ ] Pass a resolved clarification ID and interpretation hash into the execution/audit receipt.
+- [x] Pass an optional resolved clarification ID and interpretation hash into the execution/audit receipt; unresolved answers still cannot execute.
 - [ ] Reject stale or superseded clarification IDs.
-- [ ] Prevent a later route from bypassing an unresolved clarification by matching a different pattern.
+- [x] Prevent a later consequential route in the same session from bypassing an unresolved clarification; clarification resolution/inspection routes remain available.
 - [ ] Make external transmission require resolved recipient, exact payload scope, and explicit send authorization.
 - [ ] Make destructive or high-impact operations require resolved target, environment, rollback/reversibility information, and applicable trust posture.
 
@@ -106,7 +106,7 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 
 ## Phase 6 — Tests and verification
 
-- [ ] Unit-test detection of missing detail, multiple targets, contradiction, and harmless ambiguity.
+- [x] Unit-test detection of missing detail, multiple targets, contradiction, and harmless ambiguity.
 - [ ] Unit-test materiality and risk classification.
 - [x] Unit-test state transitions, idempotency, stale resolution, and repeated user answers.
 - [x] Test that the MVP unresolved ambiguity returns `clarification_required` before execution.
@@ -118,7 +118,7 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 - [ ] Test contradiction resolution only after explicit user revision.
 - [x] Test the clarification schema creation in an in-memory database and verify idempotent persistence.
 - [ ] Test the standalone migration on a copy and the workspace database.
-- [ ] Test no unexpected database state changes from clarification-only interactions.
+- [x] Test no unexpected database state changes from clarification-only interactions using an isolated SQLite backup.
 - [ ] Add integration tests for `--single`, continuous routing, route execution, and external-send authorization.
 - [ ] Add regression tests for existing trust advisory, recall, route, and Telegram-paused behavior.
 
