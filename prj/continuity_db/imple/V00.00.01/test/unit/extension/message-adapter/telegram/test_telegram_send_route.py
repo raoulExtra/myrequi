@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 
 
-ADAPTER = Path(__file__).resolve().parents[5] / "imple/V00.00.01/extension/messenger-adapter/telegram/telegram_adapter.py"
+ADAPTER = Path(__file__).resolve().parents[5] / "extension/messenger-adapter/telegram/telegram_adapter.py"
 
 
 def load_adapter():

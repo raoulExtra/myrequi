@@ -1,4 +1,9 @@
 from pathlib import Path
+import sys
+
+
+IMPLEMENTATION_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(IMPLEMENTATION_ROOT))
 
 import metacognitive_state_id_migrator
 import metacognitive_state_reader
