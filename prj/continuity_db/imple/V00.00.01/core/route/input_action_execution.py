@@ -105,6 +105,19 @@ def _telegram_formatted_chunks(text: str, limit: int = 4096) -> list[str]:
     return _telegram_chunks(_telegram_format_text(text), limit=limit)
 
 
+def _telegram_update_is_new(update_id: Any, last_update_id: int | None) -> tuple[bool, int | None]:
+    """Accept each ordered Telegram update at most once per poller."""
+    if update_id is None:
+        return True, last_update_id
+    try:
+        current_update_id = int(update_id)
+    except (TypeError, ValueError):
+        return True, last_update_id
+    if last_update_id is not None and current_update_id <= last_update_id:
+        return False, last_update_id
+    return True, current_update_id
+
+
 def _telegram_action_response(result: Dict[str, Any], debug: bool) -> str:
     if debug:
         return json.dumps(result, ensure_ascii=False)
@@ -221,11 +234,17 @@ def execute_agent_tool(
             if allowed_user_id is None and user_file_exists:
                 allowed_user_id = TELEGRAM_POLL_USER_PATH.read_text().strip() or None
             require_private = os.environ.get("TELEGRAM_REQUIRE_PRIVATE", "1") != "0"
+            last_update_id = None
             while True:
                 try:
                     received = await adapter.receive_one_async(bot)
                 except LookupError:
                     await asyncio.sleep(2)
+                    continue
+                is_new_update, last_update_id = _telegram_update_is_new(
+                    received.get("update_id"), last_update_id
+                )
+                if not is_new_update:
                     continue
                 chat_id = received.get("chat_id")
                 user_id = received.get("user_id")

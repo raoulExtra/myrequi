@@ -27,6 +27,8 @@ Tests should use a temporary SQLite database and mocked external services. Do no
 - Exact-match routes reject leading/trailing or extra words unless explicitly allowed.
 - Regex capture groups preserve spaces, Unicode, punctuation, and quoted-looking text.
 - Similar routes resolve deterministically according to priority.
+- Each input is dispatched to at most one route and executes at most once (no double fire).
+- A Telegram update ID is forwarded at most once, even if polling returns it again.
 - Disabled routes do not match.
 - Telegram `X ` messages reach `prompt_session` when no control/agent route matches.
 - Routed Telegram responses contain the action result, not only a generic status.
@@ -121,6 +123,8 @@ Tests should use a temporary SQLite database and mocked external services. Do no
 - `X echo h` should use the route response and return `h`.
 - `X b echo h` should return the real Bash stdout, not `bash completed`.
 - `X capital of France` should fall through to `prompt_session` and send the completed assistant response.
+- `X still no send` must not produce a recursion-denial response; it should remain an ordinary prompt/fallback.
 - A Telegram message without the `X ` ingress prefix should not be forwarded to the AI unless that policy is deliberately changed and tested.
 - A route tagged `route_action:no_recursion` should produce `No recursion here.` when reached from Telegram.
 - Verify one active poller only; a second poller must not run concurrently.
+- Verify one Telegram update produces one route execution and one response, never a double fire.

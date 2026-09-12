@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from route.input_action_router import InputActionRouter
-from route.input_action_execution import _telegram_action_response
+from route.input_action_execution import _telegram_action_response, _telegram_update_is_new
 
 sys.path.insert(0, str(Path(__file__).parent))
 from mocks import MockBridgeClient
@@ -73,6 +73,36 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
     def test_echo_returns_literal_output_without_shell_execution(self):
         decision = self.router.match_input_to_route("echo h", "text")
         result = self.router.execute_routing_decision(decision, "echo h")
+        self.assertEqual(result["action_result"]["result"], "h")
+
+    def test_ordinary_x_prompt_does_not_trigger_recursion_denial(self):
+        decision = self.router.match_input_to_route("still no send", "text")
+        self.assertNotEqual(decision.get("route_name"), "telegram_poll")
+        self.assertNotEqual(decision.get("route_name"), "telegram_receive_one")
+        self.assertFalse((decision.get("recall_packet") or {}).get("recursion_blocked", False))
+
+    def test_duplicate_telegram_update_is_not_new(self):
+        is_new, last_id = _telegram_update_is_new(42, None)
+        self.assertTrue(is_new)
+        self.assertEqual(last_id, 42)
+        is_new, last_id = _telegram_update_is_new(42, last_id)
+        self.assertFalse(is_new)
+        self.assertEqual(last_id, 42)
+
+    def test_older_telegram_update_is_not_new(self):
+        is_new, last_id = _telegram_update_is_new(41, 42)
+        self.assertFalse(is_new)
+        self.assertEqual(last_id, 42)
+
+    def test_one_input_executes_one_route_once(self):
+        decision = self.router.match_input_to_route("echo h", "text")
+        with patch.object(
+            self.router,
+            "execute_routing_decision",
+            wraps=self.router.execute_routing_decision,
+        ) as execute:
+            result = self.router.execute_routing_decision(decision, "echo h")
+        self.assertEqual(execute.call_count, 1)
         self.assertEqual(result["action_result"]["result"], "h")
 
     def test_context_info_action_uses_mock_or_real_bridge(self):

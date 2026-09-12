@@ -736,8 +736,12 @@ class InputActionRouter:
 
             table_packet = retrieve_table_context(query, db_path=self.db_path, limit=limit)
             table_hits = table_packet.get("hits") or []
-            table_packet["recursion_blocked"] = any(self._no_recursion_route_hit(hit) for hit in table_hits)
             table_packet["hits"] = self._filter_recallable_hits(table_hits)
+            table_packet["recursion_blocked"] = any(
+                self._no_recursion_route_hit(hit)
+                and hit.get("match_class") != "incidental"
+                for hit in table_packet["hits"]
+            )
             table_packet["hit_count"] = len(table_packet["hits"]) 
             if table_packet.get("hit_count", 0) > 0:
                 table_packet["result"] = format_table_context(table_packet)
@@ -749,17 +753,23 @@ class InputActionRouter:
             # those as a found key.
             packet = retrieve_memory(query, db_path=self.db_path, limit=max(limit, 10))
             raw_hits = packet.get("hits") or []
-            packet["recursion_blocked"] = any(self._no_recursion_route_hit(hit) for hit in raw_hits)
             tokens = [t.lower() for t in re.findall(r"[A-Za-z][A-Za-z0-9_'-]+", query)]
             strict_hits = []
-            for hit in self._filter_recallable_hits(raw_hits):
+            for hit in raw_hits:
+                if not isinstance(hit, dict):
+                    continue
                 haystack = " ".join(
                     str(hit.get(key) or "")
                     for key in ("source_type", "source_key", "title", "body", "condition")
                 ).lower()
                 if tokens and any(token in haystack for token in tokens):
                     strict_hits.append(hit)
-            packet["hits"] = strict_hits[:limit]
+            packet["recursion_blocked"] = any(
+                self._no_recursion_route_hit(hit)
+                and hit.get("match_class") != "incidental"
+                for hit in strict_hits
+            )
+            packet["hits"] = self._filter_recallable_hits(strict_hits[:limit])
             packet["hit_count"] = len(packet["hits"])
             old_working_packet = packet.get("working_packet") or {}
             packet["working_packet"] = build_working_packet(
