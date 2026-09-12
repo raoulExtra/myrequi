@@ -1901,7 +1901,7 @@ def seed_plan_concept(cur):
         cur.execute(
             """
             INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-            VALUES(?, ?, 'control_command', ?, ?)
+            VALUES(?, ?, ?, ?)
             ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                 note=excluded.note
             """,
@@ -1952,7 +1952,7 @@ def seed_goal_mission_taxonomy_concepts(cur):
             cur.execute(
                 """
                 INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                VALUES(?, ?, 'control_command', ?, ?)
+                VALUES(?, ?, ?, ?)
                 ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                     note=excluded.note
                 """,
@@ -2044,7 +2044,7 @@ def seed_db_optimization_concepts(cur):
             cur.execute(
                 """
                 INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                VALUES(?, ?, 'control_command', ?, ?)
+                VALUES(?, ?, ?, ?)
                 ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                     note=excluded.note
                 """,
@@ -2059,7 +2059,7 @@ def seed_db_optimization_concepts(cur):
                 cur.execute(
                     """
                     INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                    VALUES(?, ?, 'control_command', ?, ?)
+                    VALUES(?, ?, ?, ?)
                     ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                         note=excluded.note
                     """,
@@ -2161,7 +2161,7 @@ def seed_canonical_tag(cur):
         cur.execute(
             """
             INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-            VALUES(?, ?, 'control_command', ?, ?)
+            VALUES(?, ?, ?, ?)
             ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                 note=excluded.note
             """,
@@ -2187,7 +2187,7 @@ def seed_canonical_tag(cur):
         cur.execute(
             """
             INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-            VALUES(?, ?, 'control_command', ?, ?)
+            VALUES(?, ?, ?, ?)
             ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                 note=excluded.note
             """,
@@ -2234,7 +2234,7 @@ def seed_persona_tag(cur):
                 cur.execute(
                     """
                     INSERT INTO object_epistemic_tags(object_type, object_key, tag_key, note)
-                    VALUES(?, ?, 'control_command', ?, ?)
+                    VALUES(?, ?, ?, ?)
                     ON CONFLICT(object_type, object_key, tag_key) DO UPDATE SET
                         note=excluded.note
                     """,
@@ -2393,6 +2393,12 @@ def seed_session_prompt_routes(cur):
             r'^chat\s+trace\s+telegram(?:\s+since\s+(\S+))?(?:\s+--pid\s+(\S+))?$',
             'telegram send latest completed chat trace',
             'Send the latest completed AI chat trace directly to Telegram.',
+        ),
+        (
+            'chat_trace_status',
+            r'^chat\s+trace\s+status$',
+            'show chat trace delivery status',
+            'Show chat-trace, automatic-delivery, and Telegram status.',
         ),
     ]
     cur.executemany(

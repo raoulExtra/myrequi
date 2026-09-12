@@ -32,6 +32,7 @@ ROUTE_ACTION_VARIANTS = (
     ("chat latest", "session_latest_answer", {}),
     ("chat trace", "chat_trace", {}),
     ("chat trace telegram", "chat_trace_telegram", {}),
+    ("chat trace status", "chat_trace_status", {}),
     ("context info", "context_info", {}),
     ("usage percent", "context_info", {}),
     ("s telegram bot token", "telegram_bot_token", {}),
@@ -83,6 +84,15 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
         self.assertNotEqual(decision.get("route_name"), "telegram_poll")
         self.assertNotEqual(decision.get("route_name"), "telegram_receive_one")
         self.assertFalse((decision.get("recall_packet") or {}).get("recursion_blocked", False))
+
+    def test_chat_trace_status_reports_delivery_modes(self):
+        decision = self.router.match_input_to_route("chat trace status", "text")
+        result = self.router.execute_routing_decision(decision, "chat trace status")
+        status = result["action_result"]
+        self.assertEqual(status["status"], "chat_trace_status")
+        self.assertIn("chat trace auto: off", status["result"])
+        self.assertIn("route: available", status["result"])
+        self.assertIn("telegram: on", status["result"])
 
     def test_chat_trace_returns_completed_chat_events(self):
         decision = self.router.match_input_to_route("chat trace", "text")

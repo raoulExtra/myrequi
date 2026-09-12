@@ -104,6 +104,7 @@ Tests should use a temporary SQLite database and mocked external services. Do no
 | `session_prompt` | prompt capture | Preserve complete prompt including punctuation; verify `prompt_session` receives it. |
 | `chat_trace` | optional cursor/PID | Return completed user/assistant events; debug off returns latest text, debug on returns trace JSON; advance cursor without duplicate delivery. |
 | `chat_trace_telegram` | optional cursor/PID | Send the latest completed trace directly to the configured Telegram chat when no poller is active; do not send when there are no new events. |
+| `chat_trace_status` | exact status | Report chat-trace, automatic delivery to the active message adapter, Telegram, and poller status without sending a message. |
 | `session_reload` | exact `/reload` | Match exact command; reject missing slash or extra text. |
 | `set_phase` | JSON phase template | Test valid project/phase values, missing keys, and malformed JSON. |
 | `set_topic` | topic capture | Preserve spaces and symbols; reject missing topic. |

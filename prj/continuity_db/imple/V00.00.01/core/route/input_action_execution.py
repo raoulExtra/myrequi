@@ -404,7 +404,6 @@ def execute_agent_tool(
         return {
             "status": "telegram_document_sent",
             "handler": handler,
-            "chat_id": str(chat_id),
             "file_path": str(file_path),
             "message_id": getattr(result, "message_id", None),
             "token_persisted": False,
@@ -431,12 +430,11 @@ def execute_agent_tool(
             token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
             bot = adapter.create_bot(token)
         if not chat_id:
-            chat_id = adapter.get_default_chat_id(bot)
+            chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID") or adapter.get_default_chat_id(bot)
         result = adapter.send_message(bot, chat_id, str(message or ""))
         return {
             "status": "telegram_message_sent",
             "handler": handler,
-            "chat_id": str(chat_id),
             "message_id": getattr(result, "message_id", None),
             "token_persisted": False,
         }

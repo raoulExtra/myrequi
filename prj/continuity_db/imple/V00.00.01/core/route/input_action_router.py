@@ -1467,6 +1467,30 @@ class InputActionRouter:
                 "pid": session_pid,
                 "assistant_text": assistant_text,
             }
+        if route_name == "chat_trace_status":
+            trace_enabled = bool(self.conn.execute(
+                "SELECT enabled FROM command_routes WHERE route_name='chat_trace' LIMIT 1"
+            ).fetchone()[0])
+            telegram_enabled = bool(self.conn.execute(
+                "SELECT enabled FROM command_routes WHERE route_name='chat_trace_telegram' LIMIT 1"
+            ).fetchone()[0])
+            poll_pid_path = Path("/tmp/myrequi-telegram-poll.pid")
+            poller_active = poll_pid_path.exists()
+            auto_delivery = False
+            result = (
+                f"chat trace auto: {'on' if auto_delivery else 'off'}; "
+                f"route: {'available' if trace_enabled else 'off'}; "
+                f"telegram: {'on' if telegram_enabled else 'off'}; "
+                f"poller: {'on' if poller_active else 'off'}."
+            )
+            return {
+                "status": "chat_trace_status",
+                "result": result,
+                "chat_trace_enabled": trace_enabled,
+                "automatic_delivery": auto_delivery,
+                "telegram_enabled": telegram_enabled,
+                "poller_active": poller_active,
+            }
         if route_name == "chat_trace_telegram":
             from route.input_action_execution import _telegram_debug_enabled, _telegram_formatted_chunks
             trace_decision = {
@@ -1500,7 +1524,6 @@ class InputActionRouter:
                 sent.append(getattr(result, "message_id", None))
             return {
                 "status": "telegram_trace_sent",
-                "chat_id": str(chat_id),
                 "message_ids": sent,
                 "next_cursor": trace.get("next_cursor"),
             }
@@ -1776,6 +1799,19 @@ class InputActionRouter:
             pass
 
 
+def _redact_chat_ids(value: Any) -> Any:
+    """Remove Telegram chat identifiers from all router-facing output."""
+    if isinstance(value, dict):
+        return {
+            key: _redact_chat_ids(item)
+            for key, item in value.items()
+            if key != "chat_id"
+        }
+    if isinstance(value, list):
+        return [_redact_chat_ids(item) for item in value]
+    return value
+
+
 def main():
     parser = argparse.ArgumentParser(description="Continuous input action router")
     parser.add_argument("--db", default=str(DB_PATH))
@@ -1802,7 +1838,7 @@ def main():
 
     if args.single:
         result = router.match_input_to_route(args.single, "text")
-        result = router.execute_routing_decision(result, args.single, pid=args.pid)
+        result = _redact_chat_ids(router.execute_routing_decision(result, args.single, pid=args.pid))
         if args.format == "plain":
             for output_line in router._format_plain_result(result):
                 print(output_line)

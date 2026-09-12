@@ -26,6 +26,16 @@ ON CONFLICT(route_name) DO UPDATE SET
     scope=excluded.scope,
     enabled=1;
 
+INSERT INTO command_routes
+(route_name, input_pattern, route_type, command_template, scope, enabled)
+VALUES
+('chat_trace_status', '^chat\\s+trace\\s+status$', 'control_command', 'show chat trace delivery status', 'session', 1)
+ON CONFLICT(route_name) DO UPDATE SET
+    input_pattern=excluded.input_pattern,
+    command_template=excluded.command_template,
+    scope=excluded.scope,
+    enabled=1;
+
 UPDATE command_routes
 SET input_pattern='^(?:chat\\s+latest|pi_session\\.latest_assistant_text|latest\\s+answer|latest\\s+assistant\\s+text)(?:\\s*\\(\\s*pid\\s*=\\s*"?([^\\)"'']+)"?\\s*\\))?$'
 WHERE route_name='session_latest_answer';
