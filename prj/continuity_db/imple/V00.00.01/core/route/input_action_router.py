@@ -40,7 +40,8 @@ from route.input_action_bridge import PiBridgeClient
 from route.input_action_database import ensure_router_schema
 from route.input_action_execution import execute_agent_tool, execute_context_info_tool
 from route.input_action_output import extract_session_text, format_plain_result
-from clarification import classify_input, create_clarification, ensure_schema as ensure_clarification_schema
+from clarification import answer_clarification, classify_input, create_clarification, ensure_schema as ensure_clarification_schema
+from reasoning_trace import add_assumption, add_review, add_step, attach_evidence, audit_trace, conclude, create_trace, ensure_schema as ensure_reasoning_trace_schema, finalize_trace, inspect_trace, update_uncertainty
 from route.input_action_matching import (
     build_routing_indexes,
     literal_prefix,
@@ -122,6 +123,9 @@ class InputActionRouter:
         """Ensure required tables and views exist; seed patterns from existing routes."""
         ensure_router_schema(self.conn)
         ensure_clarification_schema(self.conn)
+        ensure_reasoning_trace_schema(self.conn)
+        self._seed_clarification_route()
+        self._seed_reasoning_trace_route()
 
         self.conn.commit()
         self._seed_science_routes()
@@ -207,6 +211,40 @@ class InputActionRouter:
                ON CONFLICT(route_name) DO UPDATE SET input_pattern=excluded.input_pattern,
                  command_template=excluded.command_template, scope=excluded.scope, enabled=1"""
         )
+        self.conn.commit()
+        self._invalidate_routing_cache()
+
+    def _seed_clarification_route(self):
+        pattern = r'^clarification\s+answer\s+(\d+)\s+(.+)$'
+        self.add_route_if_missing(
+            'clarification_answer', 'control_command', pattern,
+            'clarification answer <id> <answer>',
+        )
+        # Repair an earlier over-escaped seed without disturbing other routes.
+        self.conn.execute(
+            "UPDATE command_routes SET input_pattern=? WHERE route_name=?",
+            (pattern, 'clarification_answer'),
+        )
+        self.conn.commit()
+        self._invalidate_routing_cache()
+
+    def _seed_reasoning_trace_route(self):
+        routes = [
+            ('clarification_inspect', r'^clarification\s+inspect\s+(\d+)$', 'clarification inspect <id>'),
+            ('reasoning_start', r'^reasoning\s+start\s+(\S+)\s+(.+)$', 'reasoning start <key> <question>'),
+            ('reasoning_step', r'^reasoning\s+step\s+(\d+)\s+(decomposition|assumption|observation|claim|reason|alternative|disconfirmation|interface|verification|revision)\s+(.+)$', 'reasoning step <id> <type> <summary>'),
+            ('reasoning_conclude', r'^reasoning\s+conclude\s+(\d+)\s+(0(?:\.\d+)?|1(?:\.0+)?)\s+(.+)$', 'reasoning conclude <id> <confidence> <conclusion>'),
+            ('reasoning_assumption', r'^reasoning\s+assumption\s+(\d+)\s+(.+)$', 'reasoning assumption <id> <assumption>'),
+            ('reasoning_uncertainty', r'^reasoning\s+uncertainty\s+(\d+)\s+(0(?:\.\d+)?|1(?:\.0+)?)\s+(.+)$', 'reasoning uncertainty <id> <confidence> <note>'),
+            ('reasoning_evidence', r'^reasoning\s+evidence\s+(\d+)\s+(\d+)\s+(.+)$', 'reasoning evidence <id> <step> <evidence>'),
+            ('reasoning_audit', r'^reasoning\s+audit\s+(\d+)$', 'reasoning audit <id>'),
+            ('reasoning_inspect', r'^reasoning\s+inspect\s+(\d+)$', 'reasoning inspect <id>'),
+            ('reasoning_review', r'^reasoning\s+review\s+(\d+)\s+(premise_check|verification|context_audit)\s+(pass|revise|blocked|inconclusive)\s+(.+)$', 'reasoning review <id> <kind> <verdict> <finding>'),
+            ('reasoning_finalize', r'^reasoning\s+finalize\s+(\d+)$', 'reasoning finalize <id>'),
+        ]
+        for route_name, pattern, template in routes:
+            self.add_route_if_missing(route_name, 'control_command', pattern, template)
+            self.conn.execute("UPDATE command_routes SET input_pattern=? WHERE route_name=?", (pattern, route_name))
         self.conn.commit()
         self._invalidate_routing_cache()
 
@@ -1484,6 +1522,100 @@ class InputActionRouter:
         route_name = decision.get("route_name")
         params = decision.get("parameters", {})
         input_text = params.get("input_text", "")
+        if route_name == "reasoning_uncertainty":
+            match = re.match(r"^reasoning\s+uncertainty\s+(\d+)\s+(0(?:\.\d+)?|1(?:\.0+)?)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning uncertainty <id> <confidence> <note>"}
+            try:
+                update_uncertainty(self.conn, int(match.group(1)), float(match.group(2)), match.group(3))
+            except ValueError as error:
+                return {"status": "rejected", "handler": route_name, "error": str(error)}
+            return {"status": "uncertainty_recorded", "trace_id": int(match.group(1)), "confidence": float(match.group(2))}
+        if route_name == "reasoning_assumption":
+            match = re.match(r"^reasoning\s+assumption\s+(\d+)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning assumption <id> <assumption>"}
+            try:
+                add_assumption(self.conn, int(match.group(1)), match.group(2))
+            except ValueError as error:
+                return {"status": "rejected", "handler": route_name, "error": str(error)}
+            return {"status": "assumption_recorded", "trace_id": int(match.group(1))}
+        if route_name == "reasoning_evidence":
+            match = re.match(r"^reasoning\s+evidence\s+(\d+)\s+(\d+)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning evidence <id> <step> <evidence>"}
+            try:
+                attach_evidence(self.conn, int(match.group(1)), int(match.group(2)), match.group(3))
+            except ValueError as error:
+                return {"status": "rejected", "handler": route_name, "error": str(error)}
+            return {"status": "evidence_attached", "trace_id": int(match.group(1)), "step_order": int(match.group(2))}
+        if route_name == "reasoning_audit":
+            match = re.match(r"^reasoning\s+audit\s+(\d+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning audit <id>"}
+            return audit_trace(self.conn, int(match.group(1)))
+        if route_name == "reasoning_conclude":
+            match = re.match(r"^reasoning\s+conclude\s+(\d+)\s+(0(?:\.\d+)?|1(?:\.0+)?)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning conclude <id> <confidence> <conclusion>"}
+            try:
+                conclude(self.conn, int(match.group(1)), match.group(3), confidence=float(match.group(2)), status="provisional")
+            except ValueError as error:
+                return {"status": "rejected", "handler": route_name, "error": str(error)}
+            return {"status": "conclusion_recorded", "trace_id": int(match.group(1)), "confidence": float(match.group(2))}
+        if route_name == "clarification_inspect":
+            match = re.match(r"^clarification\s+inspect\s+(\d+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: clarification inspect <id>"}
+            row = self.conn.execute("SELECT id, issue_type, materiality, risk_band, question, options_json, state, authorization, reasoning_trace_id, created_at, resolved_at FROM interaction_clarifications WHERE id=?", (int(match.group(1)),)).fetchone()
+            if row is None:
+                return {"status": "not_found", "clarification_id": int(match.group(1))}
+            result = {"status": "clarification_inspected", "clarification_id": row[0], "issue_type": row[1], "materiality": row[2], "risk_band": row[3], "question": row[4], "options": json.loads(row[5]), "state": row[6], "authorization": row[7], "reasoning_trace_id": row[8], "created_at": row[9], "resolved_at": row[10]}
+            if row[8] is not None:
+                result["reasoning_trace"] = inspect_trace(self.conn, row[8])
+            return result
+        if route_name == "reasoning_step":
+            match = re.match(r"^reasoning\s+step\s+(\d+)\s+(decomposition|assumption|observation|claim|reason|alternative|disconfirmation|interface|verification|revision)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning step <id> <type> <summary>"}
+            try:
+                step_id = add_step(self.conn, int(match.group(1)), match.group(2).lower(), match.group(3))
+            except ValueError as error:
+                return {"status": "rejected", "handler": route_name, "error": str(error)}
+            return {"status": "step_recorded", "trace_id": int(match.group(1)), "step_id": step_id, "step_type": match.group(2).lower()}
+        if route_name == "reasoning_start":
+            match = re.match(r"^reasoning\s+start\s+(\S+)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning start <key> <question>"}
+            trace_id = create_trace(self.conn, match.group(1), match.group(2))
+            return {"status": "trace_started", "trace_id": trace_id, "trace_key": match.group(1), "question": match.group(2)}
+        if route_name == "reasoning_inspect":
+            match = re.match(r"^reasoning\s+inspect\s+(\d+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning inspect <id>"}
+            return inspect_trace(self.conn, int(match.group(1)))
+        if route_name == "reasoning_review":
+            match = re.match(r"^reasoning\s+review\s+(\d+)\s+(premise_check|verification|context_audit)\s+(pass|revise|blocked|inconclusive)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning review <id> <kind> <verdict> <finding>"}
+            review_id = add_review(self.conn, int(match.group(1)), match.group(2).lower(), match.group(3).lower(), findings=[match.group(4)])
+            return {"status": "review_recorded", "review_id": review_id, "trace_id": int(match.group(1)), "verdict": match.group(3).lower()}
+        if route_name == "reasoning_finalize":
+            match = re.match(r"^reasoning\s+finalize\s+(\d+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: reasoning finalize <id>"}
+            try:
+                finalize_trace(self.conn, int(match.group(1)))
+            except ValueError as error:
+                return {"status": "blocked", "trace_id": int(match.group(1)), "error": str(error)}
+            return {"status": "finalized", "trace_id": int(match.group(1))}
+        if route_name == "clarification_answer":
+            match = re.match(r"^clarification\s+answer\s+(\d+)\s+(.+)$", input_text, re.IGNORECASE)
+            if not match:
+                return {"status": "rejected", "handler": route_name, "error": "Expected: clarification answer <id> <answer>"}
+            answer = match.group(2).strip()
+            authorization = "explicit" if re.search(r"\\b(?:authorize|approved?|yes|confirm)\\b", answer, re.IGNORECASE) else "none"
+            return answer_clarification(self.conn, int(match.group(1)), answer, authorization=authorization)
         if route_name == "trust_assess":
             from trust_advisory import assess
             match = re.match(r"^trust\s+assess\s+(medical_advice|high_impact_software)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)$", input_text, re.IGNORECASE)

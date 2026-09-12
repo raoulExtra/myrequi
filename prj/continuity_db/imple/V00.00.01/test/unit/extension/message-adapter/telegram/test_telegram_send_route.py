@@ -108,6 +108,26 @@ def test_send_document_uses_python_telegram_bot_shape():
     assert result.chat_id == "987"
 
 
+def test_send_document_rejects_files_over_telegram_limit():
+    adapter = load_adapter()
+    with tempfile.NamedTemporaryFile() as file:
+        file.truncate(adapter.MAX_DOCUMENT_BYTES + 1)
+        file.flush()
+        import pytest
+        with pytest.raises(ValueError, match="exceeds"):
+            adapter.send_document(FakeBot(), "987", file.name)
+
+
+def test_send_document_rejects_likely_sensitive_content():
+    adapter = load_adapter()
+    with tempfile.NamedTemporaryFile(mode="w+") as file:
+        file.write("request failed: password=do-not-send-this")
+        file.flush()
+        import pytest
+        with pytest.raises(ValueError, match="sensitive"):
+            adapter.send_document(FakeBot(), "987", file.name)
+
+
 def test_receive_route_matches():
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parents[5] / "core"))

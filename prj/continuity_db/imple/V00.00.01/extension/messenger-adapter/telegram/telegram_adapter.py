@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any, Callable
 
 import sys
+import re
 
 
 
@@ -27,6 +28,29 @@ from extension_state import (  # noqa: E402
 
 DEFAULT_DB = PROJECT_ROOT / "continuity.db"
 ARTIFACT_NAME = "messenger-adapter.telegramm"
+MAX_DOCUMENT_BYTES = 1_900_000_000
+SENSITIVE_DOCUMENT_PATTERNS = (
+    re.compile(r"-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----", re.IGNORECASE),
+    re.compile(r"\b(?:password|passwd|pwd|secret|api[_-]?key|access[_-]?token|auth[_-]?token|bearer)\s*[:=]", re.IGNORECASE),
+    re.compile(r"\b(?:AKIA|ASIA)[0-9A-Z]{16}\b"),
+    re.compile(r"\bgh[pousr]_[A-Za-z0-9_]{20,}\b"),
+)
+
+
+def document_contains_sensitive_content(path: Path, *, chunk_bytes: int = 64 * 1024) -> bool:
+    """Conservatively detect common credential patterns without loading a file."""
+    overlap = 512
+    previous = ""
+    with path.open("rb") as stream:
+        while True:
+            block = stream.read(chunk_bytes)
+            if not block:
+                break
+            text = previous + block.decode("utf-8", errors="ignore")
+            if any(pattern.search(text) for pattern in SENSITIVE_DOCUMENT_PATTERNS):
+                return True
+            previous = text[-overlap:]
+    return False
 
 
 async def receive_one_async(bot: Any) -> dict[str, Any]:
@@ -98,7 +122,7 @@ def send_document(
     chat_id: str | int,
     file_path: str | Path,
     *,
-    max_bytes: int = 50 * 1024 * 1024,
+    max_bytes: int = MAX_DOCUMENT_BYTES,
 ) -> Any:
     """Send a validated local document through python-telegram-bot."""
     path = Path(file_path).expanduser().resolve()
@@ -106,6 +130,8 @@ def send_document(
         raise FileNotFoundError(f"Telegram document is not a regular file: {path}")
     if path.stat().st_size > max_bytes:
         raise ValueError(f"Telegram document exceeds {max_bytes} bytes")
+    if document_contains_sensitive_content(path):
+        raise ValueError("Telegram document appears to contain sensitive content")
 
     async def _send() -> Any:
         with path.open("rb") as document:

@@ -1572,6 +1572,18 @@ def ensure_telegram_dependency_and_route(cur):
                dependency_spec='python-telegram-bot==22.8'
            WHERE name='messenger-adapter.telegramm'"""
     )
+    cur.execute("DELETE FROM object_epistemic_tags WHERE tag_key='integration:adapter'")
+    cur.execute("DELETE FROM epistemic_tags WHERE tag_key='integration:adapter'")
+    cur.execute(
+        """INSERT OR IGNORE INTO epistemic_tags(tag_key, label, description)
+           VALUES('kind:messenger-adapter', 'Messenger adapter',
+                  'Identifies an extension that delivers messages to an external channel.')"""
+    )
+    cur.execute(
+        """INSERT OR IGNORE INTO object_epistemic_tags(object_type, object_key, tag_key, note)
+           VALUES('row', 'code_artifacts:name=messenger-adapter.telegramm',
+                  'kind:messenger-adapter', 'Messenger adapter extension.')"""
+    )
     for route_name, pattern, handler in (
         ('telegram_send_message', r'^telegram\s+send\s+(-?\d+)\s+(.+)$', 'telegram_send_message'),
         ('telegram_send_message_default', r'^telegram\s+send\s+(?!-?\d+\s)(.+)$', 'telegram_send_message'),
@@ -2369,6 +2381,14 @@ def seed_scientist_mode_routes(cur):
 
 
 def seed_session_prompt_routes(cur):
+    cur.execute(
+        """INSERT OR IGNORE INTO feature_flags(feature_key, enabled, switchable, scope, updated_by)
+        VALUES('chat_trace_auto', 0, 1, 'delivery', 'system')"""
+    )
+    cur.execute(
+        """INSERT OR IGNORE INTO feature_flags(feature_key, enabled, switchable, scope, updated_by)
+        VALUES('messenger_prefix_required', 1, 1, 'delivery', 'system')"""
+    )
     routes = [
         (
             'session_prompt',
@@ -2395,10 +2415,40 @@ def seed_session_prompt_routes(cur):
             'Send the latest completed AI chat trace directly to Telegram.',
         ),
         (
+            'chat_trace_detail',
+            r'^chat\s+trace\s+detail$',
+            'python3 -c "import pi_session; print(pi_session.chat_trace(detail=True))"',
+            'Return chat and tool execution status details.',
+        ),
+        (
+            'chat_trace_detail_debug',
+            r'^chat\s+trace\s+detail\s+debug$',
+            'python3 -c "import pi_session; print(pi_session.chat_trace(detail=True))"',
+            'Send bounded tool arguments and results; requires debug mode.',
+        ),
+        (
             'chat_trace_status',
             r'^chat\s+trace\s+status$',
             'show chat trace delivery status',
             'Show chat-trace, automatic-delivery, and Telegram status.',
+        ),
+        (
+            'chat_trace_auto',
+            r'^chat\s+trace\s+auto\s+(on|off|status)$',
+            'set chat trace automatic delivery <action>',
+            'Enable, disable, or inspect automatic delivery to the active message adapter.',
+        ),
+        (
+            'free_me',
+            r'^free_me$',
+            'disable messenger command prefix',
+            'Disable the messenger command prefix requirement.',
+        ),
+        (
+            'extension_status',
+            r'^(?:extension|extensions)\s+status$',
+            'show active extensions and versions',
+            'Show active extensions with kind, type, and active version.',
         ),
     ]
     cur.executemany(

@@ -72,9 +72,11 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 - [ ] Extend detection to multiple plausible targets, unresolved antecedents, and active safety/advisory boundary conflicts.
 - [ ] Add deterministic materiality scoring based on consequence differences, not linguistic uncertainty alone.
 - [ ] Add contradiction precedence: explicit later instruction may supersede earlier instruction only when the user clearly indicates revision; otherwise ask.
-- [ ] Add a clarification state machine with idempotent transitions and no execution from `clarification_required`.
+- [x] Add initial clarification transitions for pending answer, explicit resolution, cancellation/blocking, stale answers, and idempotent active lookup.
+- [ ] Add assumption authorization and full partial-resolution workflow.
 - [x] Add a structured clarification response containing detected issue, materiality/risk, one question, and numbered choices.
-- [ ] Add explicit handling for user answers that resolve, partially resolve, contradict again, or authorize an assumption.
+- [x] Add explicit handling for answers that resolve, remain insufficient, or cancel/block.
+- [ ] Add explicit handling for partial answers, contradictory answers, and assumption authorization semantics.
 - [x] Route detected unresolved input to clarification before route execution; recall remains support-only for this gate.
 - [ ] Keep memory recall available as support evidence, never as silent authorization to choose a consequential interpretation.
 - [x] Ensure `--single` uses the same clarification gate as direct router execution.
@@ -106,12 +108,12 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 
 - [ ] Unit-test detection of missing detail, multiple targets, contradiction, and harmless ambiguity.
 - [ ] Unit-test materiality and risk classification.
-- [ ] Unit-test state transitions, idempotency, stale resolution, and repeated user answers.
+- [x] Unit-test state transitions, idempotency, stale resolution, and repeated user answers.
 - [x] Test that the MVP unresolved ambiguity returns `clarification_required` before execution.
 - [ ] Test that safe read-only inspection remains available where defined.
 - [ ] Test that recall does not silently authorize an executable route.
 - [x] Test preservation of original input, candidates, question, and options.
-- [ ] Add tests for answer, assumption authorization, and resolution preservation.
+- [x] Add tests for answer, explicit authorization, and resolution state preservation.
 - [x] Test no duplicate active clarification for the same interaction.
 - [ ] Test contradiction resolution only after explicit user revision.
 - [x] Test the clarification schema creation in an in-memory database and verify idempotent persistence.

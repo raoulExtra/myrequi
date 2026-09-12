@@ -103,8 +103,27 @@ Tests should use a temporary SQLite database and mocked external services. Do no
 | `session_model_set` | model name capture | Preserve model identifier; reject missing/whitespace model. |
 | `session_prompt` | prompt capture | Preserve complete prompt including punctuation; verify `prompt_session` receives it. |
 | `chat_trace` | optional cursor/PID | Return completed user/assistant events; debug off returns latest text, debug on returns trace JSON; advance cursor without duplicate delivery. |
+| `chat_poller_exists` | exact poller-exists command | Report whether the chat-trace poller is active without starting or stopping it. |
+| `chat_trace_detail` | exact detail command | Return the latest chat trace detail using the safe non-debug contract. |
+| `chat_trace_detail_debug` | exact debug detail command | Return trace detail only when explicit debug mode is requested and permitted. |
 | `chat_trace_telegram` | optional cursor/PID | Send the latest completed trace directly to the configured Telegram chat when no poller is active; do not send when there are no new events. |
+| `clarification_inspect` | clarification ID | Show the exact clarification question, choices, state, authorization, and linked reasoning trace. |
+| `clarification_answer` | clarification ID and answer | Resolve, block, or keep an active clarification pending; require explicit authorization for consequential resolution. |
+| `reasoning_start` | trace key and question | Start an inspectable reasoning trace before generation; reject missing key/question. |
+| `reasoning_step` | trace ID, step type, summary | Record a concise intermediate reasoning step with an allowlisted type. |
+| `reasoning_conclude` | trace ID, confidence, conclusion | Record a provisional conclusion; do not close the trace or bypass verification. |
+| `reasoning_assumption` | trace ID and assumption | Add a load-bearing assumption to the inspectable working set without duplicating it. |
+| `reasoning_uncertainty` | trace ID, confidence, note | Record calibrated confidence and a concrete uncertainty note; reject missing notes or invalid ranges. |
+| `reasoning_evidence` | trace ID, step order, evidence | Attach structured supporting evidence to a specific reasoning step. |
+| `reasoning_audit` | reasoning trace ID | Report missing decomposition, assumptions, alternatives, disconfirmation, uncertainty, conclusion, or verification. |
+| `reasoning_inspect` | reasoning trace ID | Return the ordered, inspectable reasoning summary with assumptions, evidence, alternatives, uncertainty, and verification state. |
+| `reasoning_review` | trace ID, review kind, verdict, finding | Record a premise, verification, or context review; update trace status without hiding findings. |
+| `reasoning_finalize` | reasoning trace ID | Close only a trace with a conclusion and passing verification review; otherwise return blocked. |
 | `chat_trace_status` | exact status | Report chat-trace, automatic delivery to the active message adapter, Telegram, and poller status without sending a message. |
+| `chat_trace_auto` | on/off/status | Persist automatic delivery setting; default off; report current state without exposing adapter identifiers. |
+| `free_me` | exact `free_me` | Match the explicit free-me command and return its controlled response. |
+| `trust_assess` | domain and five evidence scores plus conflict/risk | Record an advisory-only trust assessment; verify domain validation, score bounds, conflict gates, and no execution authorization. |
+| `extension_status` | extension(s) status | List active extensions with kind, type, and active version; show an empty result safely. |
 | `session_reload` | exact `/reload` | Match exact command; reject missing slash or extra text. |
 | `set_phase` | JSON phase template | Test valid project/phase values, missing keys, and malformed JSON. |
 | `set_topic` | topic capture | Preserve spaces and symbols; reject missing topic. |

@@ -12,6 +12,7 @@ from route.input_action_router import InputActionRouter
 from route.input_action_execution import _telegram_action_response, _telegram_update_is_new
 
 sys.path.insert(0, str(Path(__file__).parent))
+sys.path.insert(0, str(Path("prj/continuity_db/imple/V00.00.01/extension")))
 from mocks import MockBridgeClient, mock_pi_session
 
 
@@ -31,8 +32,13 @@ ROUTE_ACTION_VARIANTS = (
     ("ctx", "context_info", {}),
     ("chat latest", "session_latest_answer", {}),
     ("chat trace", "chat_trace", {}),
+    ("chat trace detail", "chat_trace_detail", {}),
     ("chat trace telegram", "chat_trace_telegram", {}),
     ("chat trace status", "chat_trace_status", {}),
+    ("chat poller exists", "chat_poller_exists", {}),
+    ("chat trace auto on", "chat_trace_auto", {"group1": "on"}),
+    ("free_me", "free_me", {}),
+    ("extension status", "extension_status", {}),
     ("context info", "context_info", {}),
     ("usage percent", "context_info", {}),
     ("s telegram bot token", "telegram_bot_token", {}),
@@ -74,10 +80,34 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
         self.assertEqual(result["action_result"]["stdout"], "h\n")
         self.assertEqual(result["action_result"]["result"], "h")
 
+    def test_bash_log_is_removed_before_execution_and_delivered_afterward(self):
+        log_path = self.tmpdir / "tmp" / "bash.log"
+        log_path.parent.mkdir()
+        log_path.write_text("stale")
+        decision = self.router.match_input_to_route("b printf fresh > tmp/bash.log", "text")
+        with patch(
+            "message_adapter_registry.send_document_to_active_adapters",
+            return_value=[{"adapter": "messenger-adapter.telegramm", "message_id": 8}],
+        ) as send:
+            result = self.router.execute_routing_decision(decision, "b printf fresh > tmp/bash.log")
+        self.assertEqual(log_path.read_text(), "fresh")
+        self.assertEqual(send.call_args.args[2], log_path)
+        self.assertEqual(
+            result["action_result"]["bash_log_delivery"],
+            [{"adapter": "messenger-adapter.telegramm", "message_id": 8}],
+        )
+
     def test_echo_returns_literal_output_without_shell_execution(self):
         decision = self.router.match_input_to_route("echo h", "text")
         result = self.router.execute_routing_decision(decision, "echo h")
         self.assertEqual(result["action_result"]["result"], "h")
+
+    def test_detailed_action_log_is_not_written_when_debug_is_off(self):
+        before = self.router.conn.execute("SELECT COUNT(*) FROM input_action_log").fetchone()[0]
+        decision = self.router.match_input_to_route("echo debug-off", "text")
+        self.router.execute_routing_decision(decision, "echo debug-off")
+        after = self.router.conn.execute("SELECT COUNT(*) FROM input_action_log").fetchone()[0]
+        self.assertEqual(after, before)
 
     def test_ordinary_x_prompt_does_not_trigger_recursion_denial(self):
         decision = self.router.match_input_to_route("still no send", "text")
@@ -85,16 +115,78 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
         self.assertNotEqual(decision.get("route_name"), "telegram_receive_one")
         self.assertFalse((decision.get("recall_packet") or {}).get("recursion_blocked", False))
 
+    def test_extension_status_lists_active_extensions_with_versions(self):
+        decision = self.router.match_input_to_route("extension status", "text")
+        result = self.router.execute_routing_decision(decision, "extension status")
+        status = result["action_result"]
+        self.assertEqual(status["status"], "extension_status")
+        self.assertTrue(status["extensions"])
+        for extension in status["extensions"]:
+            self.assertIn("kind", extension)
+            self.assertIn("type", extension)
+            self.assertIn("version", extension)
+            self.assertIn("tags", extension)
+            self.assertTrue(extension["tags"])
+
+    def test_free_me_disables_messenger_prefix(self):
+        decision = self.router.match_input_to_route("free_me", "text")
+        result = self.router.execute_routing_decision(decision, "free_me")
+        self.assertEqual(result["action_result"]["status"], "messenger_prefix_disabled")
+        enabled = self.router.conn.execute(
+            "SELECT enabled FROM feature_flags WHERE feature_key='messenger_prefix_required'"
+        ).fetchone()[0]
+        self.assertEqual(enabled, 0)
+
+    def test_chat_trace_auto_status_reports_enabled_state(self):
+        decision = self.router.match_input_to_route("chat trace auto status", "text")
+        result = self.router.execute_routing_decision(decision, "chat trace auto status")
+        self.assertIn(result["action_result"]["result"], {"chat trace auto: on.", "chat trace auto: off."})
+
+    def test_chat_poller_exists_sets_a_status_tag(self):
+        decision = self.router.match_input_to_route("chat poller exists", "text")
+        result = self.router.execute_routing_decision(decision, "chat poller exists")
+        action = result["action_result"]
+        self.assertEqual(action["status"], "chat_poller_exists")
+        self.assertIn(action["tag_key"], {"status:chat_poller_present", "status:chat_poller_absent"})
+        tag = self.router.conn.execute(
+            "SELECT tag_key FROM object_epistemic_tags WHERE object_type='route' AND object_key='chat_poller_exists'"
+        ).fetchone()[0]
+        self.assertEqual(tag, action["tag_key"])
+
     def test_chat_trace_status_reports_delivery_modes(self):
+        self.router.conn.execute("UPDATE feature_flags SET enabled=0 WHERE feature_key='chat_trace_auto'")
+        self.router.conn.commit()
         decision = self.router.match_input_to_route("chat trace status", "text")
         result = self.router.execute_routing_decision(decision, "chat trace status")
         status = result["action_result"]
         self.assertEqual(status["status"], "chat_trace_status")
         self.assertIn("chat trace auto: off", status["result"])
-        self.assertIn("route: available", status["result"])
-        self.assertIn("telegram: on", status["result"])
+        self.assertNotIn("route: available", status["result"])
+        self.assertIn("active adapters: 1", status["result"])
+        self.assertIn("telegram route: on", status["result"])
+
+    def test_chat_trace_detail_returns_safe_tool_status(self):
+        decision = self.router.match_input_to_route("chat trace detail", "text")
+        with mock_pi_session():
+            with patch(
+                "pi_session.get_session_history",
+                side_effect=[
+                    {"data": {"events": [{"id": "start-1", "timestamp": "2026-09-12T10:00:00Z", "data": {"toolName": "bash"}}]}},
+                    {"data": {"events": [{"id": "update-1", "timestamp": "2026-09-12T10:00:01Z", "data": {"toolName": "bash"}}]}},
+                    {"data": {"events": [{"id": "end-1", "timestamp": "2026-09-12T10:00:02Z", "data": {"toolName": "bash", "status": "success"}}]}},
+                ],
+            ):
+                result = self.router.execute_routing_decision(decision, "chat trace detail")
+        action = result["action_result"]
+        self.assertEqual(action["status"], "chat_trace_detail")
+        self.assertIn("tool_execution_start: bash", action["result"])
+        self.assertNotIn("args", action["result"])
 
     def test_chat_trace_returns_completed_chat_events(self):
+        self.router.conn.execute(
+            "UPDATE feature_flags SET enabled=0 WHERE feature_key='chat_trace_auto'"
+        )
+        self.router.conn.commit()
         decision = self.router.match_input_to_route("chat trace", "text")
         self.assertEqual(decision["route_name"], "chat_trace")
         with mock_pi_session():
@@ -110,6 +202,29 @@ class RouteActionArgumentVariantTests(unittest.TestCase):
         self.assertEqual(action["result"], "hi <Peter>")
         self.assertEqual(action["next_cursor"], "evt-2")
         self.assertEqual([event["role"] for event in action["events"]], ["user", "assistant"])
+
+    def test_chat_trace_auto_delivers_standalone_trace(self):
+        self.router.conn.execute(
+            "UPDATE feature_flags SET enabled=1 WHERE feature_key='chat_trace_auto'"
+        )
+        self.router.conn.commit()
+        decision = self.router.match_input_to_route("chat trace", "text")
+        with mock_pi_session():
+            with patch(
+                "pi_session.get_session_history",
+                return_value={"data": {"events": [
+                    {"id": "evt-1", "message": {"role": "assistant", "content": [{"type": "text", "text": "trace output"}]}},
+                ]}},
+            ), patch(
+                "message_adapter_registry.send_to_active_adapters",
+                return_value=[{"adapter": "messenger-adapter.telegramm", "message_id": 7}],
+            ) as send:
+                result = self.router.execute_routing_decision(decision, "chat trace")
+        self.assertEqual(send.call_args.args[2], "trace output")
+        self.assertEqual(
+            result["action_result"]["automatic_delivery"],
+            [{"adapter": "messenger-adapter.telegramm", "message_id": 7}],
+        )
 
     def test_duplicate_telegram_update_is_not_new(self):
         is_new, last_id = _telegram_update_is_new(42, None)

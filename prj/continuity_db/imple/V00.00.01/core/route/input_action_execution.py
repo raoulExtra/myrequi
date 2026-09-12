@@ -1,6 +1,7 @@
 """Execution services for agent-tool routing decisions."""
 
 import asyncio
+import fcntl
 import html
 import importlib.util
 import json
@@ -17,6 +18,9 @@ from typing import Any, Dict
 
 TELEGRAM_POLL_PID_PATH = Path('/tmp/myrequi-telegram-poll.pid')
 TELEGRAM_POLL_USER_PATH = Path('/tmp/myrequi-telegram-poll-user.id')
+TELEGRAM_POLL_LOG_PATH = Path('/tmp/myrequi-telegram-poll.log')
+TELEGRAM_POLL_LOCK_PATH = Path('/tmp/myrequi-telegram-poll.lock')
+TELEGRAM_POLL_HEARTBEAT_PATH = Path('/tmp/myrequi-telegram-poll.heartbeat')
 TELEGRAM_REJECTED_DIR = Path('/tmp/myrequi-telegram-rejected')
 
 
@@ -40,18 +44,49 @@ def _record_rejected_telegram_message(message: Dict[str, Any], reason: str) -> s
     return str(path)
 
 
+def _configured_telegram_user_ids() -> set[str]:
+    """Return configured Telegram user IDs, accepting comma-separated values."""
+    return {value.strip() for value in os.environ.get("TELEGRAM_ALLOWED_USER_ID", "").split(",") if value.strip()}
+
+
+def _telegram_poller_pid_is_live() -> bool:
+    """Validate the PID file against the actual managed Telegram poller."""
+    if not TELEGRAM_POLL_PID_PATH.exists():
+        return False
+    try:
+        pid = int(TELEGRAM_POLL_PID_PATH.read_text().strip())
+        cmdline = Path(f"/proc/{pid}/cmdline").read_bytes().replace(b"\\0", b" ").decode("utf-8", "replace").lower()
+        heartbeat_fresh = TELEGRAM_POLL_HEARTBEAT_PATH.exists() and time.time() - TELEGRAM_POLL_HEARTBEAT_PATH.stat().st_mtime < 120
+        return "input_action_router.py" in cmdline and "telegram poll" in cmdline and heartbeat_fresh
+    except (OSError, ValueError):
+        return False
+
+
+def _telegram_poller_lock_is_held() -> bool:
+    """Check the single-owner lock without blocking."""
+    lock = TELEGRAM_POLL_LOCK_PATH.open("a+")
+    try:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        lock.close()
+        return True
+    fcntl.flock(lock.fileno(), fcntl.LOCK_UN)
+    lock.close()
+    return False
+
+
 def _telegram_message_is_allowed(message: Dict[str, Any]) -> tuple[bool, str | None]:
     """Enforce Telegram identity restrictions before exposing a message."""
-    allowed_user_id = os.environ.get("TELEGRAM_ALLOWED_USER_ID")
+    allowed_user_ids = _configured_telegram_user_ids()
     allowed_chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID")
     require_private = os.environ.get("TELEGRAM_REQUIRE_PRIVATE", "1") != "0"
-    if not allowed_user_id:
+    if not allowed_user_ids:
         return False, "TELEGRAM_ALLOWED_USER_ID is not configured"
     if require_private and message.get("chat_type") != "private":
         return False, "Telegram message is not from a private chat"
     if message.get("user_is_bot") is True:
         return False, "Telegram message is from a bot"
-    if str(message.get("user_id")) != str(allowed_user_id):
+    if str(message.get("user_id")) not in allowed_user_ids:
         return False, "Telegram message user is not allowed"
     if allowed_chat_id is not None and str(message.get("chat_id")) != str(allowed_chat_id):
         return False, "Telegram message chat is not allowed"
@@ -214,6 +249,35 @@ def execute_agent_tool(
             TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
             return {"status": "telegram_poll_not_running", "handler": handler}
     if handler == "telegram_poll":
+        # The public command starts one detached managed child; the child runs the loop.
+        if os.environ.get("MYREQUI_TELEGRAM_POLLER_CHILD") != "1":
+            if _telegram_poller_pid_is_live() or _telegram_poller_lock_is_held():
+                poll_pid = TELEGRAM_POLL_PID_PATH.read_text().strip() if TELEGRAM_POLL_PID_PATH.exists() else None
+                result = {"status": "telegram_poll_already_running", "handler": handler}
+                if poll_pid:
+                    result["pid"] = int(poll_pid)
+                return result
+            TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
+            router_script = Path(__file__).resolve().parent / "input_action_router.py"
+            project_root = Path(__file__).resolve().parents[6]
+            env = os.environ.copy()
+            env["MYREQUI_TELEGRAM_POLLER_CHILD"] = "1"
+            core_root = router_script.parent.parent
+            extension_root = core_root.parent / "extension"
+            env["PYTHONPATH"] = os.pathsep.join(
+                str(path) for path in (project_root, core_root, extension_root)
+            )
+            log_handle = TELEGRAM_POLL_LOG_PATH.open("ab")
+            process = subprocess.Popen(
+                [sys.executable, str(router_script), "--db", str(db_path), "--single", "telegram poll"],
+                stdin=subprocess.DEVNULL,
+                stdout=log_handle,
+                stderr=log_handle,
+                env=env,
+                start_new_session=True,
+            )
+            log_handle.close()
+            return {"status": "telegram_poll_started", "handler": handler, "pid": process.pid, "log": str(TELEGRAM_POLL_LOG_PATH)}
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
         spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
         if spec is None or spec.loader is None:
@@ -225,22 +289,36 @@ def execute_agent_tool(
         if bot is None:
             token = adapter.ask_for_bot_token(type("EphemeralBot", (), {})(), db_path=db_path)
             bot = adapter.create_bot(token)
+        poll_lock = TELEGRAM_POLL_LOCK_PATH.open("a+")
+        try:
+            fcntl.flock(poll_lock.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            poll_lock.close()
+            return {"status": "telegram_poll_already_running", "handler": handler}
         TELEGRAM_POLL_PID_PATH.write_text(str(os.getpid()))
+        TELEGRAM_POLL_HEARTBEAT_PATH.write_text(str(time.time()))
 
         async def poll_forever() -> None:
             allowed_chat_id = os.environ.get("TELEGRAM_ALLOWED_CHAT_ID")
             user_file_exists = TELEGRAM_POLL_USER_PATH.exists()
-            allowed_user_id = os.environ.get("TELEGRAM_ALLOWED_USER_ID")
-            if allowed_user_id is None and user_file_exists:
-                allowed_user_id = TELEGRAM_POLL_USER_PATH.read_text().strip() or None
+            allowed_user_ids = _configured_telegram_user_ids()
+            if not allowed_user_ids and user_file_exists:
+                allowed_user_ids = {value.strip() for value in TELEGRAM_POLL_USER_PATH.read_text().split(",") if value.strip()}
             require_private = os.environ.get("TELEGRAM_REQUIRE_PRIVATE", "1") != "0"
             last_update_id = None
             while True:
+                TELEGRAM_POLL_HEARTBEAT_PATH.write_text(str(time.time()))
                 try:
                     received = await adapter.receive_one_async(bot)
                 except LookupError:
                     await asyncio.sleep(2)
                     continue
+                except Exception as error:
+                    if error.__class__.__name__ == "Conflict":
+                        with TELEGRAM_POLL_LOG_PATH.open("ab") as log:
+                            log.write(b"Telegram getUpdates conflict; stopping managed poller.\\n")
+                        break
+                    raise
                 is_new_update, last_update_id = _telegram_update_is_new(
                     received.get("update_id"), last_update_id
                 )
@@ -254,17 +332,30 @@ def execute_agent_tool(
                     continue
                 if allowed_chat_id is None:
                     allowed_chat_id = chat_id
-                if allowed_user_id is None:
-                    allowed_user_id = user_id
+                if not allowed_user_ids:
+                    allowed_user_ids = {str(user_id)}
                     if not user_file_exists:
-                        TELEGRAM_POLL_USER_PATH.write_text(str(allowed_user_id))
+                        TELEGRAM_POLL_USER_PATH.write_text(str(user_id))
                         TELEGRAM_POLL_USER_PATH.chmod(0o600)
-                if chat_id != allowed_chat_id or user_id != allowed_user_id:
+                if chat_id != allowed_chat_id or str(user_id) not in allowed_user_ids:
                     # Acknowledge but never forward another chat's message.
                     continue
                 text = received.get("text") or ""
-                if text.startswith("X "):
+                prefix_row = None
+                try:
+                    prefix_row = bridge_client.conn.execute(
+                        "SELECT enabled FROM feature_flags WHERE feature_key='messenger_prefix_required' LIMIT 1"
+                    ).fetchone()
+                except AttributeError:
+                    pass
+                prefix_required = not (prefix_row is not None and not prefix_row[0])
+                if prefix_required and not text.startswith("X "):
+                    continue
+                if prefix_required:
                     prompt = text[2:].strip()
+                else:
+                    prompt = text.strip()
+                if prompt:
                     if _telegram_package_command_is_blocked(prompt):
                         await bot.send_message(
                             chat_id=chat_id,
@@ -297,12 +388,10 @@ def execute_agent_tool(
                             response_text = _telegram_action_response(
                                 routed_result, _telegram_debug_enabled(router)
                             )
-                            for chunk in _telegram_formatted_chunks(response_text):
-                                await bot.send_message(
-                                    chat_id=chat_id,
-                                    text=chunk,
-                                    parse_mode="HTML",
-                                )
+                            if response_text:
+                                from message_adapter_registry import send_to_active_adapters
+                                for chunk in _telegram_formatted_chunks(response_text):
+                                    send_to_active_adapters(db_path, router, chunk)
                             continue
                     project_root = Path(__file__).resolve().parents[6]
                     if str(project_root) not in sys.path:
@@ -326,6 +415,9 @@ def execute_agent_tool(
         finally:
             TELEGRAM_POLL_PID_PATH.unlink(missing_ok=True)
             TELEGRAM_POLL_USER_PATH.unlink(missing_ok=True)
+            TELEGRAM_POLL_HEARTBEAT_PATH.unlink(missing_ok=True)
+            fcntl.flock(poll_lock.fileno(), fcntl.LOCK_UN)
+            poll_lock.close()
         return {"status": "telegram_poll_stopped", "handler": handler}
     if handler == "telegram_receive_one":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
@@ -351,16 +443,55 @@ def execute_agent_tool(
                 "message": received,
                 "token_persisted": False,
             }
-        return {"status": "telegram_message_received", "handler": handler, "message": received, "token_persisted": False}
+        text = str(received.get("text") or "").strip()
+        prefix_required = True
+        try:
+            prefix_row = bridge_client.conn.execute(
+                "SELECT enabled FROM feature_flags WHERE feature_key='messenger_prefix_required' LIMIT 1"
+            ).fetchone()
+            prefix_required = not (prefix_row is not None and not prefix_row[0])
+        except AttributeError:
+            pass
+        if prefix_required:
+            if not text.startswith("X "):
+                return {
+                    "status": "telegram_message_received",
+                    "handler": handler,
+                    "message": received,
+                    "execution": {"status": "skipped", "reason": "messenger prefix required"},
+                    "token_persisted": False,
+                }
+            text = text[2:].strip()
+        execution = None
+        if text:
+            router = bridge_client if hasattr(bridge_client, "_execute_control_command") else None
+            if router is not None:
+                execution = router._execute_control_command(
+                    {
+                        "route_name": "session_prompt",
+                        "parameters": {"group1": text},
+                        "command_template": "python3 pi_session.py <prompt>",
+                    }
+                )
+        return {
+            "status": "telegram_message_received",
+            "handler": handler,
+            "message": received,
+            "execution": execution or {"status": "skipped", "reason": "empty message"},
+            "token_persisted": False,
+        }
     if handler == "execute_bash":
         params = decision.get("parameters") or {}
         command = params.get("group1") or params.get("command") or ""
         if not str(command).strip():
             return {"status": "rejected", "handler": handler, "error": "Bash command is required"}
+        workspace_root = Path(db_path).resolve().parent
+        bash_log_path = workspace_root / "tmp" / "bash.log"
+        bash_log_path.unlink(missing_ok=True)
         try:
             completed = subprocess.run(
                 ["bash", "-lc", str(command)],
-                cwd=str(Path(db_path).resolve().parent),
+                cwd=str(workspace_root),
                 capture_output=True,
                 text=True,
                 timeout=20,
@@ -376,7 +507,7 @@ def execute_agent_tool(
             }
         stdout = completed.stdout or ""
         stderr = completed.stderr or ""
-        return {
+        result = {
             "status": "bash_completed" if completed.returncode == 0 else "bash_failed",
             "handler": handler,
             "command": str(command),
@@ -385,6 +516,15 @@ def execute_agent_tool(
             "stderr": stderr,
             "result": stdout.rstrip("\n") or stderr.rstrip("\n"),
         }
+        if bash_log_path.is_file():
+            extension_root = Path(__file__).resolve().parents[2] / "extension"
+            if str(extension_root) not in sys.path:
+                sys.path.insert(0, str(extension_root))
+            from message_adapter_registry import send_document_to_active_adapters
+            result["bash_log_delivery"] = send_document_to_active_adapters(
+                db_path, bridge_client, bash_log_path
+            )
+        return result
     if handler == "telegram_send_document":
         adapter_path = Path(__file__).resolve().parents[2] / "extension/messenger-adapter/telegram/telegram_adapter.py"
         spec = importlib.util.spec_from_file_location("telegram_adapter", adapter_path)
@@ -424,6 +564,12 @@ def execute_agent_tool(
                 message = params.get("group2")
             else:
                 message = params.get("group1")
+        if not chat_id and not os.environ.get("TELEGRAM_ALLOWED_CHAT_ID"):
+            return {
+                "status": "telegram_chat_id_required",
+                "handler": handler,
+                "error": "TELEGRAM_ALLOWED_CHAT_ID is not set; provide an explicit chat ID or configure the environment variable",
+            }
         bridge = getattr(bridge_client, "_bridge_client", bridge_client)
         bot = getattr(bridge, "telegram_bot", None)
         if bot is None:

@@ -1,4 +1,7 @@
--- Add a safe, completed-event trace route for Telegram delivery.
+-- Add a safe, completed-event trace route for message-adapter delivery.
+INSERT OR IGNORE INTO feature_flags(feature_key, enabled, switchable, scope, updated_by)
+VALUES('chat_trace_auto', 0, 1, 'delivery', 'system');
+
 INSERT INTO command_routes
 (route_name, input_pattern, route_type, command_template, scope, enabled)
 VALUES
@@ -30,6 +33,26 @@ INSERT INTO command_routes
 (route_name, input_pattern, route_type, command_template, scope, enabled)
 VALUES
 ('chat_trace_status', '^chat\\s+trace\\s+status$', 'control_command', 'show chat trace delivery status', 'session', 1)
+ON CONFLICT(route_name) DO UPDATE SET
+    input_pattern=excluded.input_pattern,
+    command_template=excluded.command_template,
+    scope=excluded.scope,
+    enabled=1;
+
+INSERT INTO command_routes
+(route_name, input_pattern, route_type, command_template, scope, enabled)
+VALUES
+('chat_trace_auto', '^chat\\s+trace\\s+auto\\s+(on|off|status)$', 'control_command', 'set chat trace automatic delivery <action>', 'delivery', 1)
+ON CONFLICT(route_name) DO UPDATE SET
+    input_pattern=excluded.input_pattern,
+    command_template=excluded.command_template,
+    scope=excluded.scope,
+    enabled=1;
+
+INSERT INTO command_routes
+(route_name, input_pattern, route_type, command_template, scope, enabled)
+VALUES
+('extension_status', '^(?:extension|extensions)\\s+status$', 'control_command', 'show active extensions and versions', 'extension', 1)
 ON CONFLICT(route_name) DO UPDATE SET
     input_pattern=excluded.input_pattern,
     command_template=excluded.command_template,
