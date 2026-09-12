@@ -39,6 +39,7 @@ from route.input_action_bridge import PiBridgeClient
 from route.input_action_database import ensure_router_schema
 from route.input_action_execution import execute_agent_tool, execute_context_info_tool
 from route.input_action_output import extract_session_text, format_plain_result
+from clarification import classify_input, create_clarification, ensure_schema as ensure_clarification_schema
 from route.input_action_matching import (
     build_routing_indexes,
     literal_prefix,
@@ -78,6 +79,7 @@ class InputActionRouter:
     def setup_database(self):
         """Ensure required tables and views exist; seed patterns from existing routes."""
         ensure_router_schema(self.conn)
+        ensure_clarification_schema(self.conn)
 
         self.conn.commit()
         self._seed_science_routes()
@@ -829,6 +831,9 @@ class InputActionRouter:
             Execution result
         """
         timestamp = datetime.now(timezone.utc).isoformat()
+        clarification_finding = classify_input(input_text, decision)
+        if clarification_finding:
+            return create_clarification(self.conn, input_text, clarification_finding, decision, session_key=pid)
         success = False
         error_message = None
         action_result = None
