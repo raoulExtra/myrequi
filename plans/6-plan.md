@@ -119,7 +119,8 @@ Add a governed clarification-first workflow for prompts that are ambiguous, unde
 - [x] Test the clarification schema creation in an in-memory database and verify idempotent persistence.
 - [ ] Test the standalone migration on a copy and the workspace database.
 - [x] Test no unexpected database state changes from clarification-only interactions using an isolated SQLite backup.
-- [ ] Add integration tests for `--single`, continuous routing, route execution, and external-send authorization.
+- [x] Add isolated integration tests for continuous routing, safe route execution, and external-send authorization.
+- [x] Verify `--single` uses the clarification gate and produces no execution side effects in an isolated database.
 - [ ] Add regression tests for existing trust advisory, recall, route, and Telegram-paused behavior.
 
 ## Phase 7 — Acceptance criteria

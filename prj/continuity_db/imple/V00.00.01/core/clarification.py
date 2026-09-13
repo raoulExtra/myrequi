@@ -148,7 +148,7 @@ def classify_input(input_text: str, decision: Optional[dict[str, Any]] = None) -
 def get_blocking_clarification(conn, session_key: Optional[str] = None):
     """Return one active clarification that must be resolved before another action."""
     if session_key is None:
-        return conn.execute("SELECT * FROM interaction_clarifications WHERE state IN ('clarification_required', 'assumption_proposed') AND session_key IS NULL ORDER BY id DESC LIMIT 10").fetchone()
+        return None
     return conn.execute("SELECT * FROM interaction_clarifications WHERE state IN ('clarification_required', 'assumption_proposed') AND session_key=? ORDER BY id DESC LIMIT 10", (session_key,)).fetchone()
 
 
